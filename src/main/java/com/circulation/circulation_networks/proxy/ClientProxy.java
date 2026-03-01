@@ -1,8 +1,13 @@
 package com.circulation.circulation_networks.proxy;
 
+import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.handlers.InspectionToolHandler;
 import com.circulation.circulation_networks.handlers.NodeNetworkRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandler;
+import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L2;
+import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L3;
+import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL46L2;
+import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL46L3;
 import com.circulation.circulation_networks.manager.MachineNodeTEManager;
 import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.RegistryItems;
@@ -19,9 +24,52 @@ import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 @SideOnly(Side.CLIENT)
 public class ClientProxy extends CommonProxy {
+
+    public static OpenGLLevel openGLLevel = OpenGLLevel.GL_1_1;
+    public static boolean isLWJGL3 = false;
+
+    static {
+        try {
+            Class.forName("org.lwjgl.system.MemoryStack");
+            isLWJGL3 = true;
+        } catch (ClassNotFoundException ignored) {
+        }
+    }
+
+    public static OpenGLLevel detectOpenGLLevel() {
+        String versionStr = GL11.glGetString(GL11.GL_VERSION);
+        if (versionStr == null) {
+            CirculationFlowNetworks.LOGGER.warn("Failed to obtain OpenGL version, defaulting to GL_1_1");
+            return OpenGLLevel.GL_1_1;
+        }
+        try {
+            String[] parts = versionStr.split("[. ]");
+            int major = Integer.parseInt(parts[0]);
+            int minor = Integer.parseInt(parts[1]);
+            if (major > 4 || (major == 4 && minor >= 6)) {
+                return OpenGLLevel.GL_4_6;
+            } else if (major > 3 || (major == 3 && minor >= 2)) {
+                return OpenGLLevel.GL_3_2_PLUS;
+            } else {
+                return OpenGLLevel.GL_1_1;
+            }
+        } catch (Exception e) {
+            CirculationFlowNetworks.LOGGER.warn("Failed to parse OpenGL version: {}", versionStr);
+            return OpenGLLevel.GL_1_1;
+        }
+    }
+
+    private static SpoceRenderingHandler createSpoceHandler() {
+        return switch (openGLLevel) {
+            case GL_4_6 -> isLWJGL3 ? new SpoceRenderingHandlerGL46L3() : new SpoceRenderingHandlerGL46L2();
+            case GL_3_2_PLUS -> isLWJGL3 ? new SpoceRenderingHandlerGL32L3() : new SpoceRenderingHandlerGL32L2();
+            default -> new SpoceRenderingHandler();
+        };
+    }
 
     public void preInit() {
         super.preInit();
@@ -29,6 +77,8 @@ public class ClientProxy extends CommonProxy {
 
     public void init() {
         super.init();
+        openGLLevel = detectOpenGLLevel();
+        SpoceRenderingHandler.INSTANCE = createSpoceHandler();
     }
 
     public void postInit() {
@@ -69,5 +119,9 @@ public class ClientProxy extends CommonProxy {
         } else {
             MachineNodeTEManager.INSTANCE.onClientTick();
         }
+    }
+
+    public enum OpenGLLevel {
+        GL_1_1, GL_3_2_PLUS, GL_4_6
     }
 }

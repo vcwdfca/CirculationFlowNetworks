@@ -29,22 +29,24 @@ import java.util.Arrays;
 import java.util.List;
 
 @SideOnly(Side.CLIENT)
-public final class SpoceRenderingHandler {
+public class SpoceRenderingHandler {
 
-    public static final SpoceRenderingHandler INSTANCE = new SpoceRenderingHandler();
-    private static final float[] EMPTY_VERTS = new float[0];
+    protected static final float[] EMPTY_VERTS = new float[0];
     private static final int BUILD_BUF_SIZE = 1 << 17;
     private static final int RESCAN_INTERVAL = 3;
+    public static SpoceRenderingHandler INSTANCE;
     private final float[] buildBuf = new float[BUILD_BUF_SIZE];
     private final double[] angleScratch = new double[9];
-    private TileEntity te;
-    private float linkScope;
-    private float energyScope;
-    private float chargingScope;
+    protected TileEntity te;
+    protected float linkScope;
+    protected float energyScope;
+    protected float chargingScope;
+    protected int currentIntersectionSlot = -1;
+    protected float currentIntersectionRadius = 0;
+    private int buildCount;
     private float lastAnimProgress;
     private float animProgress;
     private float[] rs;
-    private int buildCount;
     private float[] linkVerts = EMPTY_VERTS;
     private float[] energyVerts = EMPTY_VERTS;
     private float[] chargingVerts = EMPTY_VERTS;
@@ -52,6 +54,7 @@ public final class SpoceRenderingHandler {
     private boolean energyDirty = false;
     private boolean chargingDirty = false;
     private int tickCounter = 0;
+    private boolean glInitialized = false;
 
     private static float bright(float v) {
         return Math.min(1.0f, v * 1.3f);
@@ -59,67 +62,6 @@ public final class SpoceRenderingHandler {
 
     private static float easeOutCubic(float t) {
         return (float) (1.0 - Math.pow(1.0 - t, 3));
-    }
-
-    private static void drawCachedIntersection(float[] verts, float r, float g, float b) {
-        if (verts.length == 0) return;
-        GlStateManager.color(r, g, b, 1.0f);
-        GlStateManager.glLineWidth(4.0f);
-        Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buf = tess.getBuffer();
-        buf.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
-        for (int i = 0; i < verts.length; i += 3) {
-            buf.pos(verts[i], verts[i + 1], verts[i + 2]).endVertex();
-        }
-        tess.draw();
-    }
-
-    private static void draw(float rotation, float r, float g, float b, float radius, float r1, float g1, float b1) {
-        GlStateManager.pushMatrix();
-        drawSphere(r, g, b, radius, 0.2f);
-        GlStateManager.rotate(rotation, 0.0F, 1.0F, 0.0F);
-        GlStateManager.rotate(rotation * 0.5F, 1.0F, 0.0F, 0.0F);
-        drawBuckyBallWireframe(r1, g1, b1, radius + 0.01f, 0.8f);
-        GlStateManager.popMatrix();
-    }
-
-    private static void drawSphere(float r, float g, float b, float radius, float alpha) {
-        GlStateManager.color(r, g, b, alpha);
-        Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buf = tess.getBuffer();
-        final int slices = 32, stacks = 32;
-        for (int i = 0; i < slices; i++) {
-            double phi1 = Math.PI * i / slices;
-            double phi2 = Math.PI * (i + 1) / slices;
-            buf.begin(GL11.GL_QUAD_STRIP, DefaultVertexFormats.POSITION_NORMAL);
-            for (int j = 0; j <= stacks; j++) {
-                double theta = 2.0 * Math.PI * j / stacks;
-                float x1 = (float) (radius * Math.sin(phi1) * Math.cos(theta));
-                float y1 = (float) (radius * Math.cos(phi1));
-                float z1 = (float) (radius * Math.sin(phi1) * Math.sin(theta));
-                buf.pos(x1, y1, z1).normal(x1 / radius, y1 / radius, z1 / radius).endVertex();
-                float x2 = (float) (radius * Math.sin(phi2) * Math.cos(theta));
-                float y2 = (float) (radius * Math.cos(phi2));
-                float z2 = (float) (radius * Math.sin(phi2) * Math.sin(theta));
-                buf.pos(x2, y2, z2).normal(x2 / radius, y2 / radius, z2 / radius).endVertex();
-            }
-            tess.draw();
-        }
-    }
-
-    private static void drawBuckyBallWireframe(float r, float g, float b, float radius, float alpha) {
-        GlStateManager.color(r, g, b, alpha);
-        GlStateManager.glLineWidth(2.0f);
-        Tessellator tess = Tessellator.getInstance();
-        BufferBuilder buf = tess.getBuffer();
-        buf.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_NORMAL);
-        for (int[] edge : BuckyBallGeometry.edges) {
-            Vec3d v1 = BuckyBallGeometry.vertices.get(edge[0]);
-            Vec3d v2 = BuckyBallGeometry.vertices.get(edge[1]);
-            buf.pos(v1.x * radius, v1.y * radius, v1.z * radius).normal((float) v1.x, (float) v1.y, (float) v1.z).endVertex();
-            buf.pos(v2.x * radius, v2.y * radius, v2.z * radius).normal((float) v2.x, (float) v2.y, (float) v2.z).endVertex();
-        }
-        tess.draw();
     }
 
     private static int addCos(double[] buf, int count, double val) {
@@ -155,6 +97,67 @@ public final class SpoceRenderingHandler {
             }
             buf[j + 1] = key;
         }
+    }
+
+    protected void drawCachedIntersection(float[] verts, float r, float g, float b) {
+        if (verts.length == 0) return;
+        GlStateManager.color(r, g, b, 1.0f);
+        GlStateManager.glLineWidth(4.0f);
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        buf.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION);
+        for (int i = 0; i < verts.length; i += 3) {
+            buf.pos(verts[i], verts[i + 1], verts[i + 2]).endVertex();
+        }
+        tess.draw();
+    }
+
+    private void draw(float rotation, float r, float g, float b, float radius, float r1, float g1, float b1) {
+        GlStateManager.pushMatrix();
+        drawSphere(r, g, b, radius, 0.2f);
+        GlStateManager.rotate(rotation, 0.0F, 1.0F, 0.0F);
+        GlStateManager.rotate(rotation * 0.5F, 1.0F, 0.0F, 0.0F);
+        drawBuckyBallWireframe(r1, g1, b1, radius + 0.01f, 0.8f);
+        GlStateManager.popMatrix();
+    }
+
+    protected void drawSphere(float r, float g, float b, float radius, float alpha) {
+        GlStateManager.color(r, g, b, alpha);
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        final int slices = 32, stacks = 32;
+        for (int i = 0; i < slices; i++) {
+            double phi1 = Math.PI * i / slices;
+            double phi2 = Math.PI * (i + 1) / slices;
+            buf.begin(GL11.GL_QUAD_STRIP, DefaultVertexFormats.POSITION_NORMAL);
+            for (int j = 0; j <= stacks; j++) {
+                double theta = 2.0 * Math.PI * j / stacks;
+                float x1 = (float) (radius * Math.sin(phi1) * Math.cos(theta));
+                float y1 = (float) (radius * Math.cos(phi1));
+                float z1 = (float) (radius * Math.sin(phi1) * Math.sin(theta));
+                buf.pos(x1, y1, z1).normal(x1 / radius, y1 / radius, z1 / radius).endVertex();
+                float x2 = (float) (radius * Math.sin(phi2) * Math.cos(theta));
+                float y2 = (float) (radius * Math.cos(phi2));
+                float z2 = (float) (radius * Math.sin(phi2) * Math.sin(theta));
+                buf.pos(x2, y2, z2).normal(x2 / radius, y2 / radius, z2 / radius).endVertex();
+            }
+            tess.draw();
+        }
+    }
+
+    protected void drawBuckyBallWireframe(float r, float g, float b, float radius, float alpha) {
+        GlStateManager.color(r, g, b, alpha);
+        GlStateManager.glLineWidth(2.0f);
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        buf.begin(GL11.GL_LINES, DefaultVertexFormats.POSITION_NORMAL);
+        for (int[] edge : BuckyBallGeometry.edges) {
+            Vec3d v1 = BuckyBallGeometry.vertices.get(edge[0]);
+            Vec3d v2 = BuckyBallGeometry.vertices.get(edge[1]);
+            buf.pos(v1.x * radius, v1.y * radius, v1.z * radius).normal((float) v1.x, (float) v1.y, (float) v1.z).endVertex();
+            buf.pos(v2.x * radius, v2.y * radius, v2.z * radius).normal((float) v2.x, (float) v2.y, (float) v2.z).endVertex();
+        }
+        tess.draw();
     }
 
     public void setStaus(TileEntity te, double linkScope, double energyScope, double chargingScope) {
@@ -198,13 +201,13 @@ public final class SpoceRenderingHandler {
         }
     }
 
-    private void drawIntersectionImmediate(World world, float radius, float r, float g, float b) {
+    protected void drawIntersectionImmediate(World world, float radius, float r, float g, float b) {
         if (radius <= 0.1f) return;
         float[] verts = buildIntersectionGeometry(world, radius);
         drawCachedIntersection(verts, r, g, b);
     }
 
-    private float[] buildIntersectionGeometry(World world, double radius) {
+    protected float[] buildIntersectionGeometry(World world, double radius) {
         buildCount = 0;
         int radInt = (int) Math.ceil(radius);
         double inner = Math.max(0.0, radius - 1.0);
@@ -397,6 +400,8 @@ public final class SpoceRenderingHandler {
     }
 
     public void clear() {
+        cleanupGL();
+        glInitialized = false;
         te = null;
         linkScope = energyScope = chargingScope = 0;
         animProgress = lastAnimProgress = 0;
@@ -448,12 +453,19 @@ public final class SpoceRenderingHandler {
         GlStateManager.disableCull();
         GlStateManager.depthMask(false);
 
+        if (!glInitialized) {
+            initGL();
+            glInitialized = true;
+        }
+
         float time = world.getTotalWorldTime() + partial;
         float rotation = time * 0.8f;
 
         if (linkScope > 0) {
             final float radius = linkScope * interpFactor;
             final float wr = 0.4f, wg = 0.8f, wb = 1.0f;
+            currentIntersectionSlot = 0;
+            currentIntersectionRadius = radius;
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
             draw(rotation * rs[0], 0, 0.4f, 0.8f, radius, wr, wg, wb);
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
@@ -471,6 +483,8 @@ public final class SpoceRenderingHandler {
         if (energyScope > 0) {
             final float radius = energyScope * interpFactor;
             final float wr = 0.8f, wg = 0.6f, wb = 1.0f;
+            currentIntersectionSlot = 1;
+            currentIntersectionRadius = radius;
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
             draw(rotation * rs[1], 0.4f, 0.2f, 0.8f, radius, wr, wg, wb);
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
@@ -488,6 +502,8 @@ public final class SpoceRenderingHandler {
         if (chargingScope > 0) {
             final float radius = chargingScope * interpFactor;
             final float wr = 0.4f, wg = 1.0f, wb = 0.4f;
+            currentIntersectionSlot = 2;
+            currentIntersectionRadius = radius;
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
             draw(rotation * rs[2], 0, 0.5f, 0.1f, radius, wr, wg, wb);
             GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
@@ -509,4 +525,11 @@ public final class SpoceRenderingHandler {
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();
     }
+
+    protected void initGL() {
+    }
+
+    protected void cleanupGL() {
+    }
+
 }

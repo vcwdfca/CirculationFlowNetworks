@@ -60,5 +60,6 @@ repositories {
         name = "Zeitheron Maven"
         url = "https://maven.zeith.org"
     }
+    mavenCentral()
     mavenLocal() // Must be last for caching to work
 }
