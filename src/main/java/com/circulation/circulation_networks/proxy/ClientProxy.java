@@ -3,6 +3,7 @@ package com.circulation.circulation_networks.proxy;
 import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.handlers.InspectionToolHandler;
 import com.circulation.circulation_networks.handlers.NodeNetworkRenderingHandler;
+import com.circulation.circulation_networks.handlers.PhaseInterrupterRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L2;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L3;
@@ -86,6 +87,7 @@ public class ClientProxy extends CommonProxy {
         MinecraftForge.EVENT_BUS.register(SpoceRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(NodeNetworkRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(InspectionToolHandler.INSTANCE);
+        MinecraftForge.EVENT_BUS.register(PhaseInterrupterRenderingHandler.INSTANCE);
     }
 
     @SubscribeEvent

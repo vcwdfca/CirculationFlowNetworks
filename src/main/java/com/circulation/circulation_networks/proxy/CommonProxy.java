@@ -14,6 +14,7 @@ import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.packets.ContainerProgressBar;
 import com.circulation.circulation_networks.packets.ContainerValueConfig;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
+import com.circulation.circulation_networks.packets.PhaseInterrupterSyncPacket;
 import com.circulation.circulation_networks.packets.SpoceRendering;
 import com.circulation.circulation_networks.packets.UpdateItemModeMessage;
 import com.circulation.circulation_networks.registry.RegistryBlocks;
@@ -61,6 +62,7 @@ public class CommonProxy implements IGuiHandler {
         CapabilityManager.INSTANCE.register(CEHandler.class, new EmptyStorage<>(), () -> null);
         CapabilityManager.INSTANCE.register(INode.class, new EmptyStorage<>(), () -> null);
 
+        registerMessage(PhaseInterrupterSyncPacket.class, Side.SERVER);
         registerMessage(UpdateItemModeMessage.class, Side.SERVER);
 
         registerMessage(SpoceRendering.class, Side.CLIENT);

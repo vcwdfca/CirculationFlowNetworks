@@ -18,7 +18,7 @@ public class BaseTileEntity extends TileEntity {
 
     @Nonnull
     public CFNBaseContainer getContainer(EntityPlayer player) {
-        return EmptyContainer.INSTANCE;
+        return new EmptyContainer();
     }
 
     @SideOnly(Side.CLIENT)

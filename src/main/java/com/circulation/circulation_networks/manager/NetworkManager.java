@@ -9,18 +9,25 @@ import com.circulation.circulation_networks.events.TileEntityLifeCycleEvent;
 import com.circulation.circulation_networks.network.Grid;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.proxy.CommonProxy;
+import com.circulation.circulation_networks.utils.Functions;
 import com.github.bsideup.jabel.Desugar;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMaps;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
-import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
@@ -29,7 +36,6 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
@@ -55,15 +61,18 @@ public final class NetworkManager {
     private final ReferenceSet<INode> activeNodes = new ReferenceOpenHashSet<>();
     private final Int2ObjectMap<IGrid> grids = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Long2ReferenceMap<INode>> posNodes = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<Object2ObjectMap<ChunkPos, ReferenceSet<INode>>> scopeNode = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<Object2ObjectMap<INode, ObjectSet<ChunkPos>>> nodeScope = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<Object2ObjectMap<ChunkPos, ReferenceSet<INode>>> nodeLocation = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<INode>>> scopeNode = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Object2ObjectMap<INode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<INode>>> nodeLocation = new Int2ObjectOpenHashMap<>();
     private final ObjectSet<IGrid> markGird = new ObjectOpenHashSet<>();
     private final Queue<IGrid> emptyGird = new ArrayDeque<>();
     private int nextGridId = 0;
 
     {
         posNodes.defaultReturnValue(Long2ReferenceMaps.emptyMap());
+        scopeNode.defaultReturnValue(Long2ObjectMaps.emptyMap());
+        nodeScope.defaultReturnValue(Object2ObjectMaps.emptyMap());
+        nodeLocation.defaultReturnValue(Long2ObjectMaps.emptyMap());
     }
 
     public static File getSaveFile() {
@@ -91,56 +100,59 @@ public final class NetworkManager {
         }
         pMap.put(pos.toLong(), node);
 
-        ChunkPos ownChunk = new ChunkPos(pos);
-        var locMap = nodeLocation.computeIfAbsent(dimId, k -> {
-            var ma = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<INode>>();
-            ma.defaultReturnValue(ReferenceSets.emptySet());
-            return ma;
-        });
-        var locSet = locMap.get(ownChunk);
+        long ownChunkCoord = Functions.mergeChunkCoords(pos);
+        var locMap = nodeLocation.get(dimId);
+        if (locMap == nodeLocation.defaultReturnValue()) {
+            locMap = new Long2ObjectOpenHashMap<>();
+            locMap.defaultReturnValue(ReferenceSets.emptySet());
+            nodeLocation.put(dimId, locMap);
+        }
+        var locSet = locMap.get(ownChunkCoord);
         if (locSet == locMap.defaultReturnValue()) {
-            locMap.put(ownChunk, locSet = new ReferenceOpenHashSet<>());
+            locMap.put(ownChunkCoord, locSet = new ReferenceOpenHashSet<>());
         }
         locSet.add(node);
 
         int range = (int) node.getLinkScope();
         int minChunkX = (pos.getX() - range) >> 4, maxChunkX = (pos.getX() + range) >> 4;
         int minChunkZ = (pos.getZ() - range) >> 4, maxChunkZ = (pos.getZ() + range) >> 4;
-        ObjectSet<ChunkPos> chunksCovered = new ObjectOpenHashSet<>();
+        LongSet chunksCovered = new LongOpenHashSet();
 
-        var scopeMap = scopeNode.computeIfAbsent(dimId, l -> {
-            var ma = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<INode>>();
-            ma.defaultReturnValue(ReferenceSets.emptySet());
-            return ma;
-        });
+        var scopeMap = scopeNode.get(dimId);
+        if (scopeMap == scopeNode.defaultReturnValue()) {
+            scopeMap = new Long2ObjectOpenHashMap<>();
+            scopeMap.defaultReturnValue(ReferenceSets.emptySet());
+            scopeNode.put(dimId, scopeMap);
+        }
         for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
             for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-                ChunkPos cp = new ChunkPos(cx, cz);
-                chunksCovered.add(cp);
-                var sSet = scopeMap.get(cp);
+                long chunkCoord = Functions.mergeChunkCoords(cx, cz);
+                chunksCovered.add(chunkCoord);
+                var sSet = scopeMap.get(chunkCoord);
                 if (sSet == scopeMap.defaultReturnValue()) {
-                    scopeMap.put(cp, sSet = new ReferenceOpenHashSet<>());
+                    scopeMap.put(chunkCoord, sSet = new ReferenceOpenHashSet<>());
                 }
                 sSet.add(node);
             }
         }
-        nodeScope.computeIfAbsent(dimId, l -> {
-            var ma = new Object2ObjectOpenHashMap<INode, ObjectSet<ChunkPos>>();
-            ma.defaultReturnValue(ObjectSets.emptySet());
-            return ma;
-        }).put(node, ObjectSets.unmodifiable(chunksCovered));
+        var nodeScopeMap = nodeScope.get(dimId);
+        if (nodeScopeMap == nodeScope.defaultReturnValue()) {
+            nodeScopeMap = new Object2ObjectOpenHashMap<>();
+            nodeScope.put(dimId, nodeScopeMap);
+        }
+        nodeScopeMap.put(node, LongSets.unmodifiable(chunksCovered));
     }
 
     private void unregisterNodeIndices(int dimId, INode node) {
         posNodes.get(dimId).remove(node.getPos().toLong());
 
-        ChunkPos ownChunk = new ChunkPos(node.getPos());
-        nodeLocation.get(dimId).get(ownChunk).remove(node);
+        long ownChunkCoord = Functions.mergeChunkCoords(node.getPos());
+        nodeLocation.get(dimId).get(ownChunkCoord).remove(node);
 
         var sm = scopeNode.get(dimId);
-        ObjectSet<ChunkPos> coveredChunks = nodeScope.get(dimId).remove(node);
-        if (coveredChunks != null && sm != null) {
-            for (var chunk : coveredChunks) {
+        LongSet coveredChunks = nodeScope.get(dimId).remove(node);
+        if (coveredChunks != null && sm != scopeNode.defaultReturnValue()) {
+            for (long chunk : coveredChunks) {
                 var set = sm.get(chunk);
                 if (set == sm.defaultReturnValue()) continue;
                 if (set.size() == 1) sm.remove(chunk);
@@ -170,26 +182,19 @@ public final class NetworkManager {
     }
 
     public @Nonnull ReferenceSet<INode> getNodesCoveringPosition(World world, BlockPos pos) {
-        return getNodesCoveringPosition(world, new ChunkPos(pos));
+        return scopeNode.get(world.provider.getDimension()).get(Functions.mergeChunkCoords(pos));
     }
 
-    public @Nonnull ReferenceSet<INode> getNodesCoveringPosition(World world, ChunkPos pos) {
-        return scopeNode.computeIfAbsent(world.provider.getDimension(), l -> {
-            var ma = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<INode>>();
-            ma.defaultReturnValue(ReferenceSets.emptySet());
-            return ma;
-        }).get(pos);
+    public @Nonnull ReferenceSet<INode> getNodesCoveringPosition(World world, int chunkX, int chunkY) {
+        return scopeNode.get(world.provider.getDimension()).get(Functions.mergeChunkCoords(chunkX, chunkY));
     }
 
-    public @Nonnull ReferenceSet<INode> getNodesInChunk(World world, ChunkPos chunk) {
-        return nodeLocation.computeIfAbsent(world.provider.getDimension(), l -> {
-            var ma = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<INode>>();
-            ma.defaultReturnValue(ReferenceSets.emptySet());
-            return ma;
-        }).get(chunk);
+    public @Nonnull ReferenceSet<INode> getNodesInChunk(World world, int chunkX, int chunkZ) {
+        var map = nodeLocation.get(world.provider.getDimension());
+        return map.get(Functions.mergeChunkCoords(chunkX, chunkZ));
     }
 
-    public @Nonnull ObjectSet<ChunkPos> getCoveredChunks(INode node) {
+    public @Nonnull LongSet getCoveredChunks(INode node) {
         return nodeScope.get(node.getWorld().provider.getDimension()).get(node);
     }
 
@@ -312,8 +317,8 @@ public final class NetworkManager {
 
         ReferenceSet<INode> candidates = new ReferenceOpenHashSet<>();
         var scopeMap = scopeNode.get(dimId);
-        for (var chunkPos : nodeScope.get(dimId).get(newNode)) {
-            candidates.addAll(scopeMap.get(chunkPos));
+        for (long chunkCoord : nodeScope.get(dimId).get(newNode)) {
+            candidates.addAll(scopeMap.get(chunkCoord));
         }
         candidates.remove(newNode);
 

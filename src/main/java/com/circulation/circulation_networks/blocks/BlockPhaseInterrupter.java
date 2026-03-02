@@ -2,6 +2,7 @@ package com.circulation.circulation_networks.blocks;
 
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
 import com.circulation.circulation_networks.tiles.TileEntityPhaseInterrupter;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +14,12 @@ public final class BlockPhaseInterrupter extends BaseBlock {
     }
 
     public boolean hasGui() {
-        return false;
+        return true;
+    }
+
+    @Override
+    public boolean hasTileEntity(@NotNull IBlockState state) {
+        return true;
     }
 
     @Override

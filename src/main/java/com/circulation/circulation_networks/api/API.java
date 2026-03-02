@@ -63,32 +63,70 @@ public final class API {
     }
 
     /**
-     * @param pos 目标位置
-     * @return 可能为此位置的机器供能的所有节点
+     * @param chunkX 目标区块的X坐标
+     * @param chunkZ 目标区块的Z坐标
+     * @return 可能为此区块的机器供能的所有节点
      */
     @Nonnull
+    public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull World world, int chunkX, int chunkZ) {
+        return EnergyMachineManager.INSTANCE.getEnergyNodes(world, chunkX, chunkZ);
+    }
+
+    /**
+     * @param pos 目标位置
+     * @return 可能为此位置的机器供能的所有节点
+     * @deprecated 使用 {@link #getEnergyNodes(World, int, int)} 或 {@link #getEnergyNodes(World, BlockPos)} 代替
+     */
+    @Nonnull
+    @Deprecated
     public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull World world, @Nonnull ChunkPos pos) {
-        return EnergyMachineManager.INSTANCE.getEnergyNodes(world, pos);
+        return EnergyMachineManager.INSTANCE.getEnergyNodes(world, pos.x, pos.z);
+    }
+
+    /**
+     * @param world  节点所在的世界
+     * @param chunkX 被检查的区块X坐标
+     * @param chunkZ 被检查的区块Z坐标
+     * @return 可能可以链接这个区块中节点的所有节点
+     */
+    @Nonnull
+    public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull World world, int chunkX, int chunkZ) {
+        return NetworkManager.INSTANCE.getNodesCoveringPosition(world, chunkX, chunkZ);
     }
 
     /**
      * @param world 节点所在的世界
      * @param pos   被检查的区块
      * @return 可能可以链接这个区块中节点的所有节点
+     * @deprecated 使用 {@link #getNodesCoveringChunk(World, int, int)} 代替
      */
     @Nonnull
+    @Deprecated
     public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull World world, @Nonnull ChunkPos pos) {
-        return NetworkManager.INSTANCE.getNodesCoveringPosition(world, pos);
+        return NetworkManager.INSTANCE.getNodesCoveringPosition(world, pos.x, pos.z);
+    }
+
+    /**
+     * @param world  节点所在的世界
+     * @param chunkX 节点所在的区块X坐标
+     * @param chunkZ 节点所在的区块Z坐标
+     * @return 区块中所有的生效节点
+     */
+    @Nonnull
+    public static ReferenceSet<INode> getNodesInChunk(@Nonnull World world, int chunkX, int chunkZ) {
+        return NetworkManager.INSTANCE.getNodesInChunk(world, chunkX, chunkZ);
     }
 
     /**
      * @param world 节点所在的世界
      * @param chunk 节点所在的区块
      * @return 区块中所有的生效节点
+     * @deprecated 使用 {@link #getNodesInChunk(World, int, int)} 代替
      */
     @Nonnull
+    @Deprecated
     public static ReferenceSet<INode> getNodesInChunk(@Nonnull World world, @Nonnull ChunkPos chunk) {
-        return NetworkManager.INSTANCE.getNodesInChunk(world, chunk);
+        return NetworkManager.INSTANCE.getNodesInChunk(world, chunk.x, chunk.z);
     }
 
     /**

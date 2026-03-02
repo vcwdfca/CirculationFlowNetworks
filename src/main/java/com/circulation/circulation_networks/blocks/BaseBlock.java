@@ -41,7 +41,7 @@ public abstract class BaseBlock extends Block implements ITileEntityProvider {
 
     @Override
     public boolean onBlockActivated(@NotNull World worldIn, @NotNull BlockPos pos, @NotNull IBlockState state, @NotNull EntityPlayer playerIn, @NotNull EnumHand hand, @NotNull EnumFacing facing, float hitX, float hitY, float hitZ) {
-        if (!worldIn.isRemote && hasGui()) {
+        if (!worldIn.isRemote && hasGui() && hand == EnumHand.MAIN_HAND) {
             CirculationFlowNetworks.openGui(playerIn, worldIn, pos.getX(), pos.getY(), pos.getZ());
             return true;
         }

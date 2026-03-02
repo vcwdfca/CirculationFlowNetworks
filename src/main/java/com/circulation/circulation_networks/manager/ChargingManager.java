@@ -5,21 +5,24 @@ import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.api.IGrid;
 import com.circulation.circulation_networks.api.node.IChargingNode;
 import com.circulation.circulation_networks.api.node.INode;
+import com.circulation.circulation_networks.utils.Functions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Optional;
 
@@ -36,8 +39,8 @@ public final class ChargingManager {
     public static final ChargingManager INSTANCE = new ChargingManager();
     private static final boolean loadBaubles = Loader.isModLoaded("baubles");
 
-    private final Int2ObjectMap<Object2ObjectMap<ChunkPos, ReferenceSet<IChargingNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<Object2ObjectMap<IChargingNode, ObjectSet<ChunkPos>>> nodeScope = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<IChargingNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Object2ObjectMap<IChargingNode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
 
     @Optional.Method(modid = "baubles")
     private static void checkBaubles(Collection<IEnergyHandler> invs, EntityPlayer player) {
@@ -63,7 +66,7 @@ public final class ChargingManager {
             var map = scopeNode.get(player.getEntityWorld().provider.getDimension());
             if (map != null) {
                 var pos = player.getPosition();
-                var set = map.get(new ChunkPos(pos));
+                var set = map.get(Functions.mergeChunkCoords(pos));
                 if (set.isEmpty()) continue;
                 var invs = new ObjectArrayList<IEnergyHandler>();
                 var w = false;
@@ -121,48 +124,58 @@ public final class ChargingManager {
             int maxChunkX = (nodeX + range) >> 4;
             int minChunkZ = (nodeZ - range) >> 4;
             int maxChunkZ = (nodeZ + range) >> 4;
-            ObjectSet<ChunkPos> chunksCovered = new ObjectOpenHashSet<>();
+            LongSet chunksCovered = new LongOpenHashSet();
+
+            int dimId = node.getWorld().provider.getDimension();
+
+            Long2ObjectMap<ReferenceSet<IChargingNode>> map = scopeNode.get(dimId);
+            if (map == scopeNode.defaultReturnValue()) {
+                Long2ObjectMap<ReferenceSet<IChargingNode>> newMap = new Long2ObjectOpenHashMap<>();
+                newMap.defaultReturnValue(ReferenceSets.emptySet());
+                scopeNode.put(dimId, map = newMap);
+            }
+
             for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
                 for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-                    var chunkPos = new ChunkPos(cx, cz);
-                    chunksCovered.add(chunkPos);
+                    long chunkCoord = Functions.mergeChunkCoords(cx, cz);
+                    chunksCovered.add(chunkCoord);
 
-                    var map = scopeNode.computeIfAbsent(
-                        node.getWorld().provider.getDimension(), k -> {
-                            var m = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<IChargingNode>>();
-                            m.defaultReturnValue(ReferenceSets.emptySet());
-                            return m;
-                        }
-                    );
-                    var set1 = map.get(chunkPos);
-                    if (set1 == map.defaultReturnValue()) {
-                        map.put(chunkPos, set1 = new ReferenceOpenHashSet<>());
+                    ReferenceSet<IChargingNode> set = map.get(chunkCoord);
+                    if (set == map.defaultReturnValue()) {
+                        map.put(chunkCoord, set = new ReferenceOpenHashSet<>());
                     }
-                    set1.add(chargingNode);
+                    set.add(chargingNode);
                 }
             }
 
-            nodeScope.computeIfAbsent(
-                node.getWorld().provider.getDimension(), k -> {
-                    var m = new Object2ObjectOpenHashMap<IChargingNode, ObjectSet<ChunkPos>>();
-                    m.defaultReturnValue(ObjectSets.emptySet());
-                    return m;
-                }
-            ).put(chargingNode, ObjectSets.unmodifiable(chunksCovered));
+            Object2ObjectMap<IChargingNode, LongSet> nodeScopeMap = nodeScope.get(dimId);
+            if (nodeScopeMap == nodeScope.defaultReturnValue()) {
+                nodeScope.put(dimId, nodeScopeMap = new Object2ObjectOpenHashMap<>());
+            }
+            nodeScopeMap.put(chargingNode, LongSets.unmodifiable(chunksCovered));
         }
     }
 
     public void removeNode(INode node) {
         if (node instanceof IChargingNode chargingNode) {
             var world = chargingNode.getWorld();
-            ObjectSet<ChunkPos> coveredChunks = nodeScope.get(world.provider.getDimension()).remove(chargingNode);
+            int dimId = world.provider.getDimension();
+
+            var nodeScopeMap = nodeScope.get(dimId);
+            if (nodeScopeMap == nodeScope.defaultReturnValue()) return;
+
+            LongSet coveredChunks = nodeScopeMap.remove(chargingNode);
             if (coveredChunks == null || coveredChunks.isEmpty()) return;
-            for (var coveredChunk : coveredChunks) {
-                var set = scopeNode.get(world.provider.getDimension()).get(coveredChunk);
-                if (set == null) {
+
+            var scopeMap = scopeNode.get(dimId);
+            if (scopeMap == scopeNode.defaultReturnValue()) return;
+
+            for (long coveredChunk : coveredChunks) {
+                var set = scopeMap.get(coveredChunk);
+                if (set == scopeMap.defaultReturnValue()) {
                     continue;
                 }
-                if (set.size() == 1) scopeNode.get(world.provider.getDimension()).remove(coveredChunk);
+                if (set.size() == 1) scopeMap.remove(coveredChunk);
                 else set.remove(chargingNode);
             }
         }

@@ -9,14 +9,19 @@ import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.events.TileEntityLifeCycleEvent;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
+import com.circulation.circulation_networks.utils.Functions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
+import it.unimi.dsi.fastutil.longs.LongSets;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
@@ -26,7 +31,6 @@ import it.unimi.dsi.fastutil.objects.ReferenceSets;
 import lombok.Getter;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
@@ -43,8 +47,8 @@ import static com.circulation.circulation_networks.CirculationFlowNetworks.serve
 public final class EnergyMachineManager {
 
     public static final EnergyMachineManager INSTANCE = new EnergyMachineManager();
-    private final Int2ObjectMap<Object2ObjectMap<ChunkPos, ReferenceSet<IEnergySupplyNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
-    private final Int2ObjectMap<Object2ObjectMap<IEnergySupplyNode, ObjectSet<ChunkPos>>> nodeScope = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<IEnergySupplyNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
+    private final Int2ObjectMap<Object2ObjectMap<IEnergySupplyNode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
     private final Reference2ObjectMap<INode, Set<TileEntity>> gridMachineMap = new Reference2ObjectOpenHashMap<>();
     @Getter
     private final WeakHashMap<TileEntity, ReferenceSet<INode>> machineGridMap = new WeakHashMap<>();
@@ -52,6 +56,8 @@ public final class EnergyMachineManager {
     private final Reference2ObjectMap<IGrid, Interaction> interaction = new Reference2ObjectOpenHashMap<>();
 
     {
+        scopeNode.defaultReturnValue(Long2ObjectMaps.emptyMap());
+        nodeScope.defaultReturnValue(Object2ObjectMaps.emptyMap());
         gridMachineMap.defaultReturnValue(ReferenceSets.emptySet());
     }
 
@@ -114,6 +120,7 @@ public final class EnergyMachineManager {
         for (var entry : machineGridMap.entrySet()) {
             var te = entry.getKey();
             if (!te.getWorld().isBlockLoaded(te.getPos())) continue;
+            if (PhaseInterrupterManager.INSTANCE.isBlockedByInterrupter(te.getPos(), te.getWorld())) continue;
             var handler = IEnergyHandler.release(te);
 
             if (handler == null) {
@@ -157,14 +164,10 @@ public final class EnergyMachineManager {
         if (!RegistryEnergyHandler.isEnergyTileEntity(tileEntity)) return;
         if (RegistryEnergyHandler.isBlack(tileEntity)) return;
         var pos = tileEntity.getPos();
-        var chunkPos = new ChunkPos(pos);
-        ReferenceSet<IEnergySupplyNode> set = scopeNode.computeIfAbsent(
-            tileEntity.getWorld().provider.getDimension(), k -> {
-                var m = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<IEnergySupplyNode>>();
-                m.defaultReturnValue(ReferenceSets.emptySet());
-                return m;
-            }
-        ).get(chunkPos);
+        long chunkCoord = Functions.mergeChunkCoords(pos);
+
+        var map = scopeNode.get(tileEntity.getWorld().provider.getDimension());
+        ReferenceSet<IEnergySupplyNode> set = map.get(chunkCoord);
         if (!set.isEmpty()) {
             var s = machineGridMap.get(tileEntity);
             if (s == null) s = new ReferenceOpenHashSet<>();
@@ -238,26 +241,29 @@ public final class EnergyMachineManager {
             int maxChunkX = (nodeX + range) >> 4;
             int minChunkZ = (nodeZ - range) >> 4;
             int maxChunkZ = (nodeZ + range) >> 4;
-            ObjectSet<ChunkPos> chunksCovered = new ObjectOpenHashSet<>();
+            LongSet chunksCovered = new LongOpenHashSet();
+
+            int dimId = node.getWorld().provider.getDimension();
+
+            Long2ObjectMap<ReferenceSet<IEnergySupplyNode>> map = scopeNode.get(dimId);
+            if (map == scopeNode.defaultReturnValue()) {
+                Long2ObjectMap<ReferenceSet<IEnergySupplyNode>> newMap = new Long2ObjectOpenHashMap<>();
+                newMap.defaultReturnValue(ReferenceSets.emptySet());
+                scopeNode.put(dimId, map = newMap);
+            }
+
             for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
                 for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-                    var chunkPos = new ChunkPos(cx, cz);
-                    chunksCovered.add(chunkPos);
+                    long chunkCoord = Functions.mergeChunkCoords(cx, cz);
+                    chunksCovered.add(chunkCoord);
 
-                    var map = scopeNode.computeIfAbsent(
-                        node.getWorld().provider.getDimension(), k -> {
-                            var m = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<IEnergySupplyNode>>();
-                            m.defaultReturnValue(ReferenceSets.emptySet());
-                            return m;
-                        }
-                    );
-                    var set1 = map.get(chunkPos);
-                    if (set1 == map.defaultReturnValue()) {
-                        map.put(chunkPos, set1 = new ReferenceOpenHashSet<>());
+                    ReferenceSet<IEnergySupplyNode> set = map.get(chunkCoord);
+                    if (set == map.defaultReturnValue()) {
+                        map.put(chunkCoord, set = new ReferenceOpenHashSet<>());
                     }
-                    set1.add(energySupplyNode);
+                    set.add(energySupplyNode);
 
-                    Chunk chunk = node.getWorld().getChunkProvider().getLoadedChunk(chunkPos.x, chunkPos.z);
+                    Chunk chunk = node.getWorld().getChunkProvider().getLoadedChunk(cx, cz);
                     if (chunk == null || chunk.isEmpty()) {
                         continue;
                     }
@@ -281,14 +287,11 @@ public final class EnergyMachineManager {
                 }
             }
 
-            nodeScope.computeIfAbsent(
-                node.getWorld().provider.getDimension(), k -> {
-                    var m = new Object2ObjectOpenHashMap<IEnergySupplyNode, ObjectSet<ChunkPos>>();
-                    m.defaultReturnValue(ObjectSets.emptySet());
-                    return m;
-                }
-            ).put(energySupplyNode, ObjectSets.unmodifiable(chunksCovered));
-
+            Object2ObjectMap<IEnergySupplyNode, LongSet> nodeScopeMap = nodeScope.get(dimId);
+            if (nodeScopeMap == nodeScope.defaultReturnValue()) {
+                nodeScope.put(dimId, nodeScopeMap = new Object2ObjectOpenHashMap<>());
+            }
+            nodeScopeMap.put(energySupplyNode, LongSets.unmodifiable(chunksCovered));
         }
     }
 
@@ -304,29 +307,33 @@ public final class EnergyMachineManager {
                 int minChunkX = (nodeX - range) >> 4, maxChunkX = (nodeX + range) >> 4;
                 int minChunkZ = (nodeZ - range) >> 4, maxChunkZ = (nodeZ + range) >> 4;
 
-                ObjectSet<ChunkPos> chunksCovered = new ObjectOpenHashSet<>();
-                var map = scopeNode.computeIfAbsent(dim, k -> {
-                    var m = new Object2ObjectOpenHashMap<ChunkPos, ReferenceSet<IEnergySupplyNode>>();
-                    m.defaultReturnValue(ReferenceSets.emptySet());
-                    return m;
-                });
+                LongSet chunksCovered = new LongOpenHashSet();
+
+                Long2ObjectMap<ReferenceSet<IEnergySupplyNode>> map = scopeNode.get(dim);
+                if (map == scopeNode.defaultReturnValue()) {
+                    Long2ObjectMap<ReferenceSet<IEnergySupplyNode>> newMap = new Long2ObjectOpenHashMap<>();
+                    newMap.defaultReturnValue(ReferenceSets.emptySet());
+                    scopeNode.put(dim, map = newMap);
+                }
+
                 for (int cx = minChunkX; cx <= maxChunkX; ++cx) {
                     for (int cz = minChunkZ; cz <= maxChunkZ; ++cz) {
-                        var chunkPos = new ChunkPos(cx, cz);
-                        chunksCovered.add(chunkPos);
-                        var set = map.get(chunkPos);
+                        long chunkCoord = Functions.mergeChunkCoords(cx, cz);
+                        chunksCovered.add(chunkCoord);
+
+                        ReferenceSet<IEnergySupplyNode> set = map.get(chunkCoord);
                         if (set == map.defaultReturnValue()) {
-                            map.put(chunkPos, set = new ReferenceOpenHashSet<>());
+                            map.put(chunkCoord, set = new ReferenceOpenHashSet<>());
                         }
                         set.add(energySupplyNode);
                     }
                 }
 
-                nodeScope.computeIfAbsent(dim, k -> {
-                    var m = new Object2ObjectOpenHashMap<IEnergySupplyNode, ObjectSet<ChunkPos>>();
-                    m.defaultReturnValue(ObjectSets.emptySet());
-                    return m;
-                }).put(energySupplyNode, ObjectSets.unmodifiable(chunksCovered));
+                Object2ObjectMap<IEnergySupplyNode, LongSet> nodeScopeMap = nodeScope.get(dim);
+                if (nodeScopeMap == nodeScope.defaultReturnValue()) {
+                    nodeScope.put(dim, nodeScopeMap = new Object2ObjectOpenHashMap<>());
+                }
+                nodeScopeMap.put(energySupplyNode, LongSets.unmodifiable(chunksCovered));
             }
         }
     }
@@ -334,14 +341,23 @@ public final class EnergyMachineManager {
     public void removeNode(INode node) {
         if (node instanceof IEnergySupplyNode removedNode) {
             var world = removedNode.getWorld();
-            ObjectSet<ChunkPos> coveredChunks = nodeScope.get(world).remove(removedNode);
+            int dimId = world.provider.getDimension();
+
+            var nodeScopeMap = nodeScope.get(dimId);
+            if (nodeScopeMap == nodeScope.defaultReturnValue()) return;
+
+            LongSet coveredChunks = nodeScopeMap.remove(removedNode);
             if (coveredChunks == null || coveredChunks.isEmpty()) return;
-            for (var coveredChunk : coveredChunks) {
-                var set = scopeNode.get(world).get(coveredChunk);
-                if (set == null) {
+
+            var scopeMap = scopeNode.get(dimId);
+            if (scopeMap == scopeNode.defaultReturnValue()) return;
+
+            for (long coveredChunk : coveredChunks) {
+                var set = scopeMap.get(coveredChunk);
+                if (set == scopeMap.defaultReturnValue()) {
                     continue;
                 }
-                if (set.size() == 1) scopeNode.get(world).remove(coveredChunk);
+                if (set.size() == 1) scopeMap.remove(coveredChunk);
                 else set.remove(removedNode);
             }
 
@@ -373,17 +389,19 @@ public final class EnergyMachineManager {
      * @return 可能覆盖该位置的节点集合
      */
     public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(World world, BlockPos pos) {
-        return getEnergyNodes(world, new ChunkPos(pos));
+        return getEnergyNodes(world, pos.getX() >> 4, pos.getZ() >> 4);
     }
 
     /**
      * 获取范围包含此区块的所有节点
      *
-     * @param pos 目标位置
+     * @param chunkX 目标区块的X坐标
+     * @param chunkZ 目标区块的Z坐标
      * @return 可能覆盖该位置的节点集合
      */
-    public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(World world, ChunkPos pos) {
-        return scopeNode.getOrDefault(world.provider.getDimension(), Object2ObjectMaps.emptyMap()).getOrDefault(pos, ReferenceSets.emptySet());
+    public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(World world, int chunkX, int chunkZ) {
+        var map = scopeNode.get(world.provider.getDimension());
+        return map.get(Functions.mergeChunkCoords(chunkX, chunkZ));
     }
 
     /**

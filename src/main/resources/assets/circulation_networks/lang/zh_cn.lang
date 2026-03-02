@@ -1,0 +1,21 @@
+tile.circulation_networks.energy_induction_tower.name=能量感应塔
+tile.circulation_networks.charging_tower.name=充能塔
+tile.circulation_networks.wind_turbine.name=风力涡轮机
+tile.circulation_networks.circulation_furnace.name=循环熔炉
+tile.circulation_networks.phase_interrupter.name=相位干涉器
+
+item.circulation_networks.inspection_tool.name=环流扳手
+
+# Phase Interrupter GUI
+gui.phase_interrupter.title=相位干涉器配置
+gui.phase_interrupter.show_range=显示范围
+gui.phase_interrupter.close=关闭
+gui.phase_interrupter.scope=范围
+gui.phase_interrupter.show_range_status=显示范围
+gui.phase_interrupter.enabled=启用
+gui.phase_interrupter.disabled=禁用
+gui.phase_interrupter.redstone_mode=红石模式
+gui.phase_interrupter.inverse_mode=反转模式
+gui.phase_interrupter.normal_mode=常规模式
+gui.phase_interrupter.inverse_desc=反转 (收信号→生效)
+gui.phase_interrupter.normal_desc=常规 (收信号→失效)

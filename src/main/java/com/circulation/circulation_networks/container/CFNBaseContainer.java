@@ -93,5 +93,7 @@ public abstract class CFNBaseContainer extends Container {
         }
     }
 
+    public void onUpdate(final String field, final Object oldValue, final Object newValue) {
 
+    }
 }

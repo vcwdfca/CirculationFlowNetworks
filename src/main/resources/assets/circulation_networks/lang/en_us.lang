@@ -1,0 +1,21 @@
+tile.circulation_networks.energy_induction_tower.name=Energy Induction Tower
+tile.circulation_networks.charging_tower.name=Charging Tower
+tile.circulation_networks.wind_turbine.name=Wind Turbine
+tile.circulation_networks.circulation_furnace.name=Circulation Furnace
+tile.circulation_networks.phase_interrupter.name=Phase Interrupter
+
+item.circulation_networks.inspection_tool.name=Circulation Wrench
+
+# Phase Interrupter GUI
+gui.phase_interrupter.title=Phase Interrupter Configuration
+gui.phase_interrupter.show_range=Show Range
+gui.phase_interrupter.close=Close
+gui.phase_interrupter.scope=Scope
+gui.phase_interrupter.show_range_status=Show Range
+gui.phase_interrupter.enabled=Enabled
+gui.phase_interrupter.disabled=Disabled
+gui.phase_interrupter.redstone_mode=Redstone Mode
+gui.phase_interrupter.inverse_mode=Inverse Mode
+gui.phase_interrupter.normal_mode=Normal Mode
+gui.phase_interrupter.inverse_desc=Inverse (Receive Signal → Active)
+gui.phase_interrupter.normal_desc=Normal (Receive Signal → Inactive)
