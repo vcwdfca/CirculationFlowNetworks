@@ -11,7 +11,6 @@ import net.minecraft.nbt.NBTTagCompound;
 public abstract class MachineNode extends Node implements IMachineNode {
 
     protected final double energyScope;
-    protected final double linkScope;
     @Getter
     @Setter
     private long maxEnergy;
@@ -19,18 +18,11 @@ public abstract class MachineNode extends Node implements IMachineNode {
     public MachineNode(NBTTagCompound compound) {
         super(compound);
         this.energyScope = compound.getDouble("energyScope");
-        this.linkScope = compound.getDouble("linkScope");
     }
 
     public MachineNode(IMachineNodeTileEntity tileEntity, double energyScope, double linkScope) {
-        super(tileEntity);
+        super(tileEntity,linkScope);
         this.energyScope = energyScope;
-        this.linkScope = linkScope;
-    }
-
-    @Override
-    public double getLinkScope() {
-        return linkScope;
     }
 
     @Override
@@ -42,7 +34,6 @@ public abstract class MachineNode extends Node implements IMachineNode {
     public NBTTagCompound serialize() {
         var nbt = super.serialize();
         nbt.setDouble("energyScope", energyScope);
-        nbt.setDouble("linkScope", linkScope);
         nbt.setLong("maxEnergy", maxEnergy);
         return nbt;
     }

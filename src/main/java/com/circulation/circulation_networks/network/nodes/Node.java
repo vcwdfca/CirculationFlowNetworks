@@ -32,18 +32,24 @@ public abstract class Node implements INode {
     private final Reference2DoubleMap<INode> distanceMap = new Reference2DoubleOpenHashMap<>();
     @Getter
     private boolean active;
+    private final double linkScope;
+    private final double linkScopeSq;
     private IGrid grid;
 
     public Node(NBTTagCompound nbt) {
-        world = new WeakReference<>(DimensionManager.getWorld(nbt.getInteger("dim")));
-        pos = BlockPos.fromLong(nbt.getLong("pos"));
-        vec3d = new Vec3d(pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d);
+        this.world = new WeakReference<>(DimensionManager.getWorld(nbt.getInteger("dim")));
+        this.pos = BlockPos.fromLong(nbt.getLong("pos"));
+        this.vec3d = new Vec3d(pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d);
+        this.linkScope = nbt.getDouble("linkScope");
+        this.linkScopeSq = linkScope * linkScope;
     }
 
-    public Node(INodeTileEntity tileEntity) {
-        world = new WeakReference<>(tileEntity.getNodeWorld());
-        pos = tileEntity.getNodePos();
-        vec3d = new Vec3d(pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d);
+    public Node(INodeTileEntity tileEntity, double linkScope) {
+        this.world = new WeakReference<>(tileEntity.getNodeWorld());
+        this.pos = tileEntity.getNodePos();
+        this.vec3d = new Vec3d(pos.getX() + 0.5d, pos.getY() + 0.5d, pos.getZ() + 0.5d);
+        this.linkScope = linkScope;
+        this.linkScopeSq = linkScope * linkScope;
     }
 
     @Override
@@ -55,6 +61,7 @@ public abstract class Node implements INode {
         var list = new NBTTagList();
         neighbors.forEach(neighbor -> list.appendTag(new NBTTagLong(neighbor.getPos().toLong())));
         nbt.setTag("neighbors", list);
+        nbt.setDouble("linkScope", linkScope);
         return nbt;
     }
 
@@ -130,6 +137,16 @@ public abstract class Node implements INode {
     }
 
     @Override
+    public double getLinkScope() {
+        return linkScope;
+    }
+
+    @Override
+    public double getLinkScopeSq() {
+        return linkScopeSq;
+    }
+
+    @Override
     public double distanceSq(BlockPos node) {
         return this.vec3d.squareDistanceTo(node.getX() + 0.5d, node.getY() + 0.5d, node.getZ() + 0.5d);
     }
@@ -142,8 +159,8 @@ public abstract class Node implements INode {
     @Override
     public final LinkType linkScopeCheck(INode node) {
         var dist = this.distanceSq(node);
-        boolean canConnectAtoB = dist <= this.getLinkScope() * this.getLinkScope();
-        boolean canConnectBtoA = dist <= node.getLinkScope() * node.getLinkScope();
+        boolean canConnectAtoB = dist <= this.getLinkScopeSq();
+        boolean canConnectBtoA = dist <= node.getLinkScopeSq();
 
         if (canConnectAtoB && canConnectBtoA) {
             return LinkType.DOUBLY;

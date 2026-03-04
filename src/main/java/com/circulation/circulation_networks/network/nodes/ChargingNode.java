@@ -6,20 +6,19 @@ import net.minecraft.nbt.NBTTagCompound;
 
 public final class ChargingNode extends Node implements IChargingNode {
 
-
     private final double chargingScope;
-    private final double linkScope;
+    private final double chargingScopeSq;
 
     public ChargingNode(NBTTagCompound tag) {
         super(tag);
         this.chargingScope = tag.getDouble("chargingScope");
-        this.linkScope = tag.getDouble("linkScope");
+        this.chargingScopeSq = chargingScope * chargingScope;
     }
 
     public ChargingNode(INodeTileEntity tileEntity, double chargingScope, double linkScope) {
-        super(tileEntity);
+        super(tileEntity, linkScope);
         this.chargingScope = chargingScope;
-        this.linkScope = linkScope;
+        this.chargingScopeSq = chargingScope * chargingScope;
     }
 
     @Override
@@ -28,15 +27,14 @@ public final class ChargingNode extends Node implements IChargingNode {
     }
 
     @Override
-    public double getLinkScope() {
-        return linkScope;
+    public double getChargingScopeSq() {
+        return chargingScopeSq;
     }
 
     @Override
     public NBTTagCompound serialize() {
         var nbt = super.serialize();
         nbt.setDouble("chargingScope", chargingScope);
-        nbt.setDouble("linkScope", linkScope);
         return nbt;
     }
 

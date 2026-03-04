@@ -103,7 +103,7 @@ public final class ChargingManager {
                 var send = m.getOrDefault(IEnergyHandler.EnergyType.SEND, ObjectSets.emptySet());
                 transferEnergy(send, receive, EnergyMachineManager.Status.EXTRACT, grid);
 
-                var storage = machineMap.get(grid).getOrDefault(IEnergyHandler.EnergyType.STORAGE, ObjectSets.emptySet());
+                var storage = m.getOrDefault(IEnergyHandler.EnergyType.STORAGE, ObjectSets.emptySet());
                 transferEnergy(storage, receive, EnergyMachineManager.Status.EXTRACT, grid);
             }
         }

@@ -27,6 +27,8 @@ public interface INode {
 
     double getLinkScope();
 
+    double getLinkScopeSq();
+
     ReferenceSet<INode> getNeighbors();
 
     void addNeighbor(INode neighbor);

@@ -18,7 +18,7 @@ import java.io.IOException;
 
 public final class EnergyTypeOverrideManager {
 
-    private static EnergyTypeOverrideManager INSTANCE;
+    private static volatile EnergyTypeOverrideManager INSTANCE;
 
     private final Int2ObjectMap<Long2ObjectMap<IEnergyHandler.EnergyType>> overrides = new Int2ObjectOpenHashMap<>();
     private boolean m;

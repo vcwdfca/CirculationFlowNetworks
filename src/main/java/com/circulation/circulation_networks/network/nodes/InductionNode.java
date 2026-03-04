@@ -7,18 +7,18 @@ import net.minecraft.nbt.NBTTagCompound;
 public final class InductionNode extends Node implements IEnergySupplyNode {
 
     private final double energyScope;
-    private final double linkScope;
+    private final double energyScopeSq;
 
     public InductionNode(NBTTagCompound tag) {
         super(tag);
         energyScope = tag.getDouble("energyScope");
-        linkScope = tag.getDouble("linkScope");
+        energyScopeSq = energyScope * energyScope;
     }
 
     public InductionNode(INodeTileEntity tileEntity, double energyScope, double linkScope) {
-        super(tileEntity);
+        super(tileEntity, linkScope);
         this.energyScope = energyScope;
-        this.linkScope = linkScope;
+        this.energyScopeSq = energyScope * energyScope;
     }
 
     @Override
@@ -27,15 +27,14 @@ public final class InductionNode extends Node implements IEnergySupplyNode {
     }
 
     @Override
-    public double getLinkScope() {
-        return linkScope;
+    public double getEnergyScopeSq() {
+        return energyScopeSq;
     }
 
     @Override
     public NBTTagCompound serialize() {
         NBTTagCompound tag = super.serialize();
         tag.setDouble("energyScope", energyScope);
-        tag.setDouble("linkScope", linkScope);
         return tag;
     }
 }
