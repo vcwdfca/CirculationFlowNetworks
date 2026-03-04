@@ -161,7 +161,6 @@ public final class EnergyMachineManager {
                 if (channelId != null) {
                     var channelGrids = HubChannelManager.INSTANCE.getChannelGrids(channelId);
                     if (channelGrids != null && channelGrids.size() > 1) {
-                        // 合并同频道所有Grid的handlers
                         var mergedSend = new ObjectLinkedOpenHashSet<IEnergyHandler>();
                         var mergedStorage = new ObjectLinkedOpenHashSet<IEnergyHandler>();
                         var mergedReceive = new ObjectLinkedOpenHashSet<IEnergyHandler>();
@@ -182,7 +181,6 @@ public final class EnergyMachineManager {
                 }
             }
 
-            // 无频道或频道内仅一个Grid：沿用原有逻辑
             processedGrids.add(grid);
             var handlers = e.getValue();
             var send = handlers.getOrDefault(IEnergyHandler.EnergyType.SEND, ObjectSets.emptySet());

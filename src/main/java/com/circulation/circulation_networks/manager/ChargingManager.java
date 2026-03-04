@@ -95,7 +95,6 @@ public final class ChargingManager {
             }
         }
 
-        // 已被频道合并处理过的Grid集合，用于防止重复处理
         var chargingProcessed = new ReferenceOpenHashSet<IGrid>();
 
         for (var entry : gridMap.entrySet()) {
@@ -103,7 +102,6 @@ public final class ChargingManager {
             if (chargingProcessed.contains(grid)) continue;
             var receive = entry.getValue();
 
-            // 检查频道：如果此Grid通过频道合并处理，合并所有频道Grid的machineMap
             var hubNode = grid.getHubNode();
             if (hubNode != null) {
                 var channelId = hubNode.getChannelId();

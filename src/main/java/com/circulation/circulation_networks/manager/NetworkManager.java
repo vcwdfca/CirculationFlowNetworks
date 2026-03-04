@@ -227,7 +227,6 @@ public final class NetworkManager {
 
         IGrid oldGrid = removedNode.getGrid();
 
-        // 如果移除的是中枢节点，清除Grid上的Hub引用并注销频道
         if (removedNode instanceof IHubNode hub) {
             if (oldGrid != null) {
                 oldGrid.setHubNode(null);
@@ -341,7 +340,6 @@ public final class NetworkManager {
         }
         candidates.remove(newNode);
 
-        // ---- 中枢冲突预检 ----
         ReferenceSet<IGrid> linkedGrids = new ReferenceOpenHashSet<>();
         for (INode existing : candidates) {
             if (!existing.isActive()) continue;
@@ -352,19 +350,11 @@ public final class NetworkManager {
         }
 
         boolean hubConflict = false;
-        if (newNode instanceof IHubNode) {
-            // 新节点是中枢：如果任何可连接Grid已有中枢，则冲突
+        {
+            int hubCount = (newNode instanceof IHubNode) ? 1 : 0;
             for (IGrid g : linkedGrids) {
-                if (g.getHubNode() != null) {
-                    hubConflict = true;
-                    break;
-                }
-            }
-        } else {
-            // 新节点是普通节点：如果可连接Grid中有多个含中枢的Grid，合并会导致冲突
-            int hubCount = 0;
-            for (IGrid g : linkedGrids) {
-                if (g.getHubNode() != null) {
+                var h = g.getHubNode();
+                if (h != null && h.isActive()) {
                     hubCount++;
                     if (hubCount > 1) {
                         hubConflict = true;
@@ -378,11 +368,10 @@ public final class NetworkManager {
             activeNodes.remove(newNode);
             unregisterNodeIndices(dimId, newNode);
             newNode.setActive(false);
-            // 通知附近玩家
             var world = newNode.getWorld();
             var pos = newNode.getPos();
             for (var player : world.playerEntities) {
-                if (player.getDistanceSq(pos) < 64 * 64) {
+                if (player.getDistanceSq(pos) < 36) {
                     player.sendMessage(new TextComponentTranslation("message.circulation_networks.hub_conflict"));
                 }
             }
@@ -390,7 +379,6 @@ public final class NetworkManager {
             return;
         }
 
-        // ---- 正常连接逻辑 ----
         for (INode existing : candidates) {
             if (!existing.isActive()) continue;
             var linkType = newNode.linkScopeCheck(existing);
@@ -410,7 +398,6 @@ public final class NetworkManager {
             } else if (existingGrid != null && existingGrid != currentGrid) {
                 IGrid dst = currentGrid.getNodes().size() > existingGrid.getNodes().size() ? currentGrid : existingGrid;
                 IGrid src = dst == currentGrid ? existingGrid : currentGrid;
-                // 传递中枢引用
                 if (src.getHubNode() != null) {
                     dst.setHubNode(src.getHubNode());
                 }
@@ -429,7 +416,6 @@ public final class NetworkManager {
             assignNodeToGrid(newNode, allocGrid());
         }
 
-        // 如果新节点是中枢，设置Grid的hubNode引用
         if (newNode instanceof IHubNode hub) {
             newNode.getGrid().setHubNode(hub);
         }

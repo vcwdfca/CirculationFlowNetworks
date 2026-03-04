@@ -227,10 +227,11 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
             });
         }
 
-        if (mode == NODE_REMOVE && targetNode instanceof IEnergySupplyNode node) {
+        if (mode == NODE_REMOVE) {
             writeLinks(buf, () -> {
+                if (!(targetNode instanceof IEnergySupplyNode supplyNode)) return 0;
                 int count = 0;
-                var set = EnergyMachineManager.INSTANCE.getMachinesSuppliedBy(node);
+                var set = EnergyMachineManager.INSTANCE.getMachinesSuppliedBy(supplyNode);
                 for (var te : set) {
                     buf.writeLong(te.getPos().toLong());
                     buf.writeLong(targetNode.getPos().toLong());

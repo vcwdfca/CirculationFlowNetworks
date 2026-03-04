@@ -49,7 +49,9 @@ public abstract class BaseNodeTileEntity extends BaseTileEntity implements INode
     }
 
     protected void onInvalidate() {
-
+        if (node != null) {
+            NetworkManager.INSTANCE.removeNode(node);
+        }
     }
 
     @SideOnly(Side.CLIENT)

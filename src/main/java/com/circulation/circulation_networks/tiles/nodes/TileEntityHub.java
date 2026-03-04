@@ -144,7 +144,6 @@ public class TileEntityHub extends BaseNodeTileEntity {
             }
         }
 
-        // 从已加载的插件恢复频道信息
         channelId = null;
         channelName = null;
         for (var plugin : plugins) {
