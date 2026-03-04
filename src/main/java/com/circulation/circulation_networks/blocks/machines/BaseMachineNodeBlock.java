@@ -3,11 +3,13 @@ package com.circulation.circulation_networks.blocks.machines;
 import com.circulation.circulation_networks.blocks.BaseBlock;
 import com.circulation.circulation_networks.tiles.machines.BaseMachineNodeTileEntity;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Objects;
 
 public abstract class BaseMachineNodeBlock extends BaseBlock {
 
@@ -19,6 +21,7 @@ public abstract class BaseMachineNodeBlock extends BaseBlock {
 
     protected final <T extends BaseMachineNodeTileEntity> void setNodeTileClass(Class<T> nodeTileClass) {
         this.nodeTileClass = nodeTileClass;
+        TileEntity.register(Objects.requireNonNull(getRegistryName()).toString(), nodeTileClass);
     }
 
     public final boolean hasTileEntity(@NotNull IBlockState state) {

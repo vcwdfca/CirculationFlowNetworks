@@ -7,7 +7,6 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
@@ -26,9 +25,6 @@ public abstract class BaseBlock extends Block implements ITileEntityProvider {
         this.setRegistryName(new ResourceLocation(MOD_ID, name));
         this.setTranslationKey(MOD_ID + "." + name);
         this.setCreativeTab(CREATIVE_TAB);
-        var te = createNewTileEntity(null, 0);
-        if (te == null) return;
-        TileEntity.register(MOD_ID + ":" + name, te.getClass());
     }
 
     public boolean hasTileEntity(@NotNull IBlockState state) {

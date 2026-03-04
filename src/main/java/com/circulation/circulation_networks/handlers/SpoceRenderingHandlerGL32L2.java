@@ -133,6 +133,8 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
         super.clear();
         sphereVertexCount = 0;
         buckyVertexCount = 0;
+        lastScreenWidth = 0;
+        lastScreenHeight = 0;
     }
 
     @Override
@@ -242,6 +244,8 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
         Minecraft mc = Minecraft.getMinecraft();
         int w = mc.displayWidth;
         int h = mc.displayHeight;
+        
+        if (w <= 0 || h <= 0) return;
 
         GL13.glActiveTexture(GL13.GL_TEXTURE2);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, depthTextureId);
