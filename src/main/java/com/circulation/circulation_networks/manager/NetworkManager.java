@@ -198,10 +198,6 @@ public final class NetworkManager {
         return map.get(Functions.mergeChunkCoords(chunkX, chunkZ));
     }
 
-    public @Nonnull LongSet getCoveredChunks(INode node) {
-        return nodeScope.get(node.getWorld().provider.getDimension()).get(node);
-    }
-
     public void removeNode(int dim, BlockPos pos) {
         var pMap = posNodes.get(dim);
         if (pMap != null && pMap != posNodes.defaultReturnValue()) {

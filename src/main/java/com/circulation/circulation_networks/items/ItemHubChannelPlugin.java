@@ -3,6 +3,7 @@ package com.circulation.circulation_networks.items;
 import com.circulation.circulation_networks.api.hub.IHubPlugin;
 import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.tiles.nodes.TileEntityHub;
+import com.circulation.circulation_networks.utils.Functions;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
@@ -58,11 +59,7 @@ public class ItemHubChannelPlugin extends BaseItem implements IHubPlugin {
      */
     public static void setChannelInfo(ItemStack stack, UUID channelId, String name) {
         if (stack.isEmpty() || channelId == null || name == null) return;
-        NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null) {
-            tag = new NBTTagCompound();
-            stack.setTagCompound(tag);
-        }
+        NBTTagCompound tag = Functions.getOrCreateTagCompound(stack);
         tag.setString("channelId", channelId.toString());
         tag.setString("channelName", name);
     }
