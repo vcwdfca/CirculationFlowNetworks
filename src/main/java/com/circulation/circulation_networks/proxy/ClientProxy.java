@@ -82,7 +82,6 @@ public final class ClientProxy extends CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
         File modConfigDir = new File(event.getModConfigurationDirectory(), CirculationFlowNetworks.MOD_ID);
-        MinecraftForge.EVENT_BUS.post(new RegisterComponentSpritesEvent());
         ComponentAtlas.INSTANCE.startAsync(modConfigDir);
     }
 

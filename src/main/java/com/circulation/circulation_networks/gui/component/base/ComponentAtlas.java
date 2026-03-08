@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
@@ -281,6 +282,8 @@ public final class ComponentAtlas {
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public void startAsync(File modConfigDir) {
+        MinecraftForge.EVENT_BUS.post(new RegisterComponentSpritesEvent());
+
         cacheDir = modConfigDir;
         if (!cacheDir.exists()) {
             cacheDir.mkdirs();

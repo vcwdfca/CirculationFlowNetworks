@@ -29,6 +29,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public final class RegisterComponentSpritesEvent extends Event {
 
+    RegisterComponentSpritesEvent() {
+
+    }
+
     /**
      * Registers a component sprite base-name (without {@code .png} extension) to be
      * included in the atlas. The file must reside under
