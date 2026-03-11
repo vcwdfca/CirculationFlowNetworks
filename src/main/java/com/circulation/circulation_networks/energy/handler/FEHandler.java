@@ -85,7 +85,13 @@ public final class FEHandler implements IEnergyHandler {
     @Override
     public EnergyType getType() {
         if (energyType == null) {
-            energyType = IEnergyHandler.super.getType();
+            boolean receive = this.receive != null;
+            if (send != null) {
+                return energyType = receive ? EnergyType.STORAGE : EnergyType.SEND;
+            } else if (receive) {
+                return energyType = EnergyType.RECEIVE;
+            }
+            return energyType = EnergyType.INVALID;
         }
         return energyType;
     }

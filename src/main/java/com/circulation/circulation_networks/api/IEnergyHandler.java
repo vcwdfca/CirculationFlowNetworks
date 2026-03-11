@@ -61,15 +61,7 @@ public interface IEnergyHandler {
         }
     }
 
-    default EnergyType getType() {
-        boolean receive = canReceiveValue() > 0;
-        if (canExtractValue() > 0) {
-            return receive ? EnergyType.STORAGE : EnergyType.SEND;
-        } else if (receive) {
-            return EnergyType.RECEIVE;
-        }
-        return EnergyType.INVALID;
-    }
+    EnergyType getType();
 
     enum EnergyType {
         SEND,
