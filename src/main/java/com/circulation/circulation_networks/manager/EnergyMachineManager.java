@@ -72,7 +72,7 @@ public final class EnergyMachineManager {
             var ri = receive.iterator();
             while (ri.hasNext()) {
                 var receiver = ri.next();
-                if (sender.canExtract() && receiver.canReceive()) {
+                if (sender.canExtract(receiver) && receiver.canReceive(sender)) {
                     var e = sender.canExtractValue();
                     var r = receiver.canReceiveValue();
                     if (e > r) {

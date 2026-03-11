@@ -65,12 +65,12 @@ public final class CEHandler implements IEnergyHandler {
     }
 
     @Override
-    public boolean canExtract() {
+    public boolean canExtract(IEnergyHandler receiveHandler) {
         return type != EnergyType.RECEIVE && canExtractValue() > 0;
     }
 
     @Override
-    public boolean canReceive() {
+    public boolean canReceive(IEnergyHandler sendHandler) {
         return type != EnergyType.SEND && canReceiveValue() > 0;
     }
 

@@ -52,7 +52,8 @@ public final class EUHandler implements IEnergyHandler {
             energyType = EnergyType.RECEIVE;
             receive = (IEnergySink) tile;
         }
-        if (!canExtract() && !canReceive()) energyType = EnergyType.INVALID;
+        if (!(send != null && send.getOfferedEnergy() > 0) && !(receive != null && receive.getDemandedEnergy() > 0))
+            energyType = EnergyType.INVALID;
         return this;
     }
 
@@ -110,12 +111,12 @@ public final class EUHandler implements IEnergyHandler {
     }
 
     @Override
-    public boolean canExtract() {
+    public boolean canExtract(IEnergyHandler receiveHandler) {
         return send != null && send.getOfferedEnergy() > 0;
     }
 
     @Override
-    public boolean canReceive() {
+    public boolean canReceive(IEnergyHandler sendHandler) {
         if (isItem) {
             return ElectricItem.manager.getMaxCharge(itemStack) > 0;
         } else {

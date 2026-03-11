@@ -49,9 +49,9 @@ public interface IEnergyHandler {
 
     long canReceiveValue();
 
-    boolean canExtract();
+    boolean canExtract(IEnergyHandler receiveHandler);
 
-    boolean canReceive();
+    boolean canReceive(IEnergyHandler sendHandler);
 
     default void recycle() {
         this.clear();
@@ -62,8 +62,8 @@ public interface IEnergyHandler {
     }
 
     default EnergyType getType() {
-        boolean receive = canReceive();
-        if (canExtract()) {
+        boolean receive = canReceiveValue() > 0;
+        if (canExtractValue() > 0) {
             return receive ? EnergyType.STORAGE : EnergyType.SEND;
         } else if (receive) {
             return EnergyType.RECEIVE;

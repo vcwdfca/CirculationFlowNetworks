@@ -163,13 +163,13 @@ public final class MEKHandler implements IEnergyHandler {
     }
 
     @Override
-    public boolean canExtract() {
+    public boolean canExtract(IEnergyHandler receiveHandler) {
         if (creative) return true;
         return send != null && send.getEnergy() >= 2.5;
     }
 
     @Override
-    public boolean canReceive() {
+    public boolean canReceive(IEnergyHandler sendHandler) {
         if (isItem) return needEnergy > 0;
         else return receive != null && (receive.getMaxEnergy() - receive.getEnergy()) / 2.5 >= 0;
     }

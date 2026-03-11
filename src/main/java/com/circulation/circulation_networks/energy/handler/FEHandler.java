@@ -91,12 +91,12 @@ public final class FEHandler implements IEnergyHandler {
     }
 
     @Override
-    public boolean canExtract() {
+    public boolean canExtract(IEnergyHandler receiveHandler) {
         return send != null;
     }
 
     @Override
-    public boolean canReceive() {
+    public boolean canReceive(IEnergyHandler sendHandler) {
         return receive != null;
     }
 }
