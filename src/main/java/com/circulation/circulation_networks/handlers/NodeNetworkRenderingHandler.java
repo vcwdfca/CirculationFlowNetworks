@@ -6,14 +6,12 @@ import com.circulation.circulation_networks.items.InspectionToolState;
 import com.circulation.circulation_networks.math.Vec3d;
 import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.utils.RenderingUtils;
-//? if <1.20 {
-import com.github.bsideup.jabel.Desugar;
-//?}
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 //? if <1.20 {
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;

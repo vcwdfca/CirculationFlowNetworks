@@ -1,10 +1,10 @@
 package com.circulation.circulation_networks.gui.component.base;
 
 import com.circulation.circulation_networks.CirculationFlowNetworks;
-import com.github.bsideup.jabel.Desugar;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
 //? if <1.20 {
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;

@@ -7,13 +7,7 @@ import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
 import com.circulation.circulation_networks.network.Grid;
-//? if <1.20 {
-import com.circulation.circulation_networks.packets.NodeNetworkRendering;
-//?}
 import com.circulation.circulation_networks.utils.Functions;
-//? if <1.20 {
-import com.github.bsideup.jabel.Desugar;
-//?}
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -34,7 +28,9 @@ import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
+import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 //? if <1.20 {
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;

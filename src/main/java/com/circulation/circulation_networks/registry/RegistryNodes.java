@@ -2,13 +2,13 @@ package com.circulation.circulation_networks.registry;
 
 import com.circulation.circulation_networks.api.NodeDeserializer;
 import com.circulation.circulation_networks.api.node.INode;
-//? if <1.20 {
 import com.circulation.circulation_networks.network.nodes.ChargingNode;
 import com.circulation.circulation_networks.network.nodes.HubNode;
 import com.circulation.circulation_networks.network.nodes.InductionNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.ConsumerNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.GeneratorNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.StorageNode;
+//? if <1.20 {
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraftforge.common.DimensionManager;
 //?} else {
@@ -22,14 +22,12 @@ public final class RegistryNodes {
     private static final Object2ReferenceMap<String, NodeDeserializer> map = new Object2ReferenceOpenHashMap<>();
 
     static {
-        //? if <1.20 {
         register(InductionNode.class, InductionNode::new);
         register(ChargingNode.class, ChargingNode::new);
         register(HubNode.class, HubNode::new);
         register(GeneratorNode.class, GeneratorNode::new);
         register(StorageNode.class, StorageNode::new);
         register(ConsumerNode.class, ConsumerNode::new);
-        //?}
     }
 
     public static void register(Class<? extends INode> nodeClass, NodeDeserializer function) {
