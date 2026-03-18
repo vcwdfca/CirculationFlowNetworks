@@ -1,26 +1,12 @@
-# Stonecutter Cross-Version Template
+## 进行中
+- 中枢，用于公开，FTB，私人三种权限模式管理，允许针对玩家特殊权限设置，无中枢下默认公开
+    - 中枢GUI,用于选择频道,显示网络整体交互速率，暴露所有节点位置，不提供链接机器的位置
+    - 中枢插件，允许链接两个不同网络的能源系统
+    - 对每个玩家允许独立的充能设置，包括物品栏，饰品栏，快捷栏，主、副手（快捷栏覆盖主副手）
+        - 无中枢下默认全部位置充能
+    - 中枢插件，使网络充能节点全部失效，允许同维度玩家充能，与跨维度玩家充能
+    - 交互速率可以显示为所有的注册单位
 
-This folder is a minimal multi-version mod workspace template extracted from the main repository.
-
-Included versions:
-
-- 1.12.2
-- 1.20.1
-- 1.21.1
-
-Template rules:
-
-- Each version only keeps a main mod class and version-specific dependency/config files.
-- Shared build logic stays in the template root.
-- No current mod implementation code is included.
-
-Before using this template:
-
-1. Rename `mod_id`, `mod_name`, `root_package`, and `mod_version` in `gradle.properties`.
-2. Rename the example main classes under each version package.
-3. Add dependencies in each version `dependencies.gradle` as needed.
-4. Add shared code under `src/main/java` only when it is truly cross-version.
-
-Notes:
-
-- The template is configured for Java 21 on 1.12.2 and Java 25 on 1.20.1 / 1.21.1.
+## TODO
+- cot注册新的节点设备
+- 机器如果能量不足，进行一次警告
