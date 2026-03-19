@@ -2,12 +2,12 @@ package com.circulation.circulation_networks.packets;
 
 import com.circulation.circulation_networks.items.InspectionToolModeModel;
 import com.circulation.circulation_networks.items.InspectionToolState;
+import com.circulation.circulation_networks.registry.RegistryItems;
 import com.circulation.circulation_networks.utils.Packet;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import com.circulation.circulation_networks.registry.RegistryItems;
 
 public final class UpdateItemModeMessage implements Packet<UpdateItemModeMessage> {
 

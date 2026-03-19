@@ -21,15 +21,28 @@ public class TileEntityPhaseInterrupter extends BaseTileEntity implements IPhase
     private boolean redstoneMode = false;
     private boolean showingRange = false;
 
-    public int getScope() { return scope; }
-    public boolean isShowingRange() { return showingRange; }
-    public void setShowingRange(boolean showingRange) { this.showingRange = showingRange; }
+    public int getScope() {
+        return scope;
+    }
+
+    public void setScope(int scope) {
+        this.min.setPos(this.getPos().getX() - scope, this.getPos().getY() - scope, this.getPos().getZ() - scope);
+        this.max.setPos(this.getPos().getX() + scope, this.getPos().getY() + scope, this.getPos().getZ() + scope);
+        this.scope = scope;
+    }
+
+    public boolean isShowingRange() {
+        return showingRange;
+    }
+
+    public void setShowingRange(boolean showingRange) {
+        this.showingRange = showingRange;
+    }
 
     @Override
     public boolean hasGui() {
         return true;
     }
-
 
     @Override
     @NotNull
@@ -41,12 +54,6 @@ public class TileEntityPhaseInterrupter extends BaseTileEntity implements IPhase
     @SideOnly(Side.CLIENT)
     public GuiContainer getGui(EntityPlayer player) {
         return new GuiPhaseInterrupter(player, this);
-    }
-
-    public void setScope(int scope) {
-        this.min.setPos(this.getPos().getX() - scope, this.getPos().getY() - scope, this.getPos().getZ() - scope);
-        this.max.setPos(this.getPos().getX() + scope, this.getPos().getY() + scope, this.getPos().getZ() + scope);
-        this.scope = scope;
     }
 
     @Override

@@ -16,7 +16,7 @@ public final class BlockHub extends BaseNodeBlock {
 
     @Override
     public boolean hasGui() {
-        return false;
+        return true;
     }
 
     @Override

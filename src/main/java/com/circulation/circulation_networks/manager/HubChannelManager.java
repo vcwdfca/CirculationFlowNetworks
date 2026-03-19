@@ -1,7 +1,7 @@
 package com.circulation.circulation_networks.manager;
 
 import com.circulation.circulation_networks.api.IGrid;
-import com.circulation.circulation_networks.api.IHubNodeBlockEntity;
+import com.circulation.circulation_networks.api.INodeBlockEntity;
 import com.circulation.circulation_networks.api.hub.PermissionMode;
 import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
@@ -63,12 +63,12 @@ public final class HubChannelManager {
     public void onBlockEntityValidate(BlockEntityLifeCycleEvent.Validate event) {
         if (isClientWorld(event.getWorld())) return;
         var te = event.getBlockEntity();
-        if (te instanceof IHubNodeBlockEntity hubTE) {
+        if (te instanceof INodeBlockEntity hubTE) {
             var node = hubTE.getNode();
             if (node instanceof IHubNode hub) {
-                var channelId = hubTE.getChannelId();
-                var channelName = hubTE.getChannelName();
-                var p = hubTE.getPermissionMode();
+                var channelId = hub.getChannelId();
+                var channelName = hub.getChannelName();
+                var p = hub.getPermissionMode();
                 if (channelId != null && channelName != null) {
                     register(hub, channelId, channelName, p);
                 }
@@ -79,7 +79,7 @@ public final class HubChannelManager {
     public void onBlockEntityInvalidate(BlockEntityLifeCycleEvent.Invalidate event) {
         if (isClientWorld(event.getWorld())) return;
         var te = event.getBlockEntity();
-        if (te instanceof IHubNodeBlockEntity hubTE) {
+        if (te instanceof INodeBlockEntity hubTE) {
             var node = hubTE.getNode();
             if (node instanceof IHubNode hub) {
                 unregister(hub);

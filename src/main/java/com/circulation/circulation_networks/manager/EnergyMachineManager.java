@@ -448,6 +448,7 @@ public final class EnergyMachineManager {
     void initGrid(Collection<NetworkManager.GridEntry> entries) {
         for (var entry : entries) {
             var dim = entry.dimId();
+            if (entry.grid().getNodes().isEmpty()) continue;
             for (INode node : entry.grid().getNodes()) {
                 if (!(node instanceof IEnergySupplyNode energySupplyNode)) continue;
 
@@ -634,20 +635,12 @@ public final class EnergyMachineManager {
         private final EnergyAmount input = new EnergyAmount(0L);
         private final EnergyAmount output = new EnergyAmount(0L);
 
-        public double getInput() {
-            return input.asDouble();
+        public EnergyAmount getInput() {
+            return input;
         }
 
-        public double getOutput() {
-            return output.asDouble();
-        }
-
-        public String getInputString() {
-            return input.toString();
-        }
-
-        public String getOutputString() {
-            return output.toString();
+        public EnergyAmount getOutput() {
+            return output;
         }
 
         private void reset() {

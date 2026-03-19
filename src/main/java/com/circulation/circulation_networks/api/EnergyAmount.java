@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * downgraded automatically.
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
-public class EnergyAmount implements Comparable<EnergyAmount> {
+public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
 
     private static final int STATE_UNINITIALIZED = 0;
     private static final int STATE_LONG = 1;
@@ -31,6 +31,62 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
     private byte state = STATE_UNINITIALIZED;
 
     protected EnergyAmount() {
+    }
+
+    @Override
+    public int intValue() {
+        if (state == STATE_LONG) {
+            return (int) longValue;
+        }
+        if (state == STATE_UNINITIALIZED) {
+            return 0;
+        }
+        if (compareTo(EnergyAmounts.INT_MIN) < 0) {
+            return Integer.MIN_VALUE;
+        }
+        if (compareTo(EnergyAmounts.INT_MAX) > 0) {
+            return Integer.MAX_VALUE;
+        }
+        return bigValue.intValue();
+    }
+
+    @Override
+    public long longValue() {
+        if (state == STATE_LONG) {
+            return longValue;
+        }
+        if (state == STATE_UNINITIALIZED) {
+            return 0L;
+        }
+        if (compareTo(EnergyAmounts.LONG_MIN) < 0) {
+            return Long.MIN_VALUE;
+        }
+        if (compareTo(EnergyAmounts.LONG_MAX) > 0) {
+            return Long.MAX_VALUE;
+        }
+        return bigValue.longValue();
+    }
+
+    @Override
+    public float floatValue() {
+        if (state == STATE_LONG) {
+            return longValue;
+        }
+        if (state == STATE_UNINITIALIZED) {
+            return 0;
+        }
+        return bigValue.floatValue();
+    }
+
+    @Override
+    public double doubleValue() {
+        if (state == STATE_LONG) {
+            return longValue;
+        }
+        if (state == STATE_UNINITIALIZED) {
+            return 0.0D;
+        }
+        return bigValue.doubleValue();
     }
 
     public EnergyAmount(long value) {
@@ -148,11 +204,30 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
     }
 
     public boolean isZero() {
-        return compareTo(0L) == 0;
+        if (state == STATE_UNINITIALIZED || state == STATE_LONG) {
+            return longValue == 0L;
+        }
+        return false;
     }
 
     public boolean isPositive() {
-        return compareTo(0L) > 0;
+        if (state == STATE_LONG) {
+            return longValue > 0L;
+        }
+        if (state == STATE_BIG) {
+            return bigValue.signum() > 0;
+        }
+        return false;
+    }
+
+    public boolean isNegative() {
+        if (state == STATE_LONG) {
+            return longValue < 0L;
+        }
+        if (state == STATE_BIG) {
+            return bigValue.signum() < 0;
+        }
+        return false;
     }
 
     public boolean fitsLong() {
@@ -170,29 +245,7 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
     }
 
     public long asLongClamped() {
-        if (state == STATE_LONG) {
-            return longValue;
-        }
-        if (state == STATE_UNINITIALIZED) {
-            return 0L;
-        }
-        if (bigValue.compareTo(BIG_LONG_MIN) < 0) {
-            return Long.MIN_VALUE;
-        }
-        if (bigValue.compareTo(BIG_LONG_MAX) > 0) {
-            return Long.MAX_VALUE;
-        }
-        return bigValue.longValue();
-    }
-
-    public double asDouble() {
-        if (state == STATE_LONG) {
-            return longValue;
-        }
-        if (state == STATE_UNINITIALIZED) {
-            return 0.0D;
-        }
-        return bigValue.doubleValue();
+        return longValue();
     }
 
     public BigInteger asBigInteger() {
@@ -200,7 +253,7 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
             return bigValue;
         }
         if (state == STATE_UNINITIALIZED) {
-            return BIG_ZERO;
+            return BigInteger.ZERO;
         }
         return toBigInteger(longValue);
     }
@@ -214,12 +267,11 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
             return init(value);
         }
         if (state == STATE_LONG) {
-            try {
-                longValue = Math.addExact(longValue, value);
+            if (value > 0 ? longValue <= Long.MAX_VALUE - value : longValue >= Long.MIN_VALUE - value) {
+                longValue += value;
                 return this;
-            } catch (ArithmeticException ignored) {
-                return init(toBigInteger(longValue).add(toBigInteger(value)));
             }
+            return init(toBigInteger(longValue).add(toBigInteger(value)));
         }
         bigValue = bigValue.add(toBigInteger(value));
         normalize();
@@ -245,15 +297,17 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
 
     public EnergyAmount subtract(long value) {
         if (state == STATE_UNINITIALIZED) {
-            return init(-value);
+            if (value != Long.MIN_VALUE) {
+                return init(-value);
+            }
+            return init(toBigInteger(value).negate());
         }
         if (state == STATE_LONG) {
-            try {
-                longValue = Math.subtractExact(longValue, value);
+            if (value > 0 ? longValue >= Long.MIN_VALUE + value : longValue <= Long.MAX_VALUE + value) {
+                longValue -= value;
                 return this;
-            } catch (ArithmeticException ignored) {
-                return init(toBigInteger(longValue).subtract(toBigInteger(value)));
             }
+            return init(toBigInteger(longValue).subtract(toBigInteger(value)));
         }
         bigValue = bigValue.subtract(toBigInteger(value));
         normalize();
@@ -337,7 +391,7 @@ public class EnergyAmount implements Comparable<EnergyAmount> {
     }
 
     private static boolean fitsInLong(BigInteger value) {
-        return value.compareTo(BIG_LONG_MIN) >= 0 && value.compareTo(BIG_LONG_MAX) <= 0;
+        return value.bitLength() <= 63;
     }
 
     private static BigInteger toBigInteger(long value) {

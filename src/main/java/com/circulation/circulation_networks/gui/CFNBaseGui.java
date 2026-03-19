@@ -7,7 +7,7 @@ import com.circulation.circulation_networks.gui.component.base.Component;
 import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
 import com.circulation.circulation_networks.gui.component.base.ComponentGuiContext;
 import com.circulation.circulation_networks.gui.component.base.ComponentScreenController;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import com.circulation.circulation_networks.gui.component.base.RenderPhase;
 //? if <1.20 {
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -27,7 +27,9 @@ import javax.annotation.Nonnull;
 //? if <1.20 {
 import java.io.IOException;
 //?}
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Base class for all CFN GUI screens that need interactive components.
@@ -46,7 +48,7 @@ import java.util.List;
  * <p>Event routing: Mouse and key events are delivered to components in descending
  * z-index order (highest z-index first). The first component that returns {@code true}
  * from its handler consumes the event; remaining components and the default
- * behaviour are skipped.
+ * behavior are skipped.
  */
 @SuppressWarnings("unused")
 //? if <1.20 {
@@ -80,12 +82,6 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         ComponentAtlas atlas = ComponentAtlas.INSTANCE;
         AtlasRegion region = atlas.getBackground(name);
         if (region == null) return;
-
-        //? if <1.20 {
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        //?} else {
-        /*RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        *///?}
         AtlasRenderHelper.drawRegion(atlas, region, screenX, screenY, w, h);
     }
 
@@ -113,9 +109,9 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
 
     /**
      * Override this method to register all root-level components for this GUI.
+     * Add components into the map under the appropriate {@link RenderPhase}.
      */
-    protected List<Component> buildComponents(List<Component> components) {
-        return components;
+    protected void buildComponents(Map<RenderPhase, List<Component>> components) {
     }
 
     // -------------------------------------------------------------------------
@@ -130,7 +126,9 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
     /*protected void init() {
         super.init();
     *///?}
-        componentController.initializeComponents(buildComponents(new ObjectArrayList<>()));
+        Map<RenderPhase, List<Component>> phaseMap = new EnumMap<>(RenderPhase.class);
+        buildComponents(phaseMap);
+        componentController.initializeComponents(phaseMap);
         ComponentAtlas.INSTANCE.awaitReady();
     }
 
@@ -152,41 +150,57 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
     // Rendering
     // -------------------------------------------------------------------------
 
+    private void resetColor() {
+        //? if <1.20 {
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+        //?} else {
+        /*RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+         *///?}
+    }
+
+    private void renderBGPhase(int mouseX, int mouseY, float partialTicks) {
+        resetColor();
+        componentController.renderPhase(RenderPhase.BACKGROUND, mouseX, mouseY, partialTicks);
+    }
+
+    private void renderComponentTooltip(int mouseX, int mouseY) {
+        List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
+        if (componentTooltip == null || componentTooltip.isEmpty()) return;
+        //? if <1.20 {
+        drawHoveringText(componentTooltip, mouseX, mouseY);
+        //?} else {
+        /*List<net.minecraft.network.chat.Component> mcTooltip = new java.util.ArrayList<>();
+        for (String line : componentTooltip) {
+            mcTooltip.add(net.minecraft.network.chat.Component.literal(line));
+        }
+        // guiGraphics is not available here — tooltip rendered inline below
+        *///?}
+    }
+
     //? if <1.20 {
     @Override
     protected final void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        final int ox = this.guiLeft;
-        final int oy = this.guiTop;
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        this.drawBG(ox, oy, mouseX, mouseY);
+        renderBGPhase(mouseX, mouseY, partialTicks);
+        resetColor();
+        this.drawBG(this.guiLeft, this.guiTop, mouseX, mouseY);
     }
 
     @Override
     protected final void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        final int ox = this.guiLeft;
-        final int oy = this.guiTop;
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        this.drawFG(ox, oy, mouseX, mouseY);
+        resetColor();
+        this.drawFG(this.guiLeft, this.guiTop, mouseX, mouseY);
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
-
         componentController.handleActiveDrag(mouseX, mouseY);
-
-        GlStateManager.pushMatrix();
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        componentController.renderComponents(mouseX, mouseY, partialTicks);
-        GlStateManager.popMatrix();
-
+        resetColor();
+        componentController.renderPhase(RenderPhase.NORMAL, mouseX, mouseY, partialTicks);
         super.drawScreen(mouseX, mouseY, partialTicks);
-
-        List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
-        if (componentTooltip != null && !componentTooltip.isEmpty()) {
-            drawHoveringText(componentTooltip, mouseX, mouseY);
-        }
-
+        resetColor();
+        componentController.renderPhase(RenderPhase.FOREGROUND, mouseX, mouseY, partialTicks);
+        renderComponentTooltip(mouseX, mouseY);
         this.renderHoveredToolTip(mouseX, mouseY);
     }
 
@@ -198,33 +212,26 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
     //?} else {
     /*@Override
     protected final void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
-        final int ox = this.leftPos;
-        final int oy = this.topPos;
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        this.drawBG(ox, oy, mouseX, mouseY);
+        renderBGPhase(mouseX, mouseY, partialTick);
+        resetColor();
+        this.drawBG(this.leftPos, this.topPos, mouseX, mouseY);
     }
 
     @Override
     protected final void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        final int ox = this.leftPos;
-        final int oy = this.topPos;
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        this.drawFG(ox, oy, mouseX, mouseY);
+        resetColor();
+        this.drawFG(this.leftPos, this.topPos, mouseX, mouseY);
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics);
-
         componentController.handleActiveDrag(mouseX, mouseY);
-
-        com.mojang.blaze3d.vertex.PoseStack poseStack = guiGraphics.pose();
-        poseStack.pushPose();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        componentController.renderComponents(mouseX, mouseY, partialTick);
-        poseStack.popPose();
-
+        resetColor();
+        componentController.renderPhase(RenderPhase.NORMAL, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+        resetColor();
+        componentController.renderPhase(RenderPhase.FOREGROUND, mouseX, mouseY, partialTick);
 
         List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
         if (componentTooltip != null && !componentTooltip.isEmpty()) {

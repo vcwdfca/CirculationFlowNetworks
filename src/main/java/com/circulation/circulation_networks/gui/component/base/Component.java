@@ -2,6 +2,11 @@ package com.circulation.circulation_networks.gui.component.base;
 
 import com.circulation.circulation_networks.container.ComponentSlotLayout;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+//? if <1.20 {
+import net.minecraft.client.renderer.GlStateManager;
+//?} else {
+/*import com.mojang.blaze3d.systems.RenderSystem;
+*///?}
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -140,9 +145,33 @@ public abstract class Component {
         render(mouseX, mouseY, partialTicks);
 
         if (children.isEmpty()) return;
+        //? if <1.20 {
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(getAbsoluteX(), getAbsoluteY(), 0);
+        //?} else {
+        /*var modelView = RenderSystem.getModelViewStack();
+        //? if <1.21 {
+        modelView.pushPose();
+        modelView.translate(getAbsoluteX(), getAbsoluteY(), 0);
+        RenderSystem.applyModelViewMatrix();
+        //?} else {
+        modelView.pushMatrix();
+        modelView.translate(getAbsoluteX(), getAbsoluteY(), 0);
+        //?}
+        *///?}
         for (Component child : children) {
             child.renderComponent(mouseX, mouseY, partialTicks);
         }
+        //? if <1.20 {
+        GlStateManager.popMatrix();
+        //?} else {
+        /*//? if <1.21 {
+        modelView.popPose();
+        RenderSystem.applyModelViewMatrix();
+        //?} else {
+        modelView.popMatrix();
+        //?}
+        *///?}
     }
 
     protected abstract void render(int mouseX, int mouseY, float partialTicks);

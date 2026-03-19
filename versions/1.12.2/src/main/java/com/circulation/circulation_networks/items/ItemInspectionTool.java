@@ -81,7 +81,8 @@ public class ItemInspectionTool extends BaseItem {
         for (var line : model.lines()) {
             switch (line.kind()) {
                 case TRANSLATABLE -> tooltip.add(I18n.format(line.key()));
-                case TRANSLATABLE_WITH_TRANSLATED_ARG -> tooltip.add(I18n.format(line.key(), I18n.format(line.argumentKey())));
+                case TRANSLATABLE_WITH_TRANSLATED_ARG ->
+                    tooltip.add(I18n.format(line.key(), I18n.format(line.argumentKey())));
                 case DESCRIPTION -> tooltip.add("§7" + I18n.format(line.key()));
                 case BLANK -> tooltip.add("");
             }

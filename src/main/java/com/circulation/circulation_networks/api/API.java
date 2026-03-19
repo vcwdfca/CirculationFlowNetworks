@@ -68,11 +68,7 @@ public final class API {
      */
     @Nonnull
     public static ReferenceSet<INode> getAllNodes() {
-        //? if <1.20 {
         return NetworkManager.INSTANCE.getActiveNodes();
-        //?} else {
-        /*return ReferenceSets.emptySet();
-         *///?}
     }
 
     /**

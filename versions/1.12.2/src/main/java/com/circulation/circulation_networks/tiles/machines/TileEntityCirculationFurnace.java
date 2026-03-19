@@ -19,11 +19,15 @@ public final class TileEntityCirculationFurnace extends BaseInvMachineNodeTileEn
 
     private int cookTime;
     private int totalCookTime;
-
-    public int getCookTime() { return cookTime; }
-    public int getTotalCookTime() { return totalCookTime; }
-
     private int delayTime;
+
+    public int getCookTime() {
+        return cookTime;
+    }
+
+    public int getTotalCookTime() {
+        return totalCookTime;
+    }
 
     @Override
     protected @NotNull IMachineNode createNode() {

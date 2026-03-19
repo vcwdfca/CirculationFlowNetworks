@@ -10,10 +10,11 @@ import net.minecraft.nbt.NBTTagCompound;
 *///?}
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
 public interface IGrid {
 
-    int getId();
+    UUID getId();
 
     ReferenceSet<INode> getNodes();
 

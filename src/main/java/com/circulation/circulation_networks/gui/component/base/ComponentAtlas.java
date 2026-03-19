@@ -269,7 +269,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         event.register("inventory");
         event.register("slot");
 
-        event.registerBackground("gui_center");
+        event.registerBackground("test");
     }
 
     /**

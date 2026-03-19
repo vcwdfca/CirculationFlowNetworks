@@ -10,6 +10,7 @@ import com.circulation.circulation_networks.network.Grid;
 import com.circulation.circulation_networks.utils.Functions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import java.util.UUID;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -28,8 +29,8 @@ import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
-import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 //? if <1.20 {
+import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
@@ -64,15 +65,14 @@ public final class NetworkManager {
     public static final NetworkManager INSTANCE = new NetworkManager();
     private static File saveFile;
     private final ReferenceSet<INode> activeNodes = new ReferenceOpenHashSet<>();
-    private final Int2ObjectMap<IGrid> grids = new Int2ObjectOpenHashMap<>();
+    private final Object2ObjectMap<UUID, IGrid> grids = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Long2ReferenceMap<INode>> posNodes = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<INode>>> scopeNode = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Object2ObjectMap<INode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<INode>>> nodeLocation = new Int2ObjectOpenHashMap<>();
     private final ObjectSet<IGrid> markGird = new ObjectOpenHashSet<>();
-    private final Queue<IGrid> emptyGird = new ArrayDeque<>();
+    private final ObjectArrayList<IGrid> emptyGird = new ObjectArrayList<>();
     private boolean init;
-    private int nextGridId = 0;
 
     {
         posNodes.defaultReturnValue(Long2ReferenceMaps.emptyMap());
@@ -495,13 +495,7 @@ public final class NetworkManager {
     }
 
     private IGrid allocGrid() {
-        IGrid grid;
-        if (!emptyGird.isEmpty()) {
-            grid = emptyGird.poll();
-            grid.getNodes().clear();
-        } else {
-            grid = new Grid(nextGridId++);
-        }
+        IGrid grid = new Grid(UUID.randomUUID());
         grids.put(grid.getId(), grid);
         EnergyMachineManager.INSTANCE.getInteraction().put(grid, new EnergyMachineManager.Interaction());
         markGird.add(grid);
@@ -511,7 +505,6 @@ public final class NetworkManager {
     private void destroyGrid(IGrid grid) {
         grids.remove(grid.getId());
         EnergyMachineManager.INSTANCE.getInteraction().remove(grid);
-        markGird.add(grid);
         emptyGird.add(grid);
     }
 
@@ -520,25 +513,29 @@ public final class NetworkManager {
         nodeScope.clear();
         nodeLocation.clear();
         activeNodes.clear();
-        markGird.clear();
-        emptyGird.clear();
         grids.clear();
         posNodes.clear();
-        nextGridId = 0;
         saveFile = null;
         init = false;
     }
 
     public void saveGrid() {
-        if (markGird.isEmpty()) return;
         File saveDir = NetworkManager.getSaveFile();
-        for (IGrid grid : markGird) {
-            try {
-                writeCompressedNbt(grid.serialize(), new File(saveDir, grid.getId() + ".dat"));
-            } catch (IOException ignored) {
+        if (!emptyGird.isEmpty()) {
+            for (IGrid grid : emptyGird) {
+                new File(saveDir, grid.getId().toString() + ".dat").delete();
             }
+            emptyGird.clear();
         }
-        markGird.clear();
+        if (!markGird.isEmpty()) {
+            for (IGrid grid : markGird) {
+                try {
+                    writeCompressedNbt(grid.serialize(), new File(saveDir, grid.getId().toString() + ".dat"));
+                } catch (IOException ignored) {
+                }
+            }
+            markGird.clear();
+        }
     }
 
     public void initGrid() {
@@ -552,7 +549,7 @@ public final class NetworkManager {
         for (File file : files) {
             try {
                 var nbt = readCompressedNbt(file);
-                if (nbt == null) continue;
+                if (nbt == null || !nbt.hasKey("dim")) continue;
                 //? if <1.20 {
                 int dimId = nbt.getInteger("dim");
                 //?} else {
@@ -561,29 +558,48 @@ public final class NetworkManager {
                 if (!isRegisteredDimension(dimId)) continue;
                 var grid = Grid.deserialize(nbt);
                 if (grid == null) continue;
+                if (grid.getNodes().isEmpty()) {
+                    file.delete();
+                    continue;
+                }
                 entries.add(new GridEntry(dimId, grid));
             } catch (IOException ignored) {
             }
         }
 
-        int maxId = 0;
         for (var entry : entries) {
             var grid = entry.grid();
-            int gridId = grid.getId();
-            if (gridId > maxId) maxId = gridId;
-            grids.put(gridId, grid);
+            grids.put(grid.getId(), grid);
             EnergyMachineManager.INSTANCE.getInteraction().put(grid, new EnergyMachineManager.Interaction());
 
-            if (grid.getNodes().isEmpty()) {
-                emptyGird.add(grid);
-            } else {
-                for (INode node : grid.getNodes()) {
-                    activeNodes.add(node);
-                    registerNodeIndices(entry.dimId(), node);
+            var registered = new ObjectArrayList<INode>();
+            boolean collision = false;
+            for (INode node : grid.getNodes()) {
+                var l = posNodes.get(entry.dimId);
+                //? if <1.20 {
+                var p = node.getPos().toLong();
+                //?} else {
+                /*var p = node.getPos().asLong();
+                 *///?}
+                if (l.containsKey(p)) {
+                    collision = true;
+                    break;
                 }
+                activeNodes.add(node);
+                registerNodeIndices(entry.dimId, node);
+                registered.add(node);
+            }
+            if (collision) {
+                for (INode node : registered) {
+                    activeNodes.remove(node);
+                    unregisterNodeIndices(entry.dimId, node);
+                }
+                grids.remove(grid.getId());
+                EnergyMachineManager.INSTANCE.getInteraction().remove(grid);
+                grid.getNodes().clear();
+                grid.setHubNode(null);
             }
         }
-        nextGridId = maxId + 1;
         EnergyMachineManager.INSTANCE.initGrid(entries);
         init = true;
     }

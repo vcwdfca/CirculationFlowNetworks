@@ -4,12 +4,15 @@ import com.circulation.circulation_networks.container.ContainerCirculationFurnac
 import com.circulation.circulation_networks.gui.component.InventoryComponent;
 import com.circulation.circulation_networks.gui.component.SlotComponent;
 import com.circulation.circulation_networks.gui.component.base.Component;
+import com.circulation.circulation_networks.gui.component.base.RenderPhase;
 import com.circulation.circulation_networks.tiles.machines.TileEntityCirculationFurnace;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.util.List;
+import java.util.Map;
 
 @SideOnly(Side.CLIENT)
 public class GuiCirculationFurnace extends CFNBaseGui {
@@ -24,11 +27,11 @@ public class GuiCirculationFurnace extends CFNBaseGui {
     }
 
     @Override
-    protected List<Component> buildComponents(List<Component> components) {
-        components.add(new SlotComponent(56, 35, container.inputLayout, "slot", this));
-        components.add(new SlotComponent(116, 35, container.outputLayout, "slot", this));
-        components.add(new InventoryComponent(8, 84, container.playerInvLayout, this));
-        return components;
+    protected void buildComponents(Map<RenderPhase, List<Component>> components) {
+        List<Component> bg = components.computeIfAbsent(RenderPhase.BACKGROUND, k -> new ObjectArrayList<>());
+        bg.add(new SlotComponent(56, 35, container.inputLayout, "slot", this));
+        bg.add(new SlotComponent(116, 35, container.outputLayout, "slot", this));
+        bg.add(new InventoryComponent(8, 84, container.playerInvLayout, this));
     }
 
     @Override

@@ -8,6 +8,8 @@ import net.minecraft.nbt.NBTTagCompound;
 
 public class ChargingPreference {
 
+    public static final ChargingPreference INSTANCE = defaultAll();
+
     private boolean chargeInventory;
     private boolean chargeHotbar;
     private boolean chargeBaubles;
@@ -40,18 +42,6 @@ public class ChargingPreference {
             nbt.getBoolean("armorSlot")
         );
     }
-    //?} else {
-    /*public static ChargingPreference deserialize(CompoundTag nbt) {
-        return new ChargingPreference(
-            nbt.getBoolean("inv"),
-            nbt.getBoolean("hotbar"),
-            nbt.getBoolean("baubles"),
-            nbt.getBoolean("mainHand"),
-            nbt.getBoolean("offHand"),
-            nbt.getBoolean("armorSlot")
-        );
-    }
-    *///?}
 
     public boolean getPreference(ChargingDefinition cd) {
         return switch (cd) {

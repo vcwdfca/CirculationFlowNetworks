@@ -13,6 +13,8 @@ plugins {
     java
     `java-library`
     `maven-publish`
+    kotlin("jvm") version "2.2.10"
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
     id("org.jetbrains.gradle.plugin.idea-ext") version "1.3"
     id("com.gtnewhorizons.retrofuturagradle") version "2.0.2" apply false
     id("net.neoforged.moddev") version "2.0.140" apply false
@@ -542,6 +544,28 @@ tasks.withType<JavaCompile>().configureEach {
         })
     }
 }
+
+if (isLegacyRfg) {
+    // Kotlin plugin creates compile*Kotlin tasks for RFG source sets that need
+    // the same task dependencies as their Java counterparts.
+    val rfgKotlinDeps = mapOf(
+        "compileMcLauncherKotlin" to "createMcLauncherFiles",
+        "compilePatchedMcKotlin" to "decompressDecompiledSources",
+        "compileInjectedTagsKotlin" to "injectTags"
+    )
+    rfgKotlinDeps.forEach { (kotlinTask, dep) ->
+        tasks.matching { it.name == kotlinTask }.configureEach {
+            dependsOn(dep)
+        }
+    }
+}
+
+// KSP prepareEmptyKspDir must run before any task using KSP output directories
+val prepareKsp = tasks.matching { it.name == "prepareEmptyKspDir" }
+tasks.withType<AbstractCompile>().configureEach { dependsOn(prepareKsp) }
+tasks.matching { it.name.contains("Kotlin") && it.name.startsWith("compile") }.configureEach { dependsOn(prepareKsp) }
+tasks.withType<Jar>().configureEach { dependsOn(prepareKsp) }
+tasks.withType<AbstractCopyTask>().configureEach { dependsOn(prepareKsp) }
 
 val cleanroomAfterSync = tasks.register("cleanroomAfterSync") {
     group = "cleanroom helpers"

@@ -20,19 +20,20 @@ import net.minecraft.nbt.Tag;
 *///?}
 
 import javax.annotation.Nullable;
+import java.util.UUID;
 
-public class Grid implements IGrid {
+public final class Grid implements IGrid {
 
-    private final int id;
+    private final UUID id;
     private final ReferenceSet<INode> nodes = new ReferenceOpenHashSet<>();
     @Nullable
     private IHubNode hubNode;
 
-    public Grid(int id) {
+    public Grid(UUID id) {
         this.id = id;
     }
 
-    public int getId() {
+    public UUID getId() {
         return id;
     }
 
@@ -51,7 +52,7 @@ public class Grid implements IGrid {
 
     //? if <1.20 {
     public static Grid deserialize(NBTTagCompound nbt) {
-        var grid = new Grid(nbt.getInteger("id"));
+        var grid = new Grid(nbt.getUniqueId("id"));
         var list = nbt.getTagList("nodes", 10);
 
         var posMap = new Long2ReferenceOpenHashMap<INode>();
@@ -85,7 +86,7 @@ public class Grid implements IGrid {
     }
     //?} else {
     /*public static Grid deserialize(CompoundTag nbt) {
-        var grid = new Grid(nbt.getInt("id"));
+        var grid = new Grid(nbt.getUUID("id"));
         var list = nbt.getList("nodes", Tag.TAG_COMPOUND);
 
         var posMap = new Long2ReferenceOpenHashMap<INode>();
@@ -121,7 +122,7 @@ public class Grid implements IGrid {
 
     @Override
     public int hashCode() {
-        return id;
+        return id.hashCode();
     }
 
     //? if <1.20 {
@@ -129,7 +130,7 @@ public class Grid implements IGrid {
     public NBTTagCompound serialize() {
         var nbt = new NBTTagCompound();
         var list = new NBTTagList();
-        nbt.setInteger("id", id);
+        nbt.setUniqueId("id", id);
         if (!nodes.isEmpty()) {
             for (var node : nodes) {
                 nbt.setInteger("dim", getDimensionId(node));
@@ -147,7 +148,7 @@ public class Grid implements IGrid {
     public CompoundTag serialize() {
         var nbt = new CompoundTag();
         var list = new ListTag();
-        nbt.putInt("id", id);
+        nbt.putUUID("id", id);
         if (!nodes.isEmpty()) {
             for (var node : nodes) {
                 nbt.putInt("dim", 0);
@@ -181,6 +182,6 @@ public class Grid implements IGrid {
             return false;
         }
         final Grid other = (Grid) obj;
-        return this.id == other.id;
+        return this.id.equals(other.id);
     }
 }
