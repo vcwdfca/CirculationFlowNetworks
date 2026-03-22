@@ -131,4 +131,8 @@ public final class ComponentScreenController {
         }
         return ComponentTreeUtils.collectTopTooltip(allComponents, mouseX, mouseY);
     }
+
+    public Component[] getAllComponents() {
+        return allComponents;
+    }
 }

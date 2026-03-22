@@ -60,8 +60,15 @@ public abstract class DraggableComponent extends Component {
             newY = Math.max(dragBounds[1], Math.min(dragBounds[3], newY));
         }
 
-        int deltaX = newX - getX();
-        int deltaY = newY - getY();
+        if (getParent() != null) {
+            int maxX = getParent().width - this.width;
+            int maxY = getParent().height - this.height;
+            newX = Math.max(0, Math.min(maxX, newX));
+            newY = Math.max(0, Math.min(maxY, newY));
+        }
+
+        int deltaX = newX - x;
+        int deltaY = newY - y;
         setX(newX);
         setY(newY);
         update = true;

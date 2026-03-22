@@ -329,4 +329,8 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
     *///?}
+
+    public Component[] getAllComponents() {
+        return componentController.getAllComponents();
+    }
 }

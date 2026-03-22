@@ -76,6 +76,14 @@ public final class InspectionToolState {
     /*private static CompoundTag getTag(ItemStack stack) {
         return stack.getTag();
     }
+
+    private static int getInt(CompoundTag nbt, String key) {
+        return nbt.getInt(key);
+    }
+
+    private static void putInt(CompoundTag nbt, String key, int value) {
+        nbt.putInt(key, value);
+    }
     *///?} else {
     /*private static CompoundTag getTag(ItemStack stack) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);

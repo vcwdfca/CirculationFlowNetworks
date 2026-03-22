@@ -16,7 +16,7 @@ dependencies {
     runtimeOnly(rfg.deobf("curse.maven:supermartijn642s-config-lib-438332:4715393"))
     runtimeOnly(rfg.deobf("curse.maven:trash-cans-394535:4606884"))
     runtimeOnly(rfg.deobf("curse.maven:building-gadgets-298187:3005950"))
-    runtimeOnly(rfg.deobf("curse.maven:had-enough-items-557549:7057606"))
+    implementation(rfg.deobf("curse.maven:had-enough-items-557549:7057606"))
     runtimeOnly(rfg.deobf("curse.maven:ender-utilities-224320:2977010"))
     runtimeOnly(rfg.deobf("curse.maven:flare-692142:6598523"))
     runtimeOnly(rfg.deobf("curse.maven:packagedauto-308380:7329681"))

@@ -11,25 +11,22 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.awt.Rectangle;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 @SuppressWarnings("unused")
-public abstract class Component {
+public abstract class Component extends Rectangle {
 
     private final List<Component> children = new ObjectArrayList<>();
     private final List<ComponentSlotLayout> boundLayouts = new ObjectArrayList<>();
     @Nonnull
     private final ComponentGuiContext gui;
-    protected int width;
-    protected int height;
     protected boolean visible = true;
     protected boolean enabled = true;
     protected int zIndex = 0;
     protected boolean update;
-    private int x;
-    private int y;
     @Nullable
     private Component parent;
     private boolean hovered = false;
@@ -37,24 +34,13 @@ public abstract class Component {
     private String[] spriteLayers = new String[0];
 
     protected Component(int x, int y, int width, int height, @Nonnull ComponentGuiContext gui) {
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
+        super(x, y, width, height);
         this.gui = gui;
         update = true;
     }
 
     public List<Component> getChildren() {
         return children;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public int getHeight() {
-        return height;
     }
 
     public boolean isVisible() {
@@ -71,14 +57,6 @@ public abstract class Component {
 
     public int getZIndex() {
         return zIndex;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getY() {
-        return y;
     }
 
     public boolean isHovered() {
@@ -126,10 +104,48 @@ public abstract class Component {
 
     public boolean contains(int mouseX, int mouseY) {
         if (!isVisible()) return false;
-        int ax = getAbsoluteX();
-        int ay = getAbsoluteY();
-        return mouseX >= ax && mouseX < ax + width
-            && mouseY >= ay && mouseY < ay + height;
+        int w = this.width;
+        int h = this.height;
+        if ((w | h) < 0) {
+            return false;
+        }
+        int x = this.getAbsoluteX();
+        int y = this.getAbsoluteX();
+        if (mouseX < x || mouseY < y) {
+            return false;
+        }
+        w += x;
+        h += y;
+        return ((w < x || w > mouseX) &&
+            (h < y || h > mouseY));
+    }
+
+    public boolean contains(int X, int Y, int W, int H) {
+        if (!isVisible()) return false;
+        int w = this.width;
+        int h = this.height;
+        if ((w | h | W | H) < 0) {
+            return false;
+        }
+        int x = this.getAbsoluteX();
+        int y = this.getAbsoluteY();
+        if (X < x || Y < y) {
+            return false;
+        }
+        w += x;
+        W += X;
+        if (W <= X) {
+            if (w >= x || W > w) return false;
+        } else {
+            if (w >= x && W > w) return false;
+        }
+        h += y;
+        H += Y;
+        if (H <= Y) {
+            return h < y && H <= h;
+        } else {
+            return h < y || H <= h;
+        }
     }
 
     public final void renderComponent(int mouseX, int mouseY, float partialTicks) {
@@ -328,5 +344,10 @@ public abstract class Component {
     @Nullable
     public Component getParent() {
         return parent;
+    }
+
+    @Override
+    public Component clone() throws AssertionError {
+        throw new AssertionError();
     }
 }
