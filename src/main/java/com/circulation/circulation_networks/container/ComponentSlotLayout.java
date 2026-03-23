@@ -42,6 +42,11 @@ public class ComponentSlotLayout {
         return layout;
     }
 
+    public ComponentSlotLayout build(CFNBaseContainer container) {
+        container.registerPlayerLayout(this);
+        return this;
+    }
+
     //? if <1.20 {
     public ComponentSlotLayout addSlot(IInventory inventory, int index, int relX, int relY) {
         //?} else {

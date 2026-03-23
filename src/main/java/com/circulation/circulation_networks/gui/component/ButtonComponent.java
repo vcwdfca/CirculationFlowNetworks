@@ -1,8 +1,8 @@
 package com.circulation.circulation_networks.gui.component;
 
+import com.circulation.circulation_networks.gui.CFNBaseGui;
 import com.circulation.circulation_networks.gui.component.base.Component;
 import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
-import com.circulation.circulation_networks.gui.component.base.ComponentGuiContext;
 
 @SuppressWarnings("unused")
 public class ButtonComponent extends Component {
@@ -20,7 +20,7 @@ public class ButtonComponent extends Component {
     private boolean pressed = false;
     private Runnable run;
 
-    public ButtonComponent(int x, int y, int width, int height, ComponentGuiContext gui, String sprite, Runnable run) {
+    public ButtonComponent(int x, int y, int width, int height, CFNBaseGui<?> gui, String sprite, Runnable run) {
         super(x, y, width, height, gui);
         this.normalSprite = sprite;
         this.hoveredSprite = normalSprite + "_hovered";

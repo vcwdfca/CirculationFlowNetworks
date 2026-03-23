@@ -24,17 +24,9 @@ public class ContainerCirculationFurnace extends CFNBaseContainer {
         super(player);
         this.te = te;
 
-        inputLayout = new ComponentSlotLayout()
-            .addSlot(te.inv, 0, 1, 1);
-
-        outputLayout = new ComponentSlotLayout()
-            .addOutput(te.inv, 1, 1, 1);
-
-        playerInvLayout = ComponentSlotLayout.playerInventory(player.inventory);
-
-        registerLayout(inputLayout);
-        registerLayout(outputLayout);
-        registerPlayerLayout(playerInvLayout);
+        inputLayout = new ComponentSlotLayout().addSlot(te.inv, 0, 1, 1).build(this);
+        outputLayout = new ComponentSlotLayout().addOutput(te.inv, 1, 1, 1).build(this);
+        playerInvLayout = ComponentSlotLayout.playerInventory(player.inventory).build(this);
     }
 
     @Override

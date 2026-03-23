@@ -48,4 +48,57 @@ public final class AtlasRenderHelper {
             //?}
         *///?}
     }
+
+    public static void drawSubRegion(ComponentAtlas atlas,
+                                     AtlasRegion region,
+                                     int srcX,
+                                     int srcY,
+                                     int srcW,
+                                     int srcH,
+                                     int screenX,
+                                     int screenY,
+                                     int renderW,
+                                     int renderH) {
+        if (srcW <= 0 || srcH <= 0 || renderW <= 0 || renderH <= 0) {
+            return;
+        }
+        if (srcX < 0 || srcY < 0 || srcX + srcW > region.width || srcY + srcH > region.height) {
+            return;
+        }
+
+        float u0 = (float) (region.x + srcX) / region.atlasWidth;
+        float v0 = (float) (region.y + srcY) / region.atlasHeight;
+        float u1 = (float) (region.x + srcX + srcW) / region.atlasWidth;
+        float v1 = (float) (region.y + srcY + srcH) / region.atlasHeight;
+
+        atlas.bind();
+        //? if <1.20 {
+        Tessellator tess = Tessellator.getInstance();
+        BufferBuilder buf = tess.getBuffer();
+        buf.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
+        buf.pos(screenX, screenY + renderH, 0).tex(u0, v1).endVertex();
+        buf.pos(screenX + renderW, screenY + renderH, 0).tex(u1, v1).endVertex();
+        buf.pos(screenX + renderW, screenY, 0).tex(u1, v0).endVertex();
+        buf.pos(screenX, screenY, 0).tex(u0, v0).endVertex();
+        tess.draw();
+        //?} else {
+            /*Tesselator tess = Tesselator.getInstance();
+            //? if <1.21 {
+            BufferBuilder buf = tess.getBuilder();
+            buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            buf.vertex(screenX, screenY + renderH, 0).uv(u0, v1).endVertex();
+            buf.vertex(screenX + renderW, screenY + renderH, 0).uv(u1, v1).endVertex();
+            buf.vertex(screenX + renderW, screenY, 0).uv(u1, v0).endVertex();
+            buf.vertex(screenX, screenY, 0).uv(u0, v0).endVertex();
+            tess.end();
+            //?} else {
+            BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            buf.addVertex(screenX, screenY + renderH, 0).setUv(u0, v1);
+            buf.addVertex(screenX + renderW, screenY + renderH, 0).setUv(u1, v1);
+            buf.addVertex(screenX + renderW, screenY, 0).setUv(u1, v0);
+            buf.addVertex(screenX, screenY, 0).setUv(u0, v0);
+            com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buf.buildOrThrow());
+            //?}
+        *///?}
+    }
 }

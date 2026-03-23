@@ -33,11 +33,33 @@ public final class ComponentTreeUtils {
         return null;
     }
 
-    public static List<String> collectTopTooltip(Component[] components, int mouseX, int mouseY) {
+    public static List<Component.LocalizedComponent> collectTopTooltip(Component[] components, int mouseX, int mouseY) {
         for (int i = components.length - 1; i >= 0; i--) {
-            List<String> tip = components[i].collectTooltip(mouseX, mouseY);
-            if (!tip.isEmpty()) return tip;
+            Component component = components[i];
+            if (!component.isVisible() || !component.contains(mouseX, mouseY)) continue;
+            return component.collectTooltip(mouseX, mouseY);
         }
         return Collections.emptyList();
+    }
+
+    @Nullable
+    public static Component findTopComponentAt(Component[] components, int mouseX, int mouseY) {
+        for (int i = components.length - 1; i >= 0; i--) {
+            Component component = components[i];
+            if (!component.isVisible() || !component.contains(mouseX, mouseY)) continue;
+            return findTopComponentAt(component, mouseX, mouseY);
+        }
+        return null;
+    }
+
+    @Nullable
+    private static Component findTopComponentAt(Component component, int mouseX, int mouseY) {
+        List<Component> children = component.getChildren();
+        for (int i = children.size() - 1; i >= 0; i--) {
+            Component child = children.get(i);
+            if (!child.isVisible() || !child.contains(mouseX, mouseY)) continue;
+            return findTopComponentAt(child, mouseX, mouseY);
+        }
+        return component;
     }
 }

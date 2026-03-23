@@ -3,6 +3,8 @@ package com.circulation.circulation_networks.gui.component.base;
 import com.circulation.circulation_networks.CirculationFlowNetworks;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
 //? if <1.20 {
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.ResourceLocation;
@@ -97,7 +99,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
                 int usedArea = usedArea(result.regions);
                 int atlasArea = dimensions.width * dimensions.height;
                 CirculationFlowNetworks.LOGGER.info(
-                    "[ComponentAtlas] Stitched {} sprites into {}×{} atlas (usage: {} / {} = {}%).",
+                    "Stitched {} sprites into {}×{} atlas (usage: {} / {} = {}%).",
                     sprites.size(), dimensions.width, dimensions.height, usedArea, atlasArea,
                     atlasArea == 0 ? 0 : (usedArea * 100) / atlasArea);
                 return result;
@@ -105,7 +107,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         }
 
         CirculationFlowNetworks.LOGGER.error(
-            "[ComponentAtlas] Sprites exceed maximum atlas size {}×{} within configured bounds! Some may be missing.",
+            "Sprites exceed maximum atlas size {}×{} within configured bounds! Some may be missing.",
             MAX_SIZE, MAX_SIZE);
         return tryPackForceFit(sorted);
     }
@@ -203,7 +205,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
             if (bestIndex < 0) {
                 if (allowSkipping) {
                     CirculationFlowNetworks.LOGGER.warn(
-                        "[ComponentAtlas] Sprite '{}' ({}×{}) does not fit — skipped.",
+                        "Sprite '{}' ({}×{}) does not fit — skipped.",
                         sprite.name, sprite.image.getWidth(), sprite.image.getHeight());
                     continue;
                 }
@@ -310,17 +312,18 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         buf.flip();
 
         int texId = GL11.glGenTextures();
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GlStateManager.bindTexture(texId);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width, height,
             0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+        GlStateManager.bindTexture(0);
 
         CirculationFlowNetworks.LOGGER.info(
-            "[ComponentAtlas] Uploaded atlas {}×{} to GL texture #{}", width, height, texId);
+            "Uploaded atlas {}×{} to GL texture #{}", width, height, texId);
         return texId;
     }
 
@@ -356,10 +359,15 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         buttonUtil.register("settings");
         buttonUtil.register("player_power_supply");
         buttonUtil.register("upgrade_plugin");
+        event.register("upgrade_plugin_ui");
+        event.register("upgrade_plugin_slot");
         buttonUtil.register("channel");
         buttonUtil.register("permission");
         buttonUtil.register("node");
         buttonUtil.register("energy_unit");
+        buttonUtil.register("slider_button");
+        buttonUtil.register("ui_close");
+        event.register("slider");
         event.register("hub_1_1_button");
         event.register("hub_1_3_button");
 
@@ -430,7 +438,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
                 rawSprites.add(new RawSprite(backgroundName(bgName), baos.toByteArray()));
             } catch (Exception e) {
                 CirculationFlowNetworks.LOGGER.warn(
-                    "[ComponentAtlas] Could not load background '{}': {}", bgName, e.getMessage());
+                    "Could not load background '{}': {}", bgName, e.getMessage());
             }
         }
         for (String name : names) {
@@ -453,12 +461,12 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
                 rawSprites.add(new RawSprite(name, baos.toByteArray()));
             } catch (Exception e) {
                 CirculationFlowNetworks.LOGGER.warn(
-                    "[ComponentAtlas] Could not load sprite '{}': {}", name, e.getMessage());
+                    "Could not load sprite '{}': {}", name, e.getMessage());
             }
         }
 
         if (rawSprites.isEmpty()) {
-            CirculationFlowNetworks.LOGGER.warn("[ComponentAtlas] No sprites found in resource manager!");
+            CirculationFlowNetworks.LOGGER.warn("No sprites found in resource manager!");
             future = CompletableFuture.completedFuture(StitchResult.EMPTY);
             return;
         }
@@ -483,17 +491,17 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
                         StitchResult cachedResult = buildRegions(sprites, cached);
                         if (cachedResult != StitchResult.EMPTY && !cachedResult.regions.isEmpty()) {
                             CirculationFlowNetworks.LOGGER.info(
-                                "[ComponentAtlas] Atlas cache hit (hash {})", hash);
+                                "Atlas cache hit (hash {})", hash);
                             return cachedResult;
                         }
                         CirculationFlowNetworks.LOGGER.warn(
-                            "[ComponentAtlas] Ignoring invalid atlas cache {} and rebuilding.",
+                            "Ignoring invalid atlas cache {} and rebuilding.",
                             cacheFile.getAbsolutePath());
                     }
                 }
 
                 CirculationFlowNetworks.LOGGER.info(
-                    "[ComponentAtlas] Stitching atlas for {} sprites (hash {})…",
+                    "Stitching atlas for {} sprites (hash {})…",
                     sprites.size(), hash);
                 StitchResult result = stitch(sprites);
 
@@ -505,15 +513,15 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
                 try {
                     ImageIO.write(result.image, "PNG", cacheFile);
                     CirculationFlowNetworks.LOGGER.info(
-                        "[ComponentAtlas] Atlas cached at {}", cacheFile.getAbsolutePath());
+                        "Atlas cached at {}", cacheFile.getAbsolutePath());
                 } catch (IOException e) {
                     CirculationFlowNetworks.LOGGER.warn(
-                        "[ComponentAtlas] Could not write atlas cache: {}", e.getMessage());
+                        "Could not write atlas cache: {}", e.getMessage());
                 }
                 return result;
 
             } catch (Exception e) {
-                CirculationFlowNetworks.LOGGER.error("[ComponentAtlas] Stitching failed", e);
+                CirculationFlowNetworks.LOGGER.error("Stitching failed", e);
                 return StitchResult.EMPTY;
             }
         });
@@ -542,7 +550,7 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         try {
             result = future.join();
         } catch (Exception e) {
-            CirculationFlowNetworks.LOGGER.error("[ComponentAtlas] Failed to obtain atlas", e);
+            CirculationFlowNetworks.LOGGER.error("Failed to obtain atlas", e);
             return;
         }
 
@@ -559,7 +567,8 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
      */
     public void bind() {
         if (glTextureId != 0) {
-            GL11.glBindTexture(GL11.GL_TEXTURE_2D, glTextureId);
+            GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+            GlStateManager.bindTexture(glTextureId);
         }
     }
 

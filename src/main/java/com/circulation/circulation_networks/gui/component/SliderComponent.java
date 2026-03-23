@@ -1,0 +1,238 @@
+package com.circulation.circulation_networks.gui.component;
+
+import com.circulation.circulation_networks.gui.CFNBaseGui;
+import com.circulation.circulation_networks.gui.component.base.AtlasRegion;
+import com.circulation.circulation_networks.gui.component.base.AtlasRenderHelper;
+import com.circulation.circulation_networks.gui.component.base.Component;
+import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
+
+public class SliderComponent extends Component {
+
+    public static final int TRACK_WIDTH = 8;
+    public static final int BUTTON_HEIGHT = 13;
+    public static final int TOP_EXCLUSION = 2;
+    public static final int BOTTOM_EXCLUSION = 2;
+    public static final int MIN_HEIGHT = TOP_EXCLUSION + BUTTON_HEIGHT + BOTTOM_EXCLUSION;
+
+    private static final int TRACK_TOP_HEIGHT = 6;
+    private static final int TRACK_MIDDLE_REPEAT_SRC_Y = 7;
+    private static final int TRACK_MIDDLE_REPEAT_HEIGHT = 2;
+    private static final int TRACK_BOTTOM_SRC_Y = 10;
+    private static final int TRACK_BOTTOM_HEIGHT = 6;
+    private static final int MIN = 0;
+
+    private static final String TRACK_SPRITE = "slider";
+
+    private final SliderParent sliderParent;
+    private final SliderButtonComponent button;
+
+    private final int max;
+    private int value;
+    private int step = 1;
+
+    public SliderComponent(SliderParent parent,
+                           int x,
+                           int y,
+                           int trackHeight,
+                           int max,
+                           int initialValue,
+                           CFNBaseGui<?> gui) {
+        super(x, y, TRACK_WIDTH, normalizeHeight(trackHeight), gui);
+        if (max < 0) {
+            throw new IllegalArgumentException("max must be greater than or equal to 0");
+        }
+
+        this.sliderParent = parent;
+        this.max = max;
+        this.button = new SliderButtonComponent(0, TOP_EXCLUSION, gui);
+
+        addChild(button);
+
+        updateButtonBounds();
+        button.setEnabled(this.max > MIN && isEnabled());
+        setValueInternal(initialValue, false);
+    }
+
+    public int getValue() {
+        return value;
+    }
+
+    public int getMax() {
+        return max;
+    }
+
+    public int getStep() {
+        return step;
+    }
+
+    public SliderComponent setStep(int step) {
+        this.step = Math.max(1, step);
+        return this;
+    }
+
+    public void setValue(int value) {
+        setValueInternal(value, false);
+    }
+
+    public boolean scroll(int delta) {
+        if (!isEnabled() || delta == 0 || max == MIN) {
+            return false;
+        }
+
+        int direction = delta > 0 ? -1 : 1;
+        int target = value + direction * step;
+        return setValueInternal(target, true);
+    }
+
+    @Override
+    public Component setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        button.setEnabled(enabled && max > MIN);
+        return null;
+    }
+
+    @Override
+    public void setSize(int width, int height) {
+        super.setSize(TRACK_WIDTH, normalizeHeight(height));
+        updateButtonBounds();
+        syncButtonToValue();
+    }
+
+    @Override
+    protected void render(int mouseX, int mouseY, float partialTicks) {
+        ComponentAtlas atlas = ComponentAtlas.INSTANCE;
+        AtlasRegion region = atlas.getRegion(TRACK_SPRITE);
+        if (region == null) {
+            return;
+        }
+
+        int ax = getAbsoluteX();
+        int ay = getAbsoluteY();
+
+        AtlasRenderHelper.drawSubRegion(atlas, region,
+            0, 0, TRACK_WIDTH, TRACK_TOP_HEIGHT,
+            ax, ay, TRACK_WIDTH, TRACK_TOP_HEIGHT);
+
+        int middleHeight = height - TRACK_TOP_HEIGHT - TRACK_BOTTOM_HEIGHT;
+        if (middleHeight > 0) {
+            int drawn = 0;
+            while (drawn < middleHeight) {
+                int sliceHeight = Math.min(TRACK_MIDDLE_REPEAT_HEIGHT, middleHeight - drawn);
+                AtlasRenderHelper.drawSubRegion(atlas, region,
+                    0, TRACK_MIDDLE_REPEAT_SRC_Y, TRACK_WIDTH, sliceHeight,
+                    ax, ay + TRACK_TOP_HEIGHT + drawn, TRACK_WIDTH, sliceHeight);
+                drawn += sliceHeight;
+            }
+        }
+
+        AtlasRenderHelper.drawSubRegion(atlas, region,
+            0, TRACK_BOTTOM_SRC_Y, TRACK_WIDTH, TRACK_BOTTOM_HEIGHT,
+            ax, ay + height - TRACK_BOTTOM_HEIGHT, TRACK_WIDTH, TRACK_BOTTOM_HEIGHT);
+    }
+
+    void onButtonDragged(boolean released) {
+        syncValueFromButton();
+        if (released) {
+            syncButtonToValue();
+            sliderParent.onSliderChanged(this);
+        }
+    }
+
+    private boolean setValueInternal(int newValue, boolean notify) {
+        if (max == MIN) {
+            int old = value;
+            value = MIN;
+            syncButtonToValue();
+            if (notify && old != value) {
+                sliderParent.onSliderChanged(this);
+            }
+            return false;
+        }
+
+        int clamped = clampValue(newValue);
+        if (value == clamped) {
+            if (notify) {
+                sliderParent.onSliderChanged(this);
+            }
+            return false;
+        }
+
+        value = clamped;
+        syncButtonToValue();
+        if (notify) {
+            sliderParent.onSliderChanged(this);
+        }
+        return true;
+    }
+
+    private void updateButtonBounds() {
+        int minY = minButtonY();
+        int maxY = maxButtonY();
+        if (max == MIN) {
+            button.setDragBounds(new int[]{0, minY, 0, minY});
+        } else {
+            button.setDragBounds(new int[]{0, minY, 0, maxY});
+        }
+    }
+
+    private void syncButtonToValue() {
+        button.setX(0);
+        button.setY(buttonYForValue(value));
+    }
+
+    private void syncValueFromButton() {
+        int y = clamp(button.y, minButtonY(), maxButtonY());
+        if (button.y != y) {
+            button.setY(y);
+        }
+        value = valueForButtonY(y);
+    }
+
+    private int valueForButtonY(int buttonY) {
+        if (max == MIN) {
+            return MIN;
+        }
+        int travel = travel();
+        if (travel <= 0) {
+            return MIN;
+        }
+        float t = (buttonY - minButtonY()) / (float) travel;
+        int mapped = MIN + Math.round(t * (max - MIN));
+        return clampValue(mapped);
+    }
+
+    private int buttonYForValue(int value) {
+        int travel = travel();
+        if (travel <= 0 || max == MIN) {
+            return minButtonY();
+        }
+        int clamped = clampValue(value);
+        float t = (clamped - MIN) / (float) (max - MIN);
+        int mapped = minButtonY() + Math.round(t * travel);
+        return clamp(mapped, minButtonY(), maxButtonY());
+    }
+
+    private int travel() {
+        return Math.max(0, maxButtonY() - minButtonY());
+    }
+
+    private int minButtonY() {
+        return TOP_EXCLUSION;
+    }
+
+    private int maxButtonY() {
+        return Math.max(minButtonY(), height - BOTTOM_EXCLUSION - BUTTON_HEIGHT);
+    }
+
+    private int clampValue(int value) {
+        return clamp(value, MIN, max);
+    }
+
+    private static int normalizeHeight(int height) {
+        return Math.max(MIN_HEIGHT, height);
+    }
+
+    private static int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
+    }
+}

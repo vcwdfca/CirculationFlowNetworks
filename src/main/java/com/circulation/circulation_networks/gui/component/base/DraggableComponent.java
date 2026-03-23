@@ -1,9 +1,11 @@
 package com.circulation.circulation_networks.gui.component.base;
 
+import com.circulation.circulation_networks.gui.CFNBaseGui;
+
 import javax.annotation.Nullable;
 
 @SuppressWarnings("unused")
-public abstract class DraggableComponent extends Component {
+public class DraggableComponent extends Component {
 
     private boolean draggable = true;
     private boolean dragging = false;
@@ -14,7 +16,7 @@ public abstract class DraggableComponent extends Component {
     private int dragOffsetX;
     private int dragOffsetY;
 
-    protected DraggableComponent(int x, int y, int width, int height, ComponentGuiContext gui) {
+    public DraggableComponent(int x, int y, int width, int height, CFNBaseGui<?> gui) {
         super(x, y, width, height, gui);
     }
 
@@ -49,8 +51,8 @@ public abstract class DraggableComponent extends Component {
     public void handleDrag(int mouseX, int mouseY) {
         if (!dragging) return;
 
-        int parentAbsX = (getParent() != null) ? getParent().getAbsoluteX() : 0;
-        int parentAbsY = (getParent() != null) ? getParent().getAbsoluteY() : 0;
+        int parentAbsX = getAbsoluteX() - x;
+        int parentAbsY = getAbsoluteY() - y;
 
         int newX = mouseX - dragOffsetX - parentAbsX;
         int newY = mouseY - dragOffsetY - parentAbsY;
@@ -85,6 +87,9 @@ public abstract class DraggableComponent extends Component {
 
     @Override
     protected boolean onMouseClicked(int mouseX, int mouseY, int button) {
+        if (hasAnyBoundSlotAt(mouseX, mouseY)) {
+            return false;
+        }
         if (draggable && button == 0) {
             startDrag(mouseX, mouseY);
             return true;

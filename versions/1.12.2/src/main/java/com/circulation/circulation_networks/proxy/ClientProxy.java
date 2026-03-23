@@ -15,7 +15,9 @@ import com.circulation.circulation_networks.manager.MachineNodeBlockEntityManage
 import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.RegistryItems;
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
+import com.circulation.circulation_networks.utils.CI18n;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -82,6 +84,17 @@ public final class ClientProxy extends CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
         MinecraftForge.EVENT_BUS.register(ComponentAtlas.INSTANCE);
+        CI18n.INSTANCE = new CI18n() {
+            @Override
+            public String format(String key, Object... params) {
+                return I18n.format(key, params);
+            }
+
+            @Override
+            public boolean hasKey(String key) {
+                return I18n.hasKey(key);
+            }
+        };
     }
 
     public void init() {

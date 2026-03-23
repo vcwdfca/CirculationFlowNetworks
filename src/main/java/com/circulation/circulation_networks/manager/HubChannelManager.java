@@ -15,6 +15,8 @@ import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.circulation.circulation_networks.network.nodes.HubNode.EMPTY;
+
 public final class HubChannelManager {
 
     public static final HubChannelManager INSTANCE = new HubChannelManager();
@@ -40,7 +42,7 @@ public final class HubChannelManager {
 
     public void unregister(IHubNode hub) {
         var oldChannelId = hubChannels.remove(hub);
-        if (oldChannelId == null) return;
+        if (oldChannelId == EMPTY) return;
 
         var channel = channels.get(oldChannelId);
         if (channel != null) {
@@ -69,7 +71,7 @@ public final class HubChannelManager {
                 var channelId = hub.getChannelId();
                 var channelName = hub.getChannelName();
                 var p = hub.getPermissionMode();
-                if (channelId != null && channelName != null) {
+                if (!channelId.equals(EMPTY) && !channelName.isEmpty()) {
                     register(hub, channelId, channelName, p);
                 }
             }

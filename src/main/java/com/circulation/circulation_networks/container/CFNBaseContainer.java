@@ -67,7 +67,7 @@ public abstract class CFNBaseContainer extends Container {
         registerLayoutInternal(layout, false);
     }
 
-    protected ComponentSlotLayout registerPlayerLayout(ComponentSlotLayout layout) {
+    public ComponentSlotLayout registerPlayerLayout(ComponentSlotLayout layout) {
         registerLayoutInternal(layout, true);
         return layout;
     }

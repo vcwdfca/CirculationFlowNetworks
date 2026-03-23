@@ -129,7 +129,23 @@ public final class ComponentScreenController {
         if (allComponents.length == 0) {
             return Collections.emptyList();
         }
-        return ComponentTreeUtils.collectTopTooltip(allComponents, mouseX, mouseY);
+        var list = ComponentTreeUtils.collectTopTooltip(allComponents, mouseX, mouseY);
+        if (list.isEmpty()) {
+            return Collections.emptyList();
+        }
+        var n = new ObjectArrayList<String>();
+        for (var s : list) {
+            n.add(s.get());
+        }
+        return n;
+    }
+
+    @Nullable
+    public Component getTopComponentAt(int mouseX, int mouseY) {
+        if (allComponents.length == 0) {
+            return null;
+        }
+        return ComponentTreeUtils.findTopComponentAt(allComponents, mouseX, mouseY);
     }
 
     public Component[] getAllComponents() {

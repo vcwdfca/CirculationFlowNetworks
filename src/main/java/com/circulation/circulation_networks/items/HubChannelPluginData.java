@@ -16,6 +16,8 @@ import net.minecraft.world.item.component.CustomData;
 
 import java.util.UUID;
 
+import static com.circulation.circulation_networks.network.nodes.HubNode.EMPTY;
+
 public final class HubChannelPluginData {
 
     private static final String CHANNEL_ID_KEY = "channelId";
@@ -38,24 +40,24 @@ public final class HubChannelPluginData {
 
     public static UUID getChannelId(ItemStack stack) {
         if (stack.isEmpty()) {
-            return null;
+            return EMPTY;
         }
         var tag = getTag(stack);
         if (tag != null && contains(tag, CHANNEL_ID_KEY)) {
             return parseChannelId(getString(tag, CHANNEL_ID_KEY));
         }
-        return null;
+        return EMPTY;
     }
 
     public static String getChannelName(ItemStack stack) {
         if (stack.isEmpty()) {
-            return null;
+            return "";
         }
         var tag = getTag(stack);
         if (tag != null && contains(tag, CHANNEL_NAME_KEY)) {
             return getString(tag, CHANNEL_NAME_KEY);
         }
-        return null;
+        return "";
     }
 
     public static void applyToHub(IHubNode hub, ItemStack stack) {
@@ -64,8 +66,8 @@ public final class HubChannelPluginData {
     }
 
     public static void clearHub(IHubNode hub) {
-        hub.setChannelId(null);
-        hub.setChannelName(null);
+        hub.setChannelId(EMPTY);
+        hub.setChannelName("");
     }
 
     public static UUID parseChannelId(String rawChannelId) {

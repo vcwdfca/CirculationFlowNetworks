@@ -1,15 +1,14 @@
 package com.circulation.circulation_networks.network.nodes;
 
+import com.circulation.circulation_networks.api.IHubNodeBlockEntity;
 import com.circulation.circulation_networks.api.INodeBlockEntity;
 import com.circulation.circulation_networks.api.hub.ChargingDefinition;
 import com.circulation.circulation_networks.api.hub.ChargingPreference;
-import com.circulation.circulation_networks.api.hub.IHubPlugin;
 import com.circulation.circulation_networks.api.hub.PermissionMode;
 import com.circulation.circulation_networks.api.node.IHubNode;
-import com.circulation.circulation_networks.items.HubChannelPluginData;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 //? if <1.20 {
-import net.minecraft.item.ItemStack;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
@@ -21,31 +20,27 @@ import net.minecraft.world.item.ItemStack;
 *///?}
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 
 public final class HubNode extends Node implements IHubNode {
 
+    public static final UUID EMPTY = new UUID(0, 0);
     private final double energyScope;
     private final double energyScopeSq;
     private final double chargingScope;
     private final double chargingScopeSq;
 
-    private final ItemStack[] plugins = new ItemStack[PLUGIN_SLOTS];
     private final Map<UUID, ChargingPreference> playerPreferences = new Object2ObjectOpenHashMap<>();
     private PermissionMode permissionMode = PermissionMode.PUBLIC;
     @Nullable
     private UUID owner;
-    @Nullable
-    private UUID channelId;
-    @Nullable
-    private String channelName;
-
-    {
-        Arrays.fill(plugins, ItemStack.EMPTY);
-    }
+    @NotNull
+    private UUID channelId = EMPTY;
+    @NotNull
+    private String channelName = "";
 
     //? if <1.20 {
     public HubNode(NBTTagCompound tag) {
@@ -99,43 +94,27 @@ public final class HubNode extends Node implements IHubNode {
     }
 
     @Override
-    public ItemStack[] getPlugins() {
-        return plugins;
+    public IInventory getPlugins() {
+        return ((IHubNodeBlockEntity) getBlockEntity()).getPlugins();
     }
 
     @Override
-    public void setPlugin(int slot, ItemStack stack) {
-        if (slot < 0 || slot >= plugins.length) return;
-
-        var oldStack = plugins[slot];
-        if (!oldStack.isEmpty() && oldStack.getItem() instanceof IHubPlugin oldPlugin) {
-            oldPlugin.onRemoved(this, slot, oldStack);
-        }
-
-        plugins[slot] = stack == null ? ItemStack.EMPTY : stack;
-
-        if (!plugins[slot].isEmpty() && plugins[slot].getItem() instanceof IHubPlugin newPlugin) {
-            newPlugin.onInserted(this, slot, plugins[slot]);
-        }
-    }
-
-    @Override
-    public @Nullable UUID getChannelId() {
+    public @NotNull UUID getChannelId() {
         return channelId;
     }
 
     @Override
-    public void setChannelId(@Nullable UUID channelId) {
+    public void setChannelId(@NotNull UUID channelId) {
         this.channelId = channelId;
     }
 
     @Override
-    public @Nullable String getChannelName() {
+    public @NotNull String getChannelName() {
         return channelName;
     }
 
     @Override
-    public void setChannelName(@Nullable String channelName) {
+    public void setChannelName(@Nonnull String channelName) {
         this.channelName = channelName;
     }
 
@@ -186,12 +165,6 @@ public final class HubNode extends Node implements IHubNode {
             nbt.setString("ownerUUID", owner.toString());
         }
 
-        var pluginList = new NBTTagList();
-        for (var plugin : plugins) {
-            pluginList.appendTag(plugin.writeToNBT(new NBTTagCompound()));
-        }
-        nbt.setTag("plugins", pluginList);
-
         var prefList = new NBTTagList();
         for (var entry : playerPreferences.entrySet()) {
             var prefNbt = entry.getValue().serialize();
@@ -212,13 +185,6 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        if (nbt.hasKey("plugins", Constants.NBT.TAG_LIST)) {
-            var pluginList = nbt.getTagList("plugins", Constants.NBT.TAG_COMPOUND);
-            for (int i = 0; i < Math.min(pluginList.tagCount(), plugins.length); i++) {
-                plugins[i] = new ItemStack(pluginList.getCompoundTagAt(i));
-            }
-        }
-
         playerPreferences.clear();
         if (nbt.hasKey("chargingPreferences", Constants.NBT.TAG_LIST)) {
             var prefList = nbt.getTagList("chargingPreferences", Constants.NBT.TAG_COMPOUND);
@@ -234,17 +200,8 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        channelId = null;
-        channelName = null;
-        for (var plugin : plugins) {
-            if (!plugin.isEmpty()) {
-                channelId = HubChannelPluginData.getChannelId(plugin);
-                channelName = HubChannelPluginData.getChannelName(plugin);
-                if (HubChannelPluginData.isComplete(channelId, channelName)) {
-                    break;
-                }
-            }
-        }
+        channelId = EMPTY;
+        channelName = "";
     }
     //?} else if <1.21 {
     /*@Override
@@ -291,7 +248,7 @@ public final class HubNode extends Node implements IHubNode {
 
         if (nbt.contains("plugins", Tag.TAG_LIST)) {
             var pluginList = nbt.getList("plugins", Tag.TAG_COMPOUND);
-            for (int i = 0; i < Math.min(pluginList.size(), plugins.length); i++) {
+            for (int i = 0; i < Math.min(pluginList.size(), getPlugins().length); i++) {
                 plugins[i] = ItemStack.of(pluginList.getCompound(i));
             }
         }

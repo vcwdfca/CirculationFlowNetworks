@@ -4,17 +4,22 @@ import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.container.CFNBaseContainer;
 import com.circulation.circulation_networks.gui.component.base.Component;
 import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
-import com.circulation.circulation_networks.gui.component.base.ComponentGuiContext;
 import com.circulation.circulation_networks.gui.component.base.ComponentScreenController;
 import com.circulation.circulation_networks.gui.component.base.RenderPhase;
 //? if <1.20 {
 import com.circulation.circulation_networks.packets.ContainerProgressBar;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.inventory.Slot;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.GL11;
 //?} else if <1.21 {
 /*import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -32,6 +37,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 *///?}
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 //? if <1.20 {
 import java.awt.Rectangle;
 import java.io.IOException;
@@ -46,12 +52,11 @@ import java.util.Map;
  * <p>Rendering layers (bottom → top):
  * <ol>
  *   <li>Background texture — implement {@link #drawBG}.</li>
- *   <li>Slots &amp; item stacks — handled automatically by the parent screen.</li>
+ *   <li>Component-owned slot and item rendering.</li>
  *   <li>Foreground labels — implement {@link #drawFG}.</li>
  *   <li>Component layer — all {@link Component} instances registered via
  *       {@link #buildComponents}, sorted ascending by z-index.</li>
  *   <li>Component tooltip — collected from the topmost hovered component.</li>
- *   <li>Slot tooltip — vanilla hover-text for inventory slots (rendered last).</li>
  * </ol>
  *
  * <p>Event routing: Mouse and key events are delivered to components in descending
@@ -62,13 +67,15 @@ import java.util.Map;
 @SuppressWarnings("unused")
 //? if <1.20 {
 @SideOnly(Side.CLIENT)
-public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContainer implements ComponentGuiContext {
+public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContainer {
 //?} else {
 /*@OnlyIn(Dist.CLIENT)
 public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContainer> implements ComponentGuiContext {
 *///?}
 
     protected final T container;
+    @Nullable
+    protected Slot hoveredSlot;
 
     private final ComponentScreenController componentController = new ComponentScreenController();
 
@@ -88,7 +95,6 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
     }
     *///?}
 
-    @Override
     public int getGuiLeft() {
         //? if <1.20 {
         return guiLeft;
@@ -97,13 +103,20 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
          *///?}
     }
 
-    @Override
     public int getGuiTop() {
         //? if <1.20 {
         return guiTop;
         //?} else {
         /*return topPos;
          *///?}
+    }
+
+    public void setHoveredSlot(@Nullable Slot hoveredSlot) {
+        this.hoveredSlot = hoveredSlot;
+    }
+
+    public boolean isTopComponent(Component component, int mouseX, int mouseY) {
+        return componentController.getTopComponentAt(mouseX, mouseY) == component;
     }
 
     // -------------------------------------------------------------------------
@@ -181,6 +194,57 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         *///?}
     }
 
+    private void renderCarriedStack(int mouseX, int mouseY) {
+        ItemStack carried = Minecraft.getMinecraft().player.inventory.getItemStack();
+        if (carried.isEmpty()) return;
+
+        float prevZLevel = this.itemRender.zLevel;
+        resetGuiRenderState();
+        GlStateManager.enableRescaleNormal();
+        OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240.0F, 240.0F);
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        RenderHelper.enableGUIStandardItemLighting();
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(0.0F, 0.0F, 200.0F);
+        this.itemRender.zLevel = 200.0F;
+        this.itemRender.renderItemAndEffectIntoGUI(Minecraft.getMinecraft().player, carried, mouseX - 8, mouseY - 8);
+        this.itemRender.renderItemOverlayIntoGUI(this.fontRenderer, carried, mouseX - 8, mouseY - 8, null);
+        this.itemRender.zLevel = prevZLevel;
+        GlStateManager.popMatrix();
+        resetGuiRenderState();
+    }
+
+    private void resetGuiRenderState() {
+        RenderHelper.disableStandardItemLighting();
+        GlStateManager.disableLighting();
+        GlStateManager.disableDepth();
+        GlStateManager.disableRescaleNormal();
+        GlStateManager.depthMask(true);
+        GlStateManager.enableAlpha();
+        GlStateManager.alphaFunc(GL11.GL_GREATER, 0.1F);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(
+            GL11.GL_SRC_ALPHA,
+            GL11.GL_ONE_MINUS_SRC_ALPHA,
+            GL11.GL_ONE,
+            GL11.GL_ZERO
+        );
+        GlStateManager.colorMask(true, true, true, true);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+
+        GlStateManager.setActiveTexture(OpenGlHelper.lightmapTexUnit);
+        GlStateManager.enableTexture2D();
+        GlStateManager.matrixMode(GL11.GL_TEXTURE);
+        GlStateManager.loadIdentity();
+        GlStateManager.disableTexture2D();
+
+        GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
+        GlStateManager.enableTexture2D();
+        GlStateManager.matrixMode(GL11.GL_TEXTURE);
+        GlStateManager.loadIdentity();
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW);
+    }
+
     //? if <1.20 {
     @Override
     protected final void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
@@ -199,13 +263,37 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
         this.drawDefaultBackground();
         componentController.handleActiveDrag(mouseX, mouseY);
+        this.hoveredSlot = null;
+        resetGuiRenderState();
+
+        renderBGPhase(mouseX, mouseY, partialTicks);
         resetColor();
+        this.drawBG(this.guiLeft, this.guiTop, mouseX, mouseY);
+
+        resetGuiRenderState();
+
         componentController.renderPhase(RenderPhase.NORMAL, mouseX, mouseY, partialTicks);
-        super.drawScreen(mouseX, mouseY, partialTicks);
+
+        resetGuiRenderState();
+        resetColor();
+        this.drawFG(this.guiLeft, this.guiTop, mouseX, mouseY);
+        RenderHelper.enableGUIStandardItemLighting();
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.GuiContainerEvent.DrawForeground(this, mouseX, mouseY));
+
+        resetGuiRenderState();
         resetColor();
         componentController.renderPhase(RenderPhase.FOREGROUND, mouseX, mouseY, partialTicks);
+        renderCarriedStack(mouseX, mouseY);
+        resetGuiRenderState();
         renderComponentTooltip(mouseX, mouseY);
-        this.renderHoveredToolTip(mouseX, mouseY);
+        GlStateManager.enableLighting();
+        GlStateManager.enableDepth();
+        RenderHelper.enableStandardItemLighting();
+    }
+
+    @Override
+    public Slot getSlotUnderMouse() {
+        return this.hoveredSlot;
     }
 
     @Override

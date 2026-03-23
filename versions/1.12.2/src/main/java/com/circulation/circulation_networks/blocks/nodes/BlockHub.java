@@ -23,7 +23,9 @@ public final class BlockHub extends BaseNodeBlock {
     public void breakBlock(@NotNull World worldIn, @NotNull BlockPos pos, @NotNull IBlockState state) {
         var te = worldIn.getTileEntity(pos);
         if (te instanceof TileEntityHub hub) {
-            for (var plugin : hub.getPlugins()) {
+            var inv = hub.getPlugins();
+            for (int i = 0; i < inv.getSizeInventory(); i++) {
+                var plugin = inv.getStackInSlot(i);
                 if (!plugin.isEmpty()) {
                     worldIn.spawnEntity(new EntityItem(worldIn,
                         pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
