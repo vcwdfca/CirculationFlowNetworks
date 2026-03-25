@@ -1,5 +1,6 @@
 package com.circulation.circulation_networks.container;
 
+import com.circulation.circulation_networks.api.hub.ChargingPreference;
 import com.circulation.circulation_networks.manager.EnergyMachineManager;
 import com.circulation.circulation_networks.tiles.nodes.TileEntityHub;
 import com.circulation.circulation_networks.utils.GuiSync;
@@ -24,6 +25,9 @@ public class ContainerHub extends CFNBaseContainer {
     public String channelIdString = EMPTY.toString();
     @GuiSync(3)
     public String channelName = "";
+    @GuiSync(4)
+    public byte chargingModeByte = (byte) 0x111111;
+    public ChargingPreference chargingMode = ChargingPreference.defaultAll();
 
     public ContainerHub(EntityPlayer player, TileEntityHub te) {
         super(player);
@@ -58,6 +62,8 @@ public class ContainerHub extends CFNBaseContainer {
             channelIdString = channelId.toString();
             channelName = te.getNode().getChannelName();
         }
+        chargingMode = te.getNode().getChargingPreference(player.getUniqueID());
+        chargingModeByte = chargingMode.toByte();
         if (te.getWorld().getTotalWorldTime() % 10 != 0) return;
         var energy = EnergyMachineManager.INSTANCE.getInteraction().get(te.getNode().getGrid());
         input = energy.getInput().toString();
@@ -68,6 +74,9 @@ public class ContainerHub extends CFNBaseContainer {
     public void onUpdate(String field, Object oldValue, Object newValue) {
         if ("channelIdString".equals(field)) {
             channelId = UUID.fromString(newValue.toString());
+        }
+        if ("chargingModeByte".equals(field)) {
+            chargingMode.setPrefs((byte) newValue);
         }
     }
 

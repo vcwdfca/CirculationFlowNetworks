@@ -119,6 +119,10 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         return componentController.getTopComponentAt(mouseX, mouseY) == component;
     }
 
+    public void bringComponentToFront(Component component) {
+        componentController.bringToFront(component);
+    }
+
     // -------------------------------------------------------------------------
     // Component registration
     // -------------------------------------------------------------------------

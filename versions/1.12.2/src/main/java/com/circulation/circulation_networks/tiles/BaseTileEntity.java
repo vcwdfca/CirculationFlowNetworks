@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
 
 public class BaseTileEntity extends TileEntity {
 
-    public static final IInventory EMPTY_INV = new InventoryBasic("",false,0);
+    public static final IInventory EMPTY_INV = new InventoryBasic("", false, 0);
 
     public boolean hasGui() {
         return false;

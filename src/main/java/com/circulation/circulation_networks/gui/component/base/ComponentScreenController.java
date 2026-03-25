@@ -100,12 +100,49 @@ public final class ComponentScreenController {
         }
     }
 
+    public void bringToFront(@Nullable Component component) {
+        if (component == null) {
+            return;
+        }
+
+        boolean changed = moveToEnd(allComponents, component);
+        for (Component[] phaseArray : phaseComponents) {
+            changed |= moveToEnd(phaseArray, component);
+        }
+
+        if (changed) {
+            allComponentsTopFirst = reverseCopy(allComponents);
+        }
+    }
+
+    private static boolean moveToEnd(Component[] source, Component component) {
+        int index = -1;
+        for (int i = 0; i < source.length; i++) {
+            if (source[i] == component) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index < 0 || index == source.length - 1) {
+            return false;
+        }
+
+        System.arraycopy(source, index + 1, source, index, source.length - index - 1);
+        source[source.length - 1] = component;
+        return true;
+    }
+
     public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
         for (Component component : allComponentsTopFirst) {
-            if (component.dispatchMouseClicked(mouseX, mouseY, mouseButton)) {
-                dragTarget = ComponentTreeUtils.findDraggingComponent(allComponents);
-                return true;
+            if (!component.isVisible() || !component.contains(mouseX, mouseY)) {
+                continue;
             }
+            boolean handled = component.dispatchMouseClicked(mouseX, mouseY, mouseButton);
+            if (handled) {
+                dragTarget = ComponentTreeUtils.findDraggingComponent(allComponents);
+            }
+            return handled;
         }
         return false;
     }
@@ -117,9 +154,10 @@ public final class ComponentScreenController {
             return true;
         }
         for (Component component : allComponentsTopFirst) {
-            if (component.dispatchMouseReleased(mouseX, mouseY, state)) {
-                return true;
+            if (!component.isVisible() || !component.contains(mouseX, mouseY)) {
+                continue;
             }
+            return component.dispatchMouseReleased(mouseX, mouseY, state);
         }
         return false;
     }
@@ -135,9 +173,10 @@ public final class ComponentScreenController {
 
     public boolean mouseScrolled(int mouseX, int mouseY, int delta) {
         for (Component component : allComponentsTopFirst) {
-            if (component.dispatchMouseScrolled(mouseX, mouseY, delta)) {
-                return true;
+            if (!component.isVisible() || !component.contains(mouseX, mouseY)) {
+                continue;
             }
+            return component.dispatchMouseScrolled(mouseX, mouseY, delta);
         }
         return false;
     }

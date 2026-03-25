@@ -94,6 +94,9 @@ public final class ChargingManager {
         if (preferences.contains(ChargingDefinition.INVENTORY)) {
             collectFromSlots(result, state.cache, ChargingDefinition.INVENTORY, state.inventory, 9, state.inventory.length);
         }
+        if (preferences.contains(ChargingDefinition.OFF_HAND)) {
+            collectFromStackWithCache(result, state.cache, ChargingDefinition.OFF_HAND, player.getHeldItemOffhand());
+        }
         if (preferences.contains(ChargingDefinition.HOTBAR)) {
             collectFromSlots(result, state.cache, ChargingDefinition.HOTBAR, state.inventory, 0, 9);
         } else {
@@ -101,17 +104,11 @@ public final class ChargingManager {
             if (preferences.contains(ChargingDefinition.MAIN_HAND)) {
                 collectFromStackWithCache(result, state.cache, ChargingDefinition.MAIN_HAND, player.getHeldItemMainhand());
             }
-            if (preferences.contains(ChargingDefinition.OFF_HAND)) {
-                collectFromStackWithCache(result, state.cache, ChargingDefinition.OFF_HAND, player.getHeldItemOffhand());
-            }
             //?} else {
-                    /*if (preferences.contains(ChargingDefinition.MAIN_HAND)) {
-                        collectFromStackWithCache(result, state.cache, ChargingDefinition.MAIN_HAND, player.getMainHandItem());
-                    }
-                    if (preferences.contains(ChargingDefinition.OFF_HAND)) {
-                        collectFromStackWithCache(result, state.cache, ChargingDefinition.OFF_HAND, player.getOffhandItem());
-                    }
-                    *///?}
+            /*if (preferences.contains(ChargingDefinition.MAIN_HAND)) {
+                collectFromStackWithCache(result, state.cache, ChargingDefinition.MAIN_HAND, player.getMainHandItem());
+            }
+            *///?}
         }
         if (preferences.contains(ChargingDefinition.ARMOR)) {
             //? if <1.20 {

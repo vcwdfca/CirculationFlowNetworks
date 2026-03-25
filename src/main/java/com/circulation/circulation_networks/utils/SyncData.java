@@ -38,6 +38,10 @@ public class SyncData {
             return SyncType.INT;
         } else if (type == Long.TYPE || type == Long.class) {
             return SyncType.LONG;
+        } else if (type == Byte.TYPE || type == Byte.class) {
+            return SyncType.BYTE;
+        } else if (type == Short.TYPE || type == Short.class) {
+            return SyncType.SHORT;
         } else if (type == Boolean.TYPE || type == Boolean.class) {
             return SyncType.BOOLEAN;
         } else if (type.isEnum()) {
@@ -75,6 +79,8 @@ public class SyncData {
         return switch (syncType) {
             case INT -> (Integer) val;
             case LONG -> (Long) val;
+            case BYTE -> (Byte) val;
+            case SHORT -> (Short) val;
             case BOOLEAN -> ((Boolean) val) ? 1L : 0L;
             case ENUM -> ((Enum<?>) val).ordinal();
             default -> 0L;
@@ -84,7 +90,7 @@ public class SyncData {
     private void updateCachedVersion(Object val) {
         switch (syncType) {
             case STRING -> stringVersion = (String) val;
-            case INT, LONG, BOOLEAN, ENUM -> numericVersion = extractNumericValue(val);
+            case INT, LONG, BYTE, SHORT, BOOLEAN, ENUM -> numericVersion = extractNumericValue(val);
         }
     }
 
@@ -95,6 +101,8 @@ public class SyncData {
             case BOOLEAN -> sender.sendInt(channel, ((Boolean) val) ? 1 : 0);
             case INT -> sender.sendInt(channel, (Integer) val);
             case LONG -> sender.sendLong(channel, (Long) val);
+            case BYTE -> sender.sendByte(channel, (Byte) val);
+            case SHORT -> sender.sendShort(channel, (Short) val);
         }
     }
 
@@ -102,21 +110,13 @@ public class SyncData {
         try {
             final Object oldValue = this.field.get(this.source);
             switch (syncType) {
-                case STRING:
-                    this.field.set(this.source, val);
-                    break;
-                case INT:
-                    this.field.set(this.source, ((Number) val).intValue());
-                    break;
-                case LONG:
-                    this.field.set(this.source, ((Number) val).longValue());
-                    break;
-                case BOOLEAN:
-                    this.field.set(this.source, ((Number) val).longValue() == 1L);
-                    break;
-                case ENUM:
-                    updateEnum(((Number) val).longValue());
-                    break;
+                case STRING -> this.field.set(this.source, val);
+                case INT -> this.field.set(this.source, ((Number) val).intValue());
+                case LONG -> this.field.set(this.source, ((Number) val).longValue());
+                case BYTE -> this.field.set(this.source, ((Number) val).byteValue());
+                case SHORT -> this.field.set(this.source, ((Number) val).shortValue());
+                case BOOLEAN -> this.field.set(this.source, ((Number) val).longValue() == 1L);
+                case ENUM -> updateEnum(((Number) val).longValue());
             }
             if (updateCallback != null) {
                 updateCallback.onUpdate(this.field.getName(), oldValue, this.field.get(this.source));
@@ -137,7 +137,7 @@ public class SyncData {
     }
 
     enum SyncType {
-        STRING, INT, LONG, BOOLEAN, ENUM
+        STRING, INT, LONG, BYTE, SHORT, BOOLEAN, ENUM
     }
 
     @FunctionalInterface

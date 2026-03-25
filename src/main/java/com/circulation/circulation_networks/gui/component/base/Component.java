@@ -103,7 +103,7 @@ public class Component extends Rectangle {
         child.parent = this;
         child.invalidateSubtree();
         child.syncSlotTreePositions();
-        return child;
+        return this;
     }
 
     public Component addChild(Component... childs) {
@@ -119,6 +119,40 @@ public class Component extends Rectangle {
             child.syncSlotTreePositions();
         }
         return this;
+    }
+
+    public final void bringToFront() {
+        if (parent != null) {
+            parent.bringChildToFront(this);
+            parent.bringToFront();
+        } else {
+            gui.bringComponentToFront(this);
+        }
+    }
+
+    @Nullable
+    private Component getDraggablePromotionTarget() {
+        Component current = this;
+        while (current != null) {
+            if (current instanceof DraggableComponent) {
+                return current;
+            }
+            current = current.parent;
+        }
+        return null;
+    }
+
+    private void promoteDraggableTarget() {
+        Component target = getDraggablePromotionTarget();
+        if (target != null) {
+            target.bringToFront();
+        }
+    }
+
+    private void bringChildToFront(Component child) {
+        if (children.remove(child)) {
+            children.add(child);
+        }
     }
 
     public void removeChild(Component child) {
@@ -185,7 +219,7 @@ public class Component extends Rectangle {
         syncSlotPositions();
         if (!isVisible()) return;
 
-        boolean nowHovered = contains(mouseX, mouseY);
+        boolean nowHovered = contains(mouseX, mouseY) && gui.isTopComponent(this, mouseX, mouseY);
         if (nowHovered && !hovered) onMouseEnter();
         else if (!nowHovered && hovered) onMouseLeave();
         hovered = nowHovered;
@@ -442,14 +476,27 @@ public class Component extends Rectangle {
     public final boolean dispatchMouseClicked(int mouseX, int mouseY, int button) {
         if (!isVisible() || !isEnabled() || !contains(mouseX, mouseY)) return false;
         if (children.isEmpty()) {
-            return onMouseClicked(mouseX, mouseY, button);
+            boolean handled = onMouseClicked(mouseX, mouseY, button);
+            if (handled) {
+                promoteDraggableTarget();
+            }
+            return handled;
         }
 
         for (int i = children.size(); i-- > 0;) {
-            if (children.get(i).dispatchMouseClicked(mouseX, mouseY, button)) return true;
+            Component child = children.get(i);
+            if (child.dispatchMouseClicked(mouseX, mouseY, button)) {
+                bringChildToFront(child);
+                promoteDraggableTarget();
+                return true;
+            }
         }
 
-        return onMouseClicked(mouseX, mouseY, button);
+        boolean handled = onMouseClicked(mouseX, mouseY, button);
+        if (handled) {
+            promoteDraggableTarget();
+        }
+        return handled;
     }
 
     public final boolean dispatchMouseReleased(int mouseX, int mouseY, int button) {
@@ -523,9 +570,13 @@ public class Component extends Rectangle {
     }
 
     public Component setVisible(boolean visible) {
+        boolean wasVisible = isVisible();
         this.visible = visible;
         invalidateSubtree();
         syncSlotTreePositions();
+        if (!wasVisible && isVisible()) {
+            promoteDraggableTarget();
+        }
         return this;
     }
 

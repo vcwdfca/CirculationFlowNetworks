@@ -229,6 +229,16 @@ public abstract class CFNBaseContainer extends Container {
             }
 
             @Override
+            public void sendByte(int channel, byte value) {
+                listener.sendWindowProperty(CFNBaseContainer.this, channel, value);
+            }
+
+            @Override
+            public void sendShort(int channel, short value) {
+                listener.sendWindowProperty(CFNBaseContainer.this, channel, value);
+            }
+
+            @Override
             public void sendString(int channel, String value) {
                 if (listener instanceof EntityPlayerMP) {
                     CirculationFlowNetworks.sendToPlayer(
@@ -260,6 +270,16 @@ public abstract class CFNBaseContainer extends Container {
 
             @Override
             public void sendLong(int channel, long value) {
+                // TODO: implement via network packet
+            }
+
+            @Override
+            public void sendByte(int channel, byte value) {
+                // TODO: implement via network packet
+            }
+
+            @Override
+            public void sendShort(int channel, short value) {
                 // TODO: implement via network packet
             }
 

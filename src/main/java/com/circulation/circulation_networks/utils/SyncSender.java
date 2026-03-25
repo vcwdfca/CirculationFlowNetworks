@@ -5,5 +5,9 @@ public interface SyncSender {
 
     void sendLong(int channel, long value);
 
+    void sendByte(int channel, byte value);
+
+    void sendShort(int channel, short value);
+
     void sendString(int channel, String value);
 }

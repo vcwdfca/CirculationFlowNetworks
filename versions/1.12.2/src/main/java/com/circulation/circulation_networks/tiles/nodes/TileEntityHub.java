@@ -25,8 +25,9 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 public class TileEntityHub extends BaseNodeTileEntity implements IHubNodeBlockEntity {
 
-    private final IInventory plugins = new InventoryBasic("",false,5);
+    private final IInventory plugins = new InventoryBasic("", false, 5);
     private boolean init;
+    private transient NBTTagCompound initNbt;
 
     @Override
     public boolean hasGui() {
@@ -80,8 +81,6 @@ public class TileEntityHub extends BaseNodeTileEntity implements IHubNodeBlockEn
         compound.setTag("plugins", pluginList);
         return compound;
     }
-
-    private transient NBTTagCompound initNbt;
 
     @Override
     public final void readFromNBT(NBTTagCompound nbt) {
