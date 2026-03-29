@@ -7,7 +7,7 @@ import com.circulation.circulation_networks.manager.HubChannelManager;
 import com.circulation.circulation_networks.manager.MachineNodeBlockEntityManager;
 import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.proxy.CommonProxy;
-import com.circulation.circulation_networks.recipes.FurnaceRecipe;
+import com.circulation.circulation_networks.utils.Packet;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -23,7 +23,6 @@ import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,11 +58,11 @@ public class CirculationFlowNetworks {
         player.openGui(CirculationFlowNetworks.instance, guiId, world, x, y, z);
     }
 
-    public static void sendToPlayer(IMessage packet, EntityPlayerMP player) {
+    public static <T extends Packet<T>> void sendToPlayer(T packet, EntityPlayerMP player) {
         NET_CHANNEL.sendTo(packet, player);
     }
 
-    public static void sendToServer(IMessage packet) {
+    public static <T extends Packet<T>> void sendToServer(T packet) {
         NET_CHANNEL.sendToServer(packet);
     }
 
@@ -84,7 +83,6 @@ public class CirculationFlowNetworks {
 
     @Mod.EventHandler
     public void serverStarting(FMLServerStartingEvent event) {
-        FurnaceRecipe.INSTANCE.init();
         server = event.getServer();
     }
 
@@ -95,7 +93,6 @@ public class CirculationFlowNetworks {
 
     @Mod.EventHandler
     public void serverStopping(FMLServerStoppingEvent event) {
-        FurnaceRecipe.INSTANCE.clear();
         server = null;
         NetworkManager.INSTANCE.onServerStop();
         EnergyMachineManager.INSTANCE.onServerStop();

@@ -3,13 +3,10 @@ package com.circulation.circulation_networks.api.hub;
 import com.circulation.circulation_networks.api.IGrid;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 
+import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.UUID;
 
-/**
- * 中枢频道接口，同频道的网络在能量处理时会被合并处理
- * <p>
- * Hub channel interface. Networks on the same channel will be merged during energy processing.
- */
 public interface IHubChannel {
 
     UUID getChannelId();
@@ -23,4 +20,22 @@ public interface IHubChannel {
     PermissionMode getPermissionMode();
 
     void setPermissionMode(PermissionMode mode);
+
+    @Nullable
+    UUID getOwner();
+
+    void setOwner(@Nullable UUID owner);
+
+    @Nullable
+    HubPermissionLevel getExplicitPermission(UUID playerId);
+
+    Map<UUID, HubPermissionLevel> getExplicitPermissions();
+
+    void setExplicitPermission(UUID playerId, HubPermissionLevel permissionLevel);
+
+    void removeExplicitPermission(UUID playerId);
+
+    HubPermissionLevel getPermissionLevel(UUID playerId);
+
+    boolean canEditPermissions(UUID playerId);
 }

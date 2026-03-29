@@ -1,10 +1,7 @@
 package com.circulation.circulation_networks.api;
 
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.util.math.BlockPos;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-*///?}
 
 public interface IPhaseInterrupterBlockEntity {
 

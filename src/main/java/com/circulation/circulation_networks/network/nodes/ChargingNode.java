@@ -2,30 +2,21 @@ package com.circulation.circulation_networks.network.nodes;
 
 import com.circulation.circulation_networks.api.INodeBlockEntity;
 import com.circulation.circulation_networks.api.node.IChargingNode;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
-//?} else {
-/*import net.minecraft.nbt.CompoundTag;
-*///?}
 
 public final class ChargingNode extends Node implements IChargingNode {
 
     private final double chargingScope;
     private final double chargingScopeSq;
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 '.setDouble(' -> '.putDouble(' {
     public ChargingNode(NBTTagCompound tag) {
         super(tag);
         this.chargingScope = tag.getDouble("chargingScope");
         this.chargingScopeSq = chargingScope * chargingScope;
     }
-    //?} else {
-    /*public ChargingNode(CompoundTag tag) {
-        super(tag);
-        this.chargingScope = tag.getDouble("chargingScope");
-        this.chargingScopeSq = chargingScope * chargingScope;
-    }
-    *///?}
 
     public ChargingNode(INodeBlockEntity blockEntity, double chargingScope, double linkScope) {
         super(blockEntity, linkScope);
@@ -43,19 +34,12 @@ public final class ChargingNode extends Node implements IChargingNode {
         return chargingScopeSq;
     }
 
-    //? if <1.20 {
     @Override
     public NBTTagCompound serialize() {
         var nbt = super.serialize();
         nbt.setDouble("chargingScope", chargingScope);
         return nbt;
     }
-    //?} else {
-    /*@Override
-    public CompoundTag serialize() {
-        var nbt = super.serialize();
-        nbt.putDouble("chargingScope", chargingScope);
-        return nbt;
-    }
-    *///?}
+    //~}
+    //~}
 }

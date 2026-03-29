@@ -7,16 +7,14 @@ import com.circulation.circulation_networks.registry.RegistryNodes;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagLong;
+//? if <1.20 {
 import net.minecraftforge.common.util.Constants;
 //?} else {
-/*import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.LongTag;
-import net.minecraft.nbt.Tag;
+/*import net.minecraft.nbt.Tag;
 *///?}
 
 import javax.annotation.Nullable;
@@ -26,6 +24,7 @@ public final class Grid implements IGrid {
 
     private final UUID id;
     private final ReferenceSet<INode> nodes = new ReferenceOpenHashSet<>();
+    private long snapshotVersion = 1L;
     @Nullable
     private IHubNode hubNode;
 
@@ -48,6 +47,17 @@ public final class Grid implements IGrid {
 
     public void setHubNode(@Nullable IHubNode hubNode) {
         this.hubNode = hubNode;
+        markSnapshotDirty();
+    }
+
+    @Override
+    public long getSnapshotVersion() {
+        return snapshotVersion;
+    }
+
+    @Override
+    public void markSnapshotDirty() {
+        snapshotVersion++;
     }
 
     //? if <1.20 {
@@ -151,7 +161,7 @@ public final class Grid implements IGrid {
         nbt.putUUID("id", id);
         if (!nodes.isEmpty()) {
             for (var node : nodes) {
-                nbt.putInt("dim", 0);
+                nbt.putString("dim", node.getWorld().dimension().location().toString());
                 break;
             }
             for (var node : nodes) {
@@ -163,15 +173,11 @@ public final class Grid implements IGrid {
     }
     *///?}
 
-    //? if <1.20 {
+    //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
     private static int getDimensionId(INode node) {
         return node.getWorld().provider.getDimension();
     }
-    //?} else {
-    /*private static int getDimensionId(INode node) {
-        return 0;
-    }
-    *///?}
+    //~}
 
     @Override
     public boolean equals(Object obj) {

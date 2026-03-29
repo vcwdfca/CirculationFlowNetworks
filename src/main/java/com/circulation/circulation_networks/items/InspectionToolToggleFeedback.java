@@ -1,10 +1,7 @@
 package com.circulation.circulation_networks.items;
 
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
-//?} else {
-/*import net.minecraft.world.item.ItemStack;
-*///?}
 
 public final class InspectionToolToggleFeedback {
 

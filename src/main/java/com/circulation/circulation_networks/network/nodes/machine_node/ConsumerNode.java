@@ -2,11 +2,8 @@ package com.circulation.circulation_networks.network.nodes.machine_node;
 
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.api.IMachineNodeBlockEntity;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
-//?} else {
-/*import net.minecraft.nbt.CompoundTag;
-*///?}
 
 public class ConsumerNode extends MachineNode {
 
@@ -14,15 +11,11 @@ public class ConsumerNode extends MachineNode {
         super(blockEntity, 0, linkScope);
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
     public ConsumerNode(NBTTagCompound compound) {
         super(compound);
     }
-    //?} else {
-    /*public ConsumerNode(CompoundTag compound) {
-        super(compound);
-    }
-    *///?}
+    //~}
 
     @Override
     public IEnergyHandler.EnergyType getType() {

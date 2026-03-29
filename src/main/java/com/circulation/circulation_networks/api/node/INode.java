@@ -3,19 +3,14 @@ package com.circulation.circulation_networks.api.node;
 import com.circulation.circulation_networks.api.IGrid;
 import com.circulation.circulation_networks.math.Vec3d;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public interface INode {
 
@@ -25,13 +20,18 @@ public interface INode {
     @Nonnull
     Vec3d getVec3d();
 
+    //~ if >=1.20 'World ' -> 'Level ' {
+    //~ if >=1.20 'TileEntity ' -> 'BlockEntity ' {
+    //~ if >=1.20 'NBTTagCompound ' -> 'CompoundTag ' {
     @Nonnull
-    // Only the world carrier type differs between versions.
-    //? if <1.20 {
     World getWorld();
-    //?} else {
-    /*Level getWorld();
-    *///?}
+
+    TileEntity getBlockEntity();
+
+    NBTTagCompound serialize();
+    //~}
+    //~}
+    //~}
 
     boolean isActive();
 
@@ -53,12 +53,10 @@ public interface INode {
 
     void setGrid(IGrid grid);
 
-    // Only the block entity carrier type differs between versions.
-    //? if <1.20 {
-    TileEntity getBlockEntity();
-    //?} else {
-    /*BlockEntity getBlockEntity();
-    *///?}
+    @Nullable
+    String getCustomName();
+
+    void setCustomName(@Nullable String customName);
 
     double distanceSq(INode node);
 
@@ -67,13 +65,6 @@ public interface INode {
     double distanceSq(Vec3d node);
 
     LinkType linkScopeCheck(INode node);
-
-    // Only the NBT carrier type differs between versions.
-    //? if <1.20 {
-    NBTTagCompound serialize();
-    //?} else {
-    /*CompoundTag serialize();
-    *///?}
 
     enum LinkType {
         DOUBLY,

@@ -55,23 +55,16 @@ public final class EnergyTypeOverrideManager {
         }
     }
 
+    //~ if >=1.20 '.toLong()' -> '.asLong()' {
     public void setOverride(int dim, BlockPos pos, IEnergyHandler.EnergyType type) {
-        //? if <1.20 {
         overrides.computeIfAbsent(dim, k -> new Long2ObjectOpenHashMap<>()).put(pos.toLong(), type);
-        //?} else {
-        /*overrides.computeIfAbsent(dim, k -> new Long2ObjectOpenHashMap<>()).put(pos.asLong(), type);
-        *///?}
         m = true;
     }
 
     public void clearOverride(int dim, BlockPos pos) {
         var dimMap = overrides.get(dim);
         if (dimMap != null) {
-            //? if <1.20 {
             dimMap.remove(pos.toLong());
-            //?} else {
-            /*dimMap.remove(pos.asLong());
-            *///?}
             if (dimMap.isEmpty()) overrides.remove(dim);
         }
         m = true;
@@ -81,12 +74,9 @@ public final class EnergyTypeOverrideManager {
     public IEnergyHandler.EnergyType getOverride(int dim, BlockPos pos) {
         var dimMap = overrides.get(dim);
         if (dimMap == null) return null;
-        //? if <1.20 {
         return dimMap.get(pos.toLong());
-        //?} else {
-        /*return dimMap.get(pos.asLong());
-        *///?}
     }
+    //~}
 
     @Nullable
     public Long2ObjectMap<IEnergyHandler.EnergyType> getOverridesForDim(int dim) {
@@ -228,7 +218,9 @@ public final class EnergyTypeOverrideManager {
     }
     *///?}
 
-    //? if <1.20 {
+    //~ if >=1.20 'net.minecraft.world.World' -> 'net.minecraft.world.level.Level' {
+    //~ if >=1.20 '.isRemote' -> '.isClientSide' {
+    //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
     private static boolean isClientWorld(net.minecraft.world.World world) {
         return world.isRemote;
     }
@@ -236,13 +228,7 @@ public final class EnergyTypeOverrideManager {
     private static int getDimensionId(net.minecraft.world.World world) {
         return world.provider.getDimension();
     }
-    //?} else {
-    /*private static boolean isClientWorld(net.minecraft.world.level.Level world) {
-        return world.isClientSide;
-    }
-
-    private static int getDimensionId(net.minecraft.world.level.Level world) {
-        return world.dimension().location().hashCode();
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
 }

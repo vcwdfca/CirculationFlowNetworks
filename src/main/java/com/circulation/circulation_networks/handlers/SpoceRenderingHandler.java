@@ -9,6 +9,10 @@ import com.circulation.circulation_networks.utils.AnimationUtils;
 import com.circulation.circulation_networks.utils.BuckyBallGeometry;
 import com.circulation.circulation_networks.utils.RenderingUtils;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+//~ mc_imports
+import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 //? if <1.20 {
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -18,11 +22,8 @@ import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -31,10 +32,8 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 //?} else {
 /*import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.World;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.VoxelShape;

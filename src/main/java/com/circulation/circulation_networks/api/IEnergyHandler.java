@@ -3,13 +3,9 @@ package com.circulation.circulation_networks.api;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import com.circulation.circulation_networks.manager.EnergyMachineManager;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-//?} else {
-/*import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 
 import java.util.Map;
 import java.util.Queue;
@@ -18,11 +14,8 @@ public interface IEnergyHandler {
 
     Map<Class<? extends IEnergyHandler>, Queue<IEnergyHandler>> POOL = new Reference2ObjectOpenHashMap<>();
 
-    //? if <1.20 {
+    //~ if >=1.20 '(TileEntity ' -> '(BlockEntity ' {
     static IEnergyHandler release(TileEntity tileEntity) {
-    //?} else {
-    /*static IEnergyHandler release(BlockEntity tileEntity) {
-    *///?}
         if (tileEntity instanceof IMachineNodeBlockEntity mbe) return mbe.getEnergyHandler();
         var m = RegistryEnergyHandler.getEnergyManager(tileEntity);
         if (m == null) return null;
@@ -42,11 +35,8 @@ public interface IEnergyHandler {
         return t.init(stack);
     }
 
-    //? if <1.20 {
     IEnergyHandler init(TileEntity tileEntity);
-    //?} else {
-    /*IEnergyHandler init(BlockEntity blockEntity);
-    *///?}
+    //~}
 
     IEnergyHandler init(ItemStack itemStack);
 

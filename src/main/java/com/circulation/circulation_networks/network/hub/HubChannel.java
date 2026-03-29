@@ -1,41 +1,35 @@
 package com.circulation.circulation_networks.network.hub;
 
 import com.circulation.circulation_networks.api.IGrid;
+import com.circulation.circulation_networks.api.hub.HubPermissionLevel;
 import com.circulation.circulation_networks.api.hub.IHubChannel;
 import com.circulation.circulation_networks.api.hub.PermissionMode;
+import com.circulation.circulation_networks.utils.HubFTBServices;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
-//? if <1.20 {
-import net.minecraft.entity.player.EntityPlayerMP;
-//?} else {
-/*import net.minecraft.server.level.ServerPlayer;
-*///?}
 
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 public class HubChannel implements IHubChannel {
 
     private final UUID channelId;
     private final ReferenceSet<IGrid> grids = new ReferenceOpenHashSet<>();
+    private final Map<UUID, HubPermissionLevel> explicitPermissions = new Object2ObjectOpenHashMap<>();
     private String name;
     private PermissionMode permissionMode;
+    @Nullable
+    private UUID owner;
 
-    //? if <1.20 {
-    public HubChannel(UUID channelId, EntityPlayerMP player, PermissionMode permissionMode) {
-    //?} else {
-    /*public HubChannel(UUID channelId, ServerPlayer player, PermissionMode permissionMode) {
-    *///?}
-        //? if <1.20 {
-        this(channelId, player.getName(), permissionMode);
-        //?} else {
-        /*this(channelId, player.getGameProfile().getName(), permissionMode);
-        *///?}
-    }
-
-    public HubChannel(UUID channelId, String name, PermissionMode permissionMode) {
+    public HubChannel(UUID channelId, String name, @Nullable UUID owner, PermissionMode permissionMode, Map<UUID, HubPermissionLevel> explicitPermissions) {
         this.channelId = channelId;
         this.name = name;
+        this.owner = owner;
         this.permissionMode = permissionMode;
+        this.explicitPermissions.putAll(explicitPermissions);
     }
 
     public UUID getChannelId() {
@@ -60,6 +54,68 @@ public class HubChannel implements IHubChannel {
 
     public void setPermissionMode(PermissionMode permissionMode) {
         this.permissionMode = permissionMode;
+    }
+
+    @Override
+    public @Nullable UUID getOwner() {
+        return owner;
+    }
+
+    @Override
+    public void setOwner(@Nullable UUID owner) {
+        this.owner = owner;
+    }
+
+    @Override
+    public @Nullable HubPermissionLevel getExplicitPermission(UUID playerId) {
+        return explicitPermissions.get(playerId);
+    }
+
+    @Override
+    public Map<UUID, HubPermissionLevel> getExplicitPermissions() {
+        return Collections.unmodifiableMap(explicitPermissions);
+    }
+
+    @Override
+    public void setExplicitPermission(UUID playerId, HubPermissionLevel permissionLevel) {
+        explicitPermissions.put(playerId, permissionLevel);
+    }
+
+    @Override
+    public void removeExplicitPermission(UUID playerId) {
+        explicitPermissions.remove(playerId);
+    }
+
+    public void replaceExplicitPermissions(Map<UUID, HubPermissionLevel> permissions) {
+        explicitPermissions.clear();
+        explicitPermissions.putAll(permissions);
+    }
+
+    @Override
+    public HubPermissionLevel getPermissionLevel(UUID playerId) {
+        if (owner != null && owner.equals(playerId)) {
+            return HubPermissionLevel.OWNER;
+        }
+
+        HubPermissionLevel explicitPermission = explicitPermissions.get(playerId);
+        if (explicitPermission != null) {
+            return explicitPermission;
+        }
+
+        return switch (permissionMode) {
+            case PUBLIC -> HubPermissionLevel.MEMBER;
+            case FTB -> owner != null
+                && HubFTBServices.isLoaded()
+                && HubFTBServices.arePlayersInSameTeam(owner, playerId)
+                ? HubPermissionLevel.MEMBER
+                : HubPermissionLevel.NONE;
+            default -> HubPermissionLevel.NONE;
+        };
+    }
+
+    @Override
+    public boolean canEditPermissions(UUID playerId) {
+        return getPermissionLevel(playerId).canEditPermissions();
     }
 
     public void addGrid(IGrid grid) {

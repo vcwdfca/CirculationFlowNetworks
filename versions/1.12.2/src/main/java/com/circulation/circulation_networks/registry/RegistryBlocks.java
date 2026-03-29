@@ -1,8 +1,6 @@
 package com.circulation.circulation_networks.registry;
 
 import com.circulation.circulation_networks.blocks.BlockPhaseInterrupter;
-import com.circulation.circulation_networks.blocks.machines.BlockCirculationFurnace;
-import com.circulation.circulation_networks.blocks.machines.BlockWindTurbine;
 import com.circulation.circulation_networks.blocks.nodes.BlockElectromagneticInductionTower;
 import com.circulation.circulation_networks.blocks.nodes.BlockEnergyInductionTower;
 import com.circulation.circulation_networks.blocks.nodes.BlockHub;
@@ -28,16 +26,12 @@ public final class RegistryBlocks {
 
     public static BlockEnergyInductionTower blockEnergyInductionTower;
     public static BlockElectromagneticInductionTower blockElectromagneticInductionTower;
-    public static BlockWindTurbine blockWindTurbine;
-    public static BlockCirculationFurnace blockCirculationFurnace;
     public static BlockPhaseInterrupter blockPhaseInterrupter;
     public static BlockHub blockHub;
 
     public static void registerBlocks(RegistryEvent.Register<Block> event) {
         prepareItemBlockRegister(blockEnergyInductionTower = registerBlock(new BlockEnergyInductionTower()));
         prepareItemBlockRegister(blockElectromagneticInductionTower = registerBlock(new BlockElectromagneticInductionTower()));
-        prepareItemBlockRegister(blockWindTurbine = registerBlock(new BlockWindTurbine()));
-        prepareItemBlockRegister(blockCirculationFurnace = registerBlock(new BlockCirculationFurnace()));
         prepareItemBlockRegister(blockPhaseInterrupter = registerBlock(new BlockPhaseInterrupter()));
         prepareItemBlockRegister(blockHub = registerBlock(new BlockHub()));
 

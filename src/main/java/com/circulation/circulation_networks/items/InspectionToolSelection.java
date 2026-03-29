@@ -1,12 +1,12 @@
 package com.circulation.circulation_networks.items;
 
 import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
+import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
-//?} else {
-/*import net.minecraft.world.item.ItemStack;
-*///?}
+
+import java.util.List;
 
 public final class InspectionToolSelection {
 
@@ -68,79 +68,14 @@ public final class InspectionToolSelection {
         return SWITCH_SUBMODE_USAGE_KEY;
     }
 
-    public TooltipModel tooltipModel() {
-        return TooltipModel.fromSelection(this);
-    }
-
-    public static final class TooltipModel {
-
-        private final java.util.List<Line> lines;
-
-        private TooltipModel(java.util.List<Line> lines) {
-            this.lines = lines;
-        }
-
-        private static TooltipModel fromSelection(InspectionToolSelection selection) {
-            java.util.List<Line> lines = new ObjectArrayList<>();
-            lines.add(Line.translatableWithTranslatedArg(selection.currentModeDisplayKey(), selection.modeLangKey()));
-            lines.add(Line.translatableWithTranslatedArg(selection.currentSubModeDisplayKey(), selection.subModeLangKey()));
-            lines.add(Line.description(selection.descriptionLangKey()));
-            lines.add(Line.blank());
-            lines.add(Line.translatable(selection.switchModeUsageKey()));
-            lines.add(Line.translatable(selection.switchSubModeUsageKey()));
-            return new TooltipModel(lines);
-        }
-
-        public java.util.List<Line> lines() {
-            return lines;
-        }
-    }
-
-    public static final class Line {
-
-        private final Kind kind;
-        private final String key;
-        private final String argumentKey;
-
-        private Line(Kind kind, String key, String argumentKey) {
-            this.kind = kind;
-            this.key = key;
-            this.argumentKey = argumentKey;
-        }
-
-        public static Line translatable(String key) {
-            return new Line(Kind.TRANSLATABLE, key, null);
-        }
-
-        public static Line translatableWithTranslatedArg(String key, String argumentKey) {
-            return new Line(Kind.TRANSLATABLE_WITH_TRANSLATED_ARG, key, argumentKey);
-        }
-
-        public static Line description(String key) {
-            return new Line(Kind.DESCRIPTION, key, null);
-        }
-
-        public static Line blank() {
-            return new Line(Kind.BLANK, null, null);
-        }
-
-        public Kind kind() {
-            return kind;
-        }
-
-        public String key() {
-            return key;
-        }
-
-        public String argumentKey() {
-            return argumentKey;
-        }
-    }
-
-    public enum Kind {
-        TRANSLATABLE,
-        TRANSLATABLE_WITH_TRANSLATED_ARG,
-        DESCRIPTION,
-        BLANK
+    public List<LocalizedComponent> tooltipLines() {
+        List<LocalizedComponent> lines = new ObjectArrayList<>();
+        lines.add(LocalizedComponent.withTranslatedArg(currentModeDisplayKey(), modeLangKey()));
+        lines.add(LocalizedComponent.withTranslatedArg(currentSubModeDisplayKey(), subModeLangKey()));
+        lines.add(LocalizedComponent.description(descriptionLangKey()));
+        lines.add(LocalizedComponent.blank());
+        lines.add(LocalizedComponent.of(switchModeUsageKey()));
+        lines.add(LocalizedComponent.of(switchSubModeUsageKey()));
+        return lines;
     }
 }

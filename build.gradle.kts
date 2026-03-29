@@ -377,6 +377,12 @@ the<JavaPluginExtension>().sourceSets.named("main") {
     java.srcDir(generatedComponentAtlasDir)
 }
 
+// Remove auto-created test source set — no tests in this project.
+the<JavaPluginExtension>().sourceSets.matching { it.name == "test" }.all {
+    java.setSrcDirs(emptyList<File>())
+    resources.setSrcDirs(emptyList<File>())
+}
+
 val generatedComponentAtlasPackage = "com.circulation.circulation_networks.gui.component.base"
 val generatedComponentAtlasFile = generatedComponentAtlasDir.map {
     it.file(generatedComponentAtlasPackage.replace('.', '/') + "/GeneratedComponentAtlasRegistration.java").asFile
@@ -438,6 +444,10 @@ repositories {
     }
     maven {
         url = uri("https://maven.blamejared.com/")
+    }
+    maven {
+        name = "Curios"
+        url = uri("https://maven.theillusivec4.top/")
     }
     maven {
         name = "Covers1624 Maven"
@@ -700,7 +710,7 @@ val generateMixinJson = tasks.register("generateMixinJson") {
             val mixinFileExists = mixinFile.exists()
             val existingConfig: MutableMap<String, Any?> = if (mixinFileExists) {
                 @Suppress("UNCHECKED_CAST")
-                (JsonSlurper().parse(mixinFile) as Map<String, Any?>).toMutableMap<String, Any?>()
+                (JsonSlurper().parse(mixinFile) as Map<String, Any?>).toMutableMap()
             } else {
                 createDefaultMixinConfig().toMutableMap()
             }
@@ -760,6 +770,10 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 tasks.named("compileJava") {
+    dependsOn(generateComponentAtlasRegistration)
+}
+
+tasks.matching { it.name == "kspKotlin" }.configureEach {
     dependsOn(generateComponentAtlasRegistration)
 }
 
@@ -837,6 +851,19 @@ tasks.register("prioritizeCoremods") {
             if (it.isFile && Regex("(mixinbooter|configanytime)(-)([0-9])+\\.+([0-9])+(.jar)").matches(it.name)) {
                 it.renameTo(File(it.parentFile, "!${it.name}"))
             }
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.matching { it.name.startsWith("stonecutterMerge") }.configureEach {
+        val suffix = name.removePrefix("stonecutterMerge")
+        listOf(
+            "stonecutterGenerate$suffix",
+            "compile${suffix}Java", "compile${suffix}Kotlin",
+            "process${suffix}Resources"
+        ).forEach { taskName ->
+            tasks.findByName(taskName)?.mustRunAfter(this)
         }
     }
 }

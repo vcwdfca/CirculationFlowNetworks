@@ -74,9 +74,7 @@ public final class ComponentScreenController {
         /*var modelView = RenderSystem.getModelViewStack();
         //? if <1.21 {
         modelView.pushPose();
-        Component[] components = phaseComponents[phase.ordinal()];
-        for (int i = 0, length = components.length; i < length; i++) {
-            components[i].renderComponent(mouseX, mouseY, partialTicks);
+        RenderSystem.applyModelViewMatrix();
         //?}
         *///?}
         for (Component component : phaseComponents[phase.ordinal()]) {
@@ -89,8 +87,8 @@ public final class ComponentScreenController {
         modelView.popPose();
         RenderSystem.applyModelViewMatrix();
         //?} else {
-        modelView.popMatrix();
-        //?}
+        /^modelView.popMatrix();
+        ^///?}
         *///?}
     }
 
@@ -134,6 +132,10 @@ public final class ComponentScreenController {
     }
 
     public boolean mouseClicked(int mouseX, int mouseY, int mouseButton) {
+        for (Component component : allComponents) {
+            component.dispatchGlobalMouseClicked(mouseX, mouseY, mouseButton);
+        }
+
         for (Component component : allComponentsTopFirst) {
             if (!component.isVisible() || !component.contains(mouseX, mouseY)) {
                 continue;

@@ -84,17 +84,17 @@ public final class ClientProxy extends CommonProxy {
     public void preInit(FMLPreInitializationEvent event) {
         super.preInit(event);
         MinecraftForge.EVENT_BUS.register(ComponentAtlas.INSTANCE);
-        CI18n.INSTANCE = new CI18n() {
+        CI18n.setI18nInternal(new CI18n() {
             @Override
-            public String format(String key, Object... params) {
+            public String formatInternal(String key, Object... params) {
                 return I18n.format(key, params);
             }
 
             @Override
-            public boolean hasKey(String key) {
+            public boolean hasKeyInternal(String key) {
                 return I18n.hasKey(key);
             }
-        };
+        });
     }
 
     public void init() {

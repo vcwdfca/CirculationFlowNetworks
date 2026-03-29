@@ -1,11 +1,8 @@
 package com.circulation.circulation_networks.api.hub;
 
 import com.circulation.circulation_networks.api.node.IHubNode;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
-//?} else {
-/*import net.minecraft.world.item.ItemStack;
-*///?}
 
 /**
  * 中枢插件接口，物品实现此接口以成为可插入中枢的插件

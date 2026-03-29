@@ -2,13 +2,9 @@ package com.circulation.circulation_networks.items;
 
 import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.utils.Functions;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-//?} else {
-/*import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.item.ItemStack;
-*///?}
 //? if >=1.21 {
 /*import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
@@ -85,10 +81,20 @@ public final class HubChannelPluginData {
         return channelId != null && channelName != null && !channelName.isEmpty();
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 '.hasKey(' -> '.contains(' {
+    //~ if >=1.20 '.setString(' -> '.putString(' {
+    //~ if >=1.20 '.getTagCompound()' -> '.getTag()' {
+    //? if <1.21 {
     private static NBTTagCompound getTag(ItemStack stack) {
         return stack.getTagCompound();
     }
+    //?} else {
+    /*private static NBTTagCompound getTag(ItemStack stack) {
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null ? data.copyTag() : null;
+    }
+    *///?}
 
     private static boolean contains(NBTTagCompound tag, String key) {
         return tag.hasKey(key);
@@ -101,38 +107,8 @@ public final class HubChannelPluginData {
     private static void putString(NBTTagCompound tag, String key, String value) {
         tag.setString(key, value);
     }
-    //?} else if <1.21 {
-    /*private static CompoundTag getTag(ItemStack stack) {
-        return stack.getTag();
-    }
-
-    private static boolean contains(CompoundTag tag, String key) {
-        return tag.contains(key);
-    }
-
-    private static String getString(CompoundTag tag, String key) {
-        return tag.getString(key);
-    }
-
-    private static void putString(CompoundTag tag, String key, String value) {
-        tag.putString(key, value);
-    }
-    *///?} else {
-    /*private static CompoundTag getTag(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data != null ? data.copyTag() : null;
-    }
-
-    private static boolean contains(CompoundTag tag, String key) {
-        return tag.contains(key);
-    }
-
-    private static String getString(CompoundTag tag, String key) {
-        return tag.getString(key);
-    }
-
-    private static void putString(CompoundTag tag, String key, String value) {
-        tag.putString(key, value);
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
+    //~}
 }

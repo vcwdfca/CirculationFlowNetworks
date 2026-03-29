@@ -168,8 +168,8 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
                 new TriStateButtonComponent(13, 93, 96, 8, this, "supply_quick_access_bar", setC(ChargingDefinition.HOTBAR))
                     .setActiveSupplier(getC(ChargingDefinition.HOTBAR))
                     .addTooltip(TextFormatting.BOLD + "快捷栏"),
-                new TriStateButtonComponent(57, 12, 8, 8, this, "supply_baubles", setC(ChargingDefinition.BAUBLES))
-                    .setActiveSupplier(getC(ChargingDefinition.BAUBLES))
+                new TriStateButtonComponent(57, 12, 8, 8, this, "supply_accessory", setC(ChargingDefinition.ACCESSORY))
+                    .setActiveSupplier(getC(ChargingDefinition.ACCESSORY))
                     .addTooltip(TextFormatting.BOLD + "饰品栏")
             )
         );

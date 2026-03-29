@@ -2,7 +2,13 @@ package com.circulation.circulation_networks.gui.component;
 
 import com.circulation.circulation_networks.gui.CFNBaseGui;
 import com.circulation.circulation_networks.gui.component.base.Component;
+//? if <1.20 {
 import net.minecraft.client.Minecraft;
+//?} else if <1.21 {
+/*import net.minecraft.client.Minecraft;
+*///?} else {
+/*import net.minecraft.client.Minecraft;
+*///?}
 
 import java.util.function.Supplier;
 
@@ -39,8 +45,12 @@ public class TextComponent extends Component {
             return;
         }
 
+        //? if <1.20 {
         Minecraft mc = Minecraft.getMinecraft();
         setSize(mc.fontRenderer.getStringWidth(text), FONT_HEIGHT);
         mc.fontRenderer.drawString(text, getAbsoluteX(), getAbsoluteY(), color, shadow);
+        //?} else {
+        /*setSize(0, FONT_HEIGHT);
+        *///?}
     }
 }

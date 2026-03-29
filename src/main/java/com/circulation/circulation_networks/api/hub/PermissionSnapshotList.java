@@ -1,0 +1,137 @@
+package com.circulation.circulation_networks.api.hub;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+public final class PermissionSnapshotList {
+
+    private static final Gson GSON = new GsonBuilder().create();
+    public static final PermissionSnapshotList EMPTY = new PermissionSnapshotList(Collections.emptyList());
+    public static final String EMPTY_JSON = EMPTY.toJson();
+
+    private final List<PermissionSnapshotEntry> entries;
+    private String json;
+    private byte[] bytes;
+
+    public PermissionSnapshotList(List<PermissionSnapshotEntry> entries) {
+        this.entries = entries.isEmpty()
+            ? Collections.emptyList()
+            : Collections.unmodifiableList(new ObjectArrayList<>(entries));
+    }
+
+    public List<PermissionSnapshotEntry> getEntries() {
+        return entries;
+    }
+
+    public String toJson() {
+        if (json == null) {
+            json = GSON.toJson(this);
+        }
+        return json;
+    }
+
+    public byte[] toBytes() {
+        if (bytes == null) {
+            try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+                 DataOutputStream data = new DataOutputStream(output)) {
+                writeVarInt(data, entries.size());
+                for (PermissionSnapshotEntry entry : entries) {
+                    UUID id = entry.getId();
+                    data.writeLong(id.getMostSignificantBits());
+                    data.writeLong(id.getLeastSignificantBits());
+                    data.writeByte(entry.getPermission().getId());
+                    writeString(data, entry.getName());
+                }
+                bytes = output.toByteArray();
+            } catch (IOException e) {
+                throw new IllegalStateException("Failed to encode permission snapshot", e);
+            }
+        }
+        return bytes.clone();
+    }
+
+    public static PermissionSnapshotList fromJson(String json) {
+        PermissionSnapshotList list = GSON.fromJson(json, PermissionSnapshotList.class);
+        if (list == null || list.entries == null) {
+            return EMPTY;
+        }
+        if (list.entries.isEmpty()) {
+            return EMPTY;
+        }
+        return new PermissionSnapshotList(list.entries);
+    }
+
+    public static PermissionSnapshotList fromBytes(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            return EMPTY;
+        }
+        try (DataInputStream data = new DataInputStream(new ByteArrayInputStream(bytes))) {
+            int size = readVarInt(data);
+            if (size <= 0) {
+                return EMPTY;
+            }
+            List<PermissionSnapshotEntry> entries = new ObjectArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                UUID id = new UUID(data.readLong(), data.readLong());
+                HubPermissionLevel permission = HubPermissionLevel.fromId(data.readUnsignedByte());
+                String name = readString(data);
+                entries.add(new PermissionSnapshotEntry(id, name, permission));
+            }
+            return entries.isEmpty() ? EMPTY : new PermissionSnapshotList(entries);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to decode permission snapshot", e);
+        }
+    }
+
+    private static void writeString(DataOutputStream data, String value) throws IOException {
+        byte[] encoded = value != null ? value.getBytes(StandardCharsets.UTF_8) : new byte[0];
+        writeVarInt(data, encoded.length);
+        data.write(encoded);
+    }
+
+    private static String readString(DataInputStream data) throws IOException {
+        int length = readVarInt(data);
+        if (length == 0) {
+            return "";
+        }
+        byte[] encoded = new byte[length];
+        data.readFully(encoded);
+        return new String(encoded, StandardCharsets.UTF_8);
+    }
+
+    private static void writeVarInt(DataOutputStream data, int value) throws IOException {
+        int current = value;
+        while ((current & ~0x7F) != 0) {
+            data.writeByte((current & 0x7F) | 0x80);
+            current >>>= 7;
+        }
+        data.writeByte(current);
+    }
+
+    private static int readVarInt(DataInputStream data) throws IOException {
+        int value = 0;
+        int position = 0;
+        while (true) {
+            int currentByte = data.readUnsignedByte();
+            value |= (currentByte & 0x7F) << position;
+            if ((currentByte & 0x80) == 0) {
+                return value;
+            }
+            position += 7;
+            if (position >= 32) {
+                throw new IOException("VarInt is too big");
+            }
+        }
+    }
+}

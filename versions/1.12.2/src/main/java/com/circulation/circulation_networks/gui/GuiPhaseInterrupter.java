@@ -4,10 +4,10 @@ import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.container.ContainerPhaseInterrupter;
 import com.circulation.circulation_networks.packets.PhaseInterrupterSyncPacket;
 import com.circulation.circulation_networks.tiles.TileEntityPhaseInterrupter;
+import com.circulation.circulation_networks.utils.CI18n;
 import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.fml.relauncher.Side;
@@ -54,13 +54,13 @@ public class GuiPhaseInterrupter extends GuiContainer {
             }
         });
 
-        GuiButton showRangeButton = new GuiButton(2, centerX - 75, centerY - 30, 70, 20, I18n.format("gui.phase_interrupter.show_range"));
+        GuiButton showRangeButton = new GuiButton(2, centerX - 75, centerY - 30, 70, 20, CI18n.format("gui.phase_interrupter.show_range"));
         this.buttonList.add(showRangeButton);
 
         this.redstoneModeButton = new GuiButton(3, centerX + 5, centerY - 30, 70, 20, getRedstoneModeButtonText());
         this.buttonList.add(this.redstoneModeButton);
 
-        GuiButton closeButton = new GuiButton(4, centerX - 40, centerY + 20, 80, 20, I18n.format("gui.phase_interrupter.close"));
+        GuiButton closeButton = new GuiButton(4, centerX - 40, centerY + 20, 80, 20, CI18n.format("gui.phase_interrupter.close"));
         this.buttonList.add(closeButton);
     }
 
@@ -121,16 +121,16 @@ public class GuiPhaseInterrupter extends GuiContainer {
         int centerX = this.xSize / 2;
         int centerY = this.ySize / 2;
 
-        String title = TextFormatting.BOLD + I18n.format("gui.phase_interrupter.title") + TextFormatting.RESET;
+        String title = TextFormatting.BOLD + CI18n.format("gui.phase_interrupter.title") + TextFormatting.RESET;
         this.fontRenderer.drawString(title, centerX - this.fontRenderer.getStringWidth(title) / 2, centerY - 90, 0xFFFFFF);
 
-        String scopeLabel = I18n.format("gui.phase_interrupter.scope") + ": ";
+        String scopeLabel = CI18n.format("gui.phase_interrupter.scope") + ": ";
         this.fontRenderer.drawString(scopeLabel, centerX - 25 - this.fontRenderer.getStringWidth(scopeLabel) - 2 - this.guiLeft, centerY - 55 - this.guiTop, 0xAAAAAA);
 
-        String showRangeStatus = I18n.format("gui.phase_interrupter.show_range_status") + ": " + (tileEntity.isShowingRange() ? TextFormatting.GREEN + I18n.format("gui.phase_interrupter.enabled") : TextFormatting.RED + I18n.format("gui.phase_interrupter.disabled")) + TextFormatting.RESET;
+        String showRangeStatus = CI18n.format("gui.phase_interrupter.show_range_status") + ": " + (tileEntity.isShowingRange() ? TextFormatting.GREEN + CI18n.format("gui.phase_interrupter.enabled") : TextFormatting.RED + CI18n.format("gui.phase_interrupter.disabled")) + TextFormatting.RESET;
         this.fontRenderer.drawString(showRangeStatus, centerX - this.fontRenderer.getStringWidth(showRangeStatus) / 2, centerY + 10, 0xFFFFFF);
 
-        String redstoneModeStatus = I18n.format("gui.phase_interrupter.redstone_mode") + ": " + getRedstoneModeText();
+        String redstoneModeStatus = CI18n.format("gui.phase_interrupter.redstone_mode") + ": " + getRedstoneModeText();
         this.fontRenderer.drawString(redstoneModeStatus, centerX - this.fontRenderer.getStringWidth(redstoneModeStatus) / 2, centerY + 30, 0xFFFFFF);
     }
 
@@ -147,14 +147,14 @@ public class GuiPhaseInterrupter extends GuiContainer {
     }
 
     private String getRedstoneModeButtonText() {
-        return tileEntity.getRedstoneMode() ? I18n.format("gui.phase_interrupter.inverse_mode") : I18n.format("gui.phase_interrupter.normal_mode");
+        return tileEntity.getRedstoneMode() ? CI18n.format("gui.phase_interrupter.inverse_mode") : CI18n.format("gui.phase_interrupter.normal_mode");
     }
 
     private String getRedstoneModeText() {
         if (tileEntity.getRedstoneMode()) {
-            return TextFormatting.YELLOW + I18n.format("gui.phase_interrupter.normal_mode") + TextFormatting.RESET + " " + I18n.format("gui.phase_interrupter.normal_desc");
+            return TextFormatting.YELLOW + CI18n.format("gui.phase_interrupter.normal_mode") + TextFormatting.RESET + " " + CI18n.format("gui.phase_interrupter.normal_desc");
         } else {
-            return TextFormatting.LIGHT_PURPLE + I18n.format("gui.phase_interrupter.inverse_mode") + TextFormatting.RESET + " " + I18n.format("gui.phase_interrupter.inverse_desc");
+            return TextFormatting.LIGHT_PURPLE + CI18n.format("gui.phase_interrupter.inverse_mode") + TextFormatting.RESET + " " + CI18n.format("gui.phase_interrupter.inverse_desc");
         }
     }
 

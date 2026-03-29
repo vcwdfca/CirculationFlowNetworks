@@ -3,6 +3,7 @@ package com.circulation.circulation_networks.utils;
 import com.circulation.circulation_networks.CirculationFlowNetworks;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Objects;
 
 public class SyncData {
@@ -16,10 +17,12 @@ public class SyncData {
 
     private long numericVersion = 0L;
     private String stringVersion = null;
+    private byte[] bytesVersion = null;
 
     public void init() {
         numericVersion = 0L;
         stringVersion = null;
+        bytesVersion = null;
     }
 
     public SyncData(Object container, Field field, GuiSync annotation, SyncUpdateCallback updateCallback) {
@@ -34,6 +37,8 @@ public class SyncData {
         Class<?> type = field.getType();
         if (type == String.class) {
             return SyncType.STRING;
+        } else if (type == byte[].class) {
+            return SyncType.BYTES;
         } else if (type == Integer.TYPE || type == Integer.class) {
             return SyncType.INT;
         } else if (type == Long.TYPE || type == Long.class) {
@@ -56,6 +61,8 @@ public class SyncData {
             boolean needsSync;
             if (syncType == SyncType.STRING) {
                 needsSync = !Objects.equals(val, stringVersion);
+            } else if (syncType == SyncType.BYTES) {
+                needsSync = !Arrays.equals((byte[]) val, bytesVersion);
             } else {
                 long numeric = extractNumericValue(val);
                 needsSync = numeric != numericVersion;
@@ -90,6 +97,7 @@ public class SyncData {
     private void updateCachedVersion(Object val) {
         switch (syncType) {
             case STRING -> stringVersion = (String) val;
+            case BYTES -> bytesVersion = copyBytes((byte[]) val);
             case INT, LONG, BYTE, SHORT, BOOLEAN, ENUM -> numericVersion = extractNumericValue(val);
         }
     }
@@ -97,6 +105,7 @@ public class SyncData {
     private void send(SyncSender sender, Object val) {
         switch (syncType) {
             case STRING -> sender.sendString(channel, (String) val);
+            case BYTES -> sender.sendBytes(channel, (byte[]) val);
             case ENUM -> sender.sendInt(channel, ((Enum<?>) val).ordinal());
             case BOOLEAN -> sender.sendInt(channel, ((Boolean) val) ? 1 : 0);
             case INT -> sender.sendInt(channel, (Integer) val);
@@ -111,6 +120,7 @@ public class SyncData {
             final Object oldValue = this.field.get(this.source);
             switch (syncType) {
                 case STRING -> this.field.set(this.source, val);
+                case BYTES -> this.field.set(this.source, copyBytes((byte[]) val));
                 case INT -> this.field.set(this.source, ((Number) val).intValue());
                 case LONG -> this.field.set(this.source, ((Number) val).longValue());
                 case BYTE -> this.field.set(this.source, ((Number) val).byteValue());
@@ -136,8 +146,12 @@ public class SyncData {
         }
     }
 
+    private static byte[] copyBytes(byte[] value) {
+        return value == null ? null : Arrays.copyOf(value, value.length);
+    }
+
     enum SyncType {
-        STRING, INT, LONG, BYTE, SHORT, BOOLEAN, ENUM
+        STRING, BYTES, INT, LONG, BYTE, SHORT, BOOLEAN, ENUM
     }
 
     @FunctionalInterface

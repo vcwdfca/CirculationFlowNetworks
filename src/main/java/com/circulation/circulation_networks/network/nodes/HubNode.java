@@ -4,24 +4,30 @@ import com.circulation.circulation_networks.api.IHubNodeBlockEntity;
 import com.circulation.circulation_networks.api.INodeBlockEntity;
 import com.circulation.circulation_networks.api.hub.ChargingDefinition;
 import com.circulation.circulation_networks.api.hub.ChargingPreference;
+import com.circulation.circulation_networks.api.hub.HubPermissionLevel;
 import com.circulation.circulation_networks.api.hub.PermissionMode;
 import com.circulation.circulation_networks.api.node.IHubNode;
+import com.circulation.circulation_networks.manager.HubChannelManager;
+import com.circulation.circulation_networks.network.hub.HubChannel;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-//? if <1.20 {
-import net.minecraft.inventory.IInventory;
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
+//? if <1.20 {
 import net.minecraftforge.common.util.Constants;
 //?} else {
-/*import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.world.item.ItemStack;
+/*import net.minecraft.nbt.Tag;
+*///?}
+//? if <1.21 {
+import net.minecraftforge.items.IItemHandler;
+//?} else {
+/*import net.neoforged.neoforge.items.IItemHandler;
 *///?}
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -34,6 +40,7 @@ public final class HubNode extends Node implements IHubNode {
     private final double chargingScopeSq;
 
     private final Map<UUID, ChargingPreference> playerPreferences = new Object2ObjectOpenHashMap<>();
+    private final Map<UUID, HubPermissionLevel> explicitPermissions = new Object2ObjectOpenHashMap<>();
     private PermissionMode permissionMode = PermissionMode.PUBLIC;
     @Nullable
     private UUID owner;
@@ -41,12 +48,11 @@ public final class HubNode extends Node implements IHubNode {
     private UUID channelId = EMPTY;
     @NotNull
     private String channelName = "";
+    private boolean syncingChannelState;
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
     public HubNode(NBTTagCompound tag) {
-        //?} else {
-    /*public HubNode(CompoundTag tag) {
-     *///?}
+    //~}
         super(tag);
         this.energyScope = tag.getDouble("energyScope");
         this.energyScopeSq = energyScope * energyScope;
@@ -91,10 +97,13 @@ public final class HubNode extends Node implements IHubNode {
     @Override
     public void setPermissionMode(PermissionMode mode) {
         this.permissionMode = mode;
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.updateChannelFromHub(this);
+        }
     }
 
     @Override
-    public IInventory getPlugins() {
+    public IItemHandler getPlugins() {
         return ((IHubNodeBlockEntity) getBlockEntity()).getPlugins();
     }
 
@@ -106,6 +115,9 @@ public final class HubNode extends Node implements IHubNode {
     @Override
     public void setChannelId(@NotNull UUID channelId) {
         this.channelId = channelId;
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.bindHub(this);
+        }
     }
 
     @Override
@@ -116,6 +128,9 @@ public final class HubNode extends Node implements IHubNode {
     @Override
     public void setChannelName(@Nonnull String channelName) {
         this.channelName = channelName;
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.updateChannelFromHub(this);
+        }
     }
 
     @Override
@@ -146,6 +161,70 @@ public final class HubNode extends Node implements IHubNode {
     @Override
     public void setOwner(@Nullable UUID owner) {
         this.owner = owner;
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.updateChannelFromHub(this);
+        }
+    }
+
+    @Override
+    public @Nullable HubPermissionLevel getExplicitPermission(UUID playerId) {
+        HubChannel channel = HubChannelManager.INSTANCE.getChannel(channelId);
+        return channel != null ? channel.getExplicitPermission(playerId) : explicitPermissions.get(playerId);
+    }
+
+    @Override
+    public Map<UUID, HubPermissionLevel> getExplicitPermissions() {
+        HubChannel channel = HubChannelManager.INSTANCE.getChannel(channelId);
+        if (channel != null) {
+            return channel.getExplicitPermissions();
+        }
+        return Collections.unmodifiableMap(explicitPermissions);
+    }
+
+    @Override
+    public void setExplicitPermission(UUID playerId, HubPermissionLevel permissionLevel) {
+        explicitPermissions.put(playerId, permissionLevel);
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.updateChannelFromHub(this);
+        }
+    }
+
+    @Override
+    public void removeExplicitPermission(UUID playerId) {
+        explicitPermissions.remove(playerId);
+        if (!syncingChannelState) {
+            HubChannelManager.INSTANCE.updateChannelFromHub(this);
+        }
+    }
+
+    @Override
+    public HubPermissionLevel getPermissionLevel(UUID playerId) {
+        HubChannel channel = HubChannelManager.INSTANCE.getChannel(channelId);
+        if (channel != null) {
+            return channel.getPermissionLevel(playerId);
+        }
+
+        if (owner == null) return HubPermissionLevel.MEMBER;
+
+        return owner.equals(playerId) ? HubPermissionLevel.OWNER : HubPermissionLevel.MEMBER;
+    }
+
+    @Override
+    public boolean canEditPermissions(UUID playerId) {
+        return getPermissionLevel(playerId).canEditPermissions();
+    }
+
+    public void syncFromChannel(HubChannel channel) {
+        syncingChannelState = true;
+        try {
+            permissionMode = channel.getPermissionMode();
+            owner = channel.getOwner();
+            channelName = channel.getName();
+            explicitPermissions.clear();
+            explicitPermissions.putAll(channel.getExplicitPermissions());
+        } finally {
+            syncingChannelState = false;
+        }
     }
 
     //? if <1.20 {
@@ -165,6 +244,15 @@ public final class HubNode extends Node implements IHubNode {
             nbt.setString("ownerUUID", owner.toString());
         }
 
+        var permissionList = new NBTTagList();
+        for (var entry : explicitPermissions.entrySet()) {
+            var permissionNbt = new NBTTagCompound();
+            permissionNbt.setString("playerUUID", entry.getKey().toString());
+            permissionNbt.setInteger("permission", entry.getValue().getId());
+            permissionList.appendTag(permissionNbt);
+        }
+        nbt.setTag("hubPermissions", permissionList);
+
         var prefList = new NBTTagList();
         for (var entry : playerPreferences.entrySet()) {
             var prefNbt = entry.getValue().serialize();
@@ -182,6 +270,23 @@ public final class HubNode extends Node implements IHubNode {
                 owner = UUID.fromString(nbt.getString("ownerUUID"));
             } catch (IllegalArgumentException ignored) {
                 owner = null;
+            }
+        }
+
+        explicitPermissions.clear();
+        if (nbt.hasKey("hubPermissions", Constants.NBT.TAG_LIST)) {
+            var permissionList = nbt.getTagList("hubPermissions", Constants.NBT.TAG_COMPOUND);
+            for (int i = 0; i < permissionList.tagCount(); i++) {
+                var permissionNbt = permissionList.getCompoundTagAt(i);
+                if (!permissionNbt.hasKey("playerUUID")) {
+                    continue;
+                }
+                try {
+                    UUID playerId = UUID.fromString(permissionNbt.getString("playerUUID"));
+                    HubPermissionLevel permission = HubPermissionLevel.fromId(permissionNbt.getInteger("permission"));
+                    explicitPermissions.put(playerId, permission);
+                } catch (IllegalArgumentException ignored) {
+                }
             }
         }
 
@@ -220,11 +325,14 @@ public final class HubNode extends Node implements IHubNode {
             nbt.putString("ownerUUID", owner.toString());
         }
 
-        var pluginList = new ListTag();
-        for (var plugin : plugins) {
-            pluginList.add(plugin.save(new CompoundTag()));
+        var permissionList = new ListTag();
+        for (var entry : explicitPermissions.entrySet()) {
+            var permissionNbt = new CompoundTag();
+            permissionNbt.putString("playerUUID", entry.getKey().toString());
+            permissionNbt.putInt("permission", entry.getValue().getId());
+            permissionList.add(permissionNbt);
         }
-        nbt.put("plugins", pluginList);
+        nbt.put("hubPermissions", permissionList);
 
         var prefList = new ListTag();
         for (var entry : playerPreferences.entrySet()) {
@@ -246,10 +354,20 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        if (nbt.contains("plugins", Tag.TAG_LIST)) {
-            var pluginList = nbt.getList("plugins", Tag.TAG_COMPOUND);
-            for (int i = 0; i < Math.min(pluginList.size(), getPlugins().length); i++) {
-                plugins[i] = ItemStack.of(pluginList.getCompound(i));
+        explicitPermissions.clear();
+        if (nbt.contains("hubPermissions", Tag.TAG_LIST)) {
+            var permissionList = nbt.getList("hubPermissions", Tag.TAG_COMPOUND);
+            for (int i = 0; i < permissionList.size(); i++) {
+                var permissionNbt = permissionList.getCompound(i);
+                if (!permissionNbt.contains("playerUUID")) {
+                    continue;
+                }
+                try {
+                    UUID playerId = UUID.fromString(permissionNbt.getString("playerUUID"));
+                    HubPermissionLevel permission = HubPermissionLevel.fromId(permissionNbt.getInt("permission"));
+                    explicitPermissions.put(playerId, permission);
+                } catch (IllegalArgumentException ignored) {
+                }
             }
         }
 
@@ -268,17 +386,8 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        channelId = null;
-        channelName = null;
-        for (var plugin : plugins) {
-            if (!plugin.isEmpty()) {
-                channelId = HubChannelPluginData.getChannelId(plugin);
-                channelName = HubChannelPluginData.getChannelName(plugin);
-                if (HubChannelPluginData.isComplete(channelId, channelName)) {
-                    break;
-                }
-            }
-        }
+        channelId = EMPTY;
+        channelName = "";
     }
     *///?} else {
     /*@Override
@@ -297,12 +406,14 @@ public final class HubNode extends Node implements IHubNode {
             nbt.putString("ownerUUID", owner.toString());
         }
 
-        var pluginList = new ListTag();
-        var provider = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer().registryAccess();
-        for (var plugin : plugins) {
-            pluginList.add(plugin.saveOptional(provider));
+        var permissionList = new ListTag();
+        for (var entry : explicitPermissions.entrySet()) {
+            var permissionNbt = new CompoundTag();
+            permissionNbt.putString("playerUUID", entry.getKey().toString());
+            permissionNbt.putInt("permission", entry.getValue().getId());
+            permissionList.add(permissionNbt);
         }
-        nbt.put("plugins", pluginList);
+        nbt.put("hubPermissions", permissionList);
 
         var prefList = new ListTag();
         for (var entry : playerPreferences.entrySet()) {
@@ -324,11 +435,20 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        if (nbt.contains("plugins", Tag.TAG_LIST)) {
-            var pluginList = nbt.getList("plugins", Tag.TAG_COMPOUND);
-            var provider = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer().registryAccess();
-            for (int i = 0; i < Math.min(pluginList.size(), plugins.length); i++) {
-                plugins[i] = ItemStack.parseOptional(provider, pluginList.getCompound(i));
+        explicitPermissions.clear();
+        if (nbt.contains("hubPermissions", Tag.TAG_LIST)) {
+            var permissionList = nbt.getList("hubPermissions", Tag.TAG_COMPOUND);
+            for (int i = 0; i < permissionList.size(); i++) {
+                var permissionNbt = permissionList.getCompound(i);
+                if (!permissionNbt.contains("playerUUID")) {
+                    continue;
+                }
+                try {
+                    UUID playerId = UUID.fromString(permissionNbt.getString("playerUUID"));
+                    HubPermissionLevel permission = HubPermissionLevel.fromId(permissionNbt.getInt("permission"));
+                    explicitPermissions.put(playerId, permission);
+                } catch (IllegalArgumentException ignored) {
+                }
             }
         }
 
@@ -347,17 +467,8 @@ public final class HubNode extends Node implements IHubNode {
             }
         }
 
-        channelId = null;
-        channelName = null;
-        for (var plugin : plugins) {
-            if (!plugin.isEmpty()) {
-                channelId = HubChannelPluginData.getChannelId(plugin);
-                channelName = HubChannelPluginData.getChannelName(plugin);
-                if (HubChannelPluginData.isComplete(channelId, channelName)) {
-                    break;
-                }
-            }
-        }
+        channelId = EMPTY;
+        channelName = "";
     }
     *///?}
 }

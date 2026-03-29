@@ -8,19 +8,12 @@ import com.circulation.circulation_networks.manager.HubChannelManager;
 import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.registry.RegistryNodes;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,6 +31,10 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 public final class API {
 
+    //~ if >=1.20 ' World ' -> ' Level ' {
+    //~ if >=1.20 ' TileEntity ' -> ' BlockEntity ' {
+    //~ if >=1.20 '<TileEntity>' -> '<BlockEntity>' {
+
     // -------------------------------------------------------------------------
     // 节点查询 / Node queries
     // -------------------------------------------------------------------------
@@ -52,11 +49,7 @@ public final class API {
      * @return 该位置的节点，若不存在则为 {@code null} / the node at that position, or {@code null} if absent
      */
     @Nullable
-        //? if <1.20 {
     public static INode getNodeAt(@Nonnull World world, @Nonnull BlockPos pos) {
-        //?} else {
-        /*public static INode getNodeAt(@Nonnull Level world, @Nonnull BlockPos pos) {
-         *///?}
         return NetworkManager.INSTANCE.getNodeFromPos(world, pos);
     }
     /**
@@ -93,11 +86,7 @@ public final class API {
      * @return 可能可以链接该位置上节点的所有节点 / all nodes that may link to nodes at that position
      */
     @Nonnull
-        //? if <1.20 {
     public static ReferenceSet<INode> getNodesCoveringPos(@Nonnull World world, @Nonnull BlockPos pos) {
-        //?} else {
-        /*public static ReferenceSet<INode> getNodesCoveringPos(@Nonnull Level world, @Nonnull BlockPos pos) {
-         *///?}
         return NetworkManager.INSTANCE.getNodesCoveringPosition(world, pos);
     }
 
@@ -112,33 +101,8 @@ public final class API {
      * @return 可能可以链接该区块中节点的所有节点 / all nodes that may link to nodes in that chunk
      */
     @Nonnull
-        //? if <1.20 {
     public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull World world, int chunkX, int chunkZ) {
-        //?} else {
-        /*public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull Level world, int chunkX, int chunkZ) {
-         *///?}
         return NetworkManager.INSTANCE.getNodesCoveringPosition(world, chunkX, chunkZ);
-    }
-
-    /**
-     * 获取链接范围覆盖指定区块的所有节点。
-     * <p>
-     * Returns all nodes whose link scope covers the given chunk.
-     *
-     * @param world 节点所在的世界 / the world to search in
-     * @param pos   被检查的区块 / the chunk to check
-     * @return 可能可以链接该区块中节点的所有节点 / all nodes that may link to nodes in that chunk
-     * @deprecated 使用 chunk 坐标查询重载代替
-     * / use the chunk-coordinate overload instead
-     */
-    @Nonnull
-    @Deprecated
-        //? if <1.20 {
-    public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull World world, @Nonnull ChunkPos pos) {
-        //?} else {
-        /*public static ReferenceSet<INode> getNodesCoveringChunk(@Nonnull Level world, @Nonnull ChunkPos pos) {
-         *///?}
-        return NetworkManager.INSTANCE.getNodesCoveringPosition(world, pos.x, pos.z);
     }
 
     /**
@@ -152,11 +116,7 @@ public final class API {
      * @return 区块中所有的生效节点 / all active nodes inside that chunk
      */
     @Nonnull
-        //? if <1.20 {
     public static ReferenceSet<INode> getNodesInChunk(@Nonnull World world, int chunkX, int chunkZ) {
-        //?} else {
-        /*public static ReferenceSet<INode> getNodesInChunk(@Nonnull Level world, int chunkX, int chunkZ) {
-         *///?}
         return NetworkManager.INSTANCE.getNodesInChunk(world, chunkX, chunkZ);
     }
 
@@ -174,11 +134,7 @@ public final class API {
      * @return 可能为此位置的机器供能的所有节点 / all nodes that may supply energy to machines at that position
      */
     @Nonnull
-        //? if <1.20 {
     public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull World world, @Nonnull BlockPos pos) {
-        //?} else {
-        /*public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull Level world, @Nonnull BlockPos pos) {
-         *///?}
         return EnergyMachineManager.INSTANCE.getEnergyNodes(world, pos);
     }
 
@@ -193,11 +149,7 @@ public final class API {
      * @return 可能为此区块供能的所有节点 / all nodes that may supply energy to machines in that chunk
      */
     @Nonnull
-        //? if <1.20 {
     public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull World world, int chunkX, int chunkZ) {
-        //?} else {
-        /*public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull Level world, int chunkX, int chunkZ) {
-         *///?}
         return EnergyMachineManager.INSTANCE.getEnergyNodes(world, chunkX, chunkZ);
     }
 
@@ -214,11 +166,7 @@ public final class API {
      */
     @Nonnull
     @Deprecated
-        //? if <1.20 {
     public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull World world, @Nonnull ChunkPos pos) {
-        //?} else {
-        /*public static ReferenceSet<IEnergySupplyNode> getEnergyNodes(@Nonnull Level world, @Nonnull ChunkPos pos) {
-         *///?}
         return EnergyMachineManager.INSTANCE.getEnergyNodes(world, pos.x, pos.z);
     }
 
@@ -233,11 +181,7 @@ public final class API {
      * @return 节点所供能的所有设备 / all machines supplied by this node
      */
     @Nonnull
-        //? if <1.20 {
     public static Set<TileEntity> getMachinesSuppliedBy(@Nonnull IEnergySupplyNode node) {
-        //?} else {
-        /*public static Set<BlockEntity> getMachinesSuppliedBy(@Nonnull IEnergySupplyNode node) {
-         *///?}
         return EnergyMachineManager.INSTANCE.getMachinesSuppliedBy(node);
     }
 
@@ -256,7 +200,7 @@ public final class API {
      * @return 属于该频道的所有网格，若频道不存在则为 {@code null}
      * / all grids in this channel, or {@code null} if the channel does not exist
      */
-    @Nullable
+    @Nonnull
     public static ReferenceSet<IGrid> getChannelGrids(@Nonnull UUID channelId) {
         return HubChannelManager.INSTANCE.getChannelGrids(channelId);
     }
@@ -277,11 +221,7 @@ public final class API {
      * @param blockEntity 目标方块实体 / the block entity to check
      * @return 是否在黑名单中 / {@code true} if blacklisted
      */
-    //? if <1.20 {
     public static boolean isEnergyBlacklisted(@Nonnull TileEntity blockEntity) {
-        //?} else {
-        /*public static boolean isEnergyBlacklisted(@Nonnull BlockEntity blockEntity) {
-         *///?}
         return RegistryEnergyHandler.isBlack(blockEntity);
     }
 
@@ -298,11 +238,7 @@ public final class API {
      * @param blockEntity 目标方块实体 / the block entity to check
      * @return 是否在供应黑名单中 / {@code true} if on the supply blacklist
      */
-    //? if <1.20 {
     public static boolean isSupplyBlacklisted(@Nonnull TileEntity blockEntity) {
-        //?} else {
-        /*public static boolean isSupplyBlacklisted(@Nonnull BlockEntity blockEntity) {
-         *///?}
         return RegistryEnergyHandler.isSupplyBlack(blockEntity);
     }
 
@@ -327,11 +263,7 @@ public final class API {
      * @param blockEntity 目标方块实体 / the block entity to check
      * @return 是否为能源容器 / {@code true} if the block entity is an energy container
      */
-    //? if <1.20 {
     public static boolean isEnergyTileEntity(@Nonnull TileEntity blockEntity) {
-        //?} else {
-        /*public static boolean isEnergyTileEntity(@Nonnull BlockEntity blockEntity) {
-         *///?}
         return RegistryEnergyHandler.isEnergyTileEntity(blockEntity);
     }
 
@@ -347,11 +279,7 @@ public final class API {
      * @return 匹配的能量管理器，若无匹配则为 {@code null} / a matching manager, or {@code null} if none applies
      */
     @Nullable
-        //? if <1.20 {
     public static IEnergyHandlerManager getEnergyManager(@Nonnull TileEntity blockEntity) {
-        //?} else {
-        /*public static IEnergyHandlerManager getEnergyManager(@Nonnull BlockEntity blockEntity) {
-         *///?}
         return RegistryEnergyHandler.getEnergyManager(blockEntity);
     }
 
@@ -397,4 +325,7 @@ public final class API {
     public static void registerNode(@Nonnull Class<? extends INode> nodeClass, @Nonnull NodeDeserializer function) {
         RegistryNodes.register(nodeClass, function);
     }
+    //~}
+    //~}
+    //~}
 }

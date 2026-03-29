@@ -24,7 +24,7 @@ public final class BlockHub extends BaseNodeBlock {
         var te = worldIn.getTileEntity(pos);
         if (te instanceof TileEntityHub hub) {
             var inv = hub.getPlugins();
-            for (int i = 0; i < inv.getSizeInventory(); i++) {
+            for (int i = 0; i < inv.getSlots(); i++) {
                 var plugin = inv.getStackInSlot(i);
                 if (!plugin.isEmpty()) {
                     worldIn.spawnEntity(new EntityItem(worldIn,

@@ -1,3 +1,7 @@
 dependencies {
-    // Add 1.21.1 dependencies here.
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1:api"
+    implementation "curse.maven:architectury-api-419699:5786327"
+    implementation "curse.maven:ftb-library-forge-404465:7746959"
+    implementation "curse.maven:ftb-teams-forge-404468:7369021"
 }

@@ -1,7 +1,9 @@
 package com.circulation.circulation_networks.registry;
 
+import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
 import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
 import com.circulation.circulation_networks.items.ItemInspectionTool;
+import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -22,11 +24,17 @@ public final class RegistryItems {
 
     public static ItemInspectionTool inspectionTool;
     public static ItemHubChannelPlugin hubChannelPlugin;
+    public static ItemWideAreaChargingPlugin wideAreaChargingPlugin;
+    public static ItemDimensionalChargingPlugin dimensionalChargingPlugin;
 
     public static void registerItems(RegistryEvent.Register<Item> event) {
         inspectionTool = registryItem(new ItemInspectionTool());
         hubChannelPlugin = registryItem(new ItemHubChannelPlugin());
+        wideAreaChargingPlugin = registryItem(new ItemWideAreaChargingPlugin());
+        dimensionalChargingPlugin = registryItem(new ItemDimensionalChargingPlugin());
         CFNItems.inspectionTool = inspectionTool;
+        CFNItems.wideAreaChargingPlugin = wideAreaChargingPlugin;
+        CFNItems.dimensionalChargingPlugin = dimensionalChargingPlugin;
 
         ITEMS_TO_REGISTER.forEach(event.getRegistry()::register);
         ITEMS_TO_REGISTER.clear();

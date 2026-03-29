@@ -39,10 +39,8 @@ public class CloseButtonComponent extends ButtonComponent {
     }
 
     private void closeCurrentGui() {
-        //? if <1.20 {
+        //~ if >=1.20 '.mc.player.closeScreen()' -> '.getMinecraft().player.closeContainer()' {
         this.gui.mc.player.closeScreen();
-        //?} else {
-        /*this.gui.minecraft.player.closeContainer();
-        *///?}
+        //~}
     }
 }

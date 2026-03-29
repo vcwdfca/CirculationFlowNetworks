@@ -1,5 +1,7 @@
 package com.circulation.circulation_networks.gui.component.base;
 
+import com.circulation.circulation_networks.tooltip.LocalizedComponent;
+
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +38,7 @@ public final class ComponentTreeUtils {
         return null;
     }
 
-    public static List<Component.LocalizedComponent> collectTopTooltip(Component[] components, int mouseX, int mouseY) {
+    public static List<LocalizedComponent> collectTopTooltip(Component[] components, int mouseX, int mouseY) {
         for (Component component : components) {
             if (!component.isVisible() || !component.contains(mouseX, mouseY)) continue;
             return component.collectTooltip(mouseX, mouseY);

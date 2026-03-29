@@ -5,21 +5,18 @@ import com.circulation.circulation_networks.api.EnergyAmounts;
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.api.IMachineNodeBlockEntity;
 import com.circulation.circulation_networks.utils.CirculationEnergy;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
-//?} else {
-/*import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 
 import javax.annotation.Nonnull;
 import java.math.BigInteger;
 
 public final class CEHandler implements IEnergyHandler {
 
+    //~ if >=1.20 '(TileEntity ' -> '(BlockEntity ' {
+    //~ if >=1.20 ' TileEntity ' -> ' BlockEntity ' {
     private final EnergyType type;
     @Nonnull
     private final CirculationEnergy energy;
@@ -32,11 +29,7 @@ public final class CEHandler implements IEnergyHandler {
     }
 
     @Override
-    //? if <1.20 {
     public IEnergyHandler init(TileEntity tileEntity) {
-    //?} else {
-    /*public IEnergyHandler init(BlockEntity tileEntity) {
-    *///?}
         return this;
     }
 
@@ -107,7 +100,13 @@ public final class CEHandler implements IEnergyHandler {
     public void recycle() {
     }
 
-    //? if <1.20 {
+    //~}
+    //~}
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 '.setLong(' -> '.putLong(' {
+    //~ if >=1.20 '.removeTag(' -> '.remove(' {
+    //~ if >=1.20 '.setString(' -> '.putString(' {
+    //~ if >=1.20 '.hasKey(' -> '.contains(' {
     public void writeToNBT(NBTTagCompound nbt) {
         EnergyAmount current = energy.canExtractValue();
         try {
@@ -121,23 +120,7 @@ public final class CEHandler implements IEnergyHandler {
             current.recycle();
         }
     }
-    //?} else {
-    /*public void writeToNBT(CompoundTag nbt) {
-        EnergyAmount current = energy.canExtractValue();
-        try {
-            nbt.putLong("energy", current.asLongClamped());
-            if (current.fitsLong()) {
-                nbt.remove("energyBig");
-            } else {
-                nbt.putString("energyBig", current.toString());
-            }
-        } finally {
-            current.recycle();
-        }
-    }
-    *///?}
 
-    //? if <1.20 {
     public void readNBT(NBTTagCompound nbt) {
         if (nbt.hasKey("energyBig")) {
             energy.setEnergy(new BigInteger(nbt.getString("energyBig")));
@@ -145,13 +128,9 @@ public final class CEHandler implements IEnergyHandler {
             energy.setEnergy(nbt.getLong("energy"));
         }
     }
-    //?} else {
-    /*public void readNBT(CompoundTag nbt) {
-        if (nbt.contains("energyBig")) {
-            energy.setEnergy(new BigInteger(nbt.getString("energyBig")));
-        } else {
-            energy.setEnergy(nbt.getLong("energy"));
-        }
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
+    //~}
+    //~}
 }

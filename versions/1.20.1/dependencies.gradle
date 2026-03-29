@@ -1,3 +1,7 @@
 dependencies {
-    // Add 1.20.1 dependencies here.
+    runtimeOnly "top.theillusivec4.curios:curios-forge:5.14.1+1.20.1"
+    compileOnly "top.theillusivec4.curios:curios-forge:5.14.1+1.20.1:api"
+    modImplementation("curse.maven:architectury-api-419699:5137938")
+    modImplementation("curse.maven:ftb-library-forge-404465:7296748")
+    modImplementation("curse.maven:ftb-teams-forge-404468:7499810")
 }

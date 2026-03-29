@@ -39,13 +39,13 @@ public final class AtlasRenderHelper {
             buf.vertex(screenX, screenY, 0).uv(region.u0(), region.v0()).endVertex();
             tess.end();
             //?} else {
-            BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            /^BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
             buf.addVertex(screenX, screenY + renderH, 0).setUv(region.u0(), region.v1());
             buf.addVertex(screenX + renderW, screenY + renderH, 0).setUv(region.u1(), region.v1());
             buf.addVertex(screenX + renderW, screenY, 0).setUv(region.u1(), region.v0());
             buf.addVertex(screenX, screenY, 0).setUv(region.u0(), region.v0());
             com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buf.buildOrThrow());
-            //?}
+            ^///?}
         *///?}
     }
 
@@ -92,13 +92,13 @@ public final class AtlasRenderHelper {
             buf.vertex(screenX, screenY, 0).uv(u0, v0).endVertex();
             tess.end();
             //?} else {
-            BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+            /^BufferBuilder buf = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
             buf.addVertex(screenX, screenY + renderH, 0).setUv(u0, v1);
             buf.addVertex(screenX + renderW, screenY + renderH, 0).setUv(u1, v1);
             buf.addVertex(screenX + renderW, screenY, 0).setUv(u1, v0);
             buf.addVertex(screenX, screenY, 0).setUv(u0, v0);
             com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(buf.buildOrThrow());
-            //?}
+            ^///?}
         *///?}
     }
 }

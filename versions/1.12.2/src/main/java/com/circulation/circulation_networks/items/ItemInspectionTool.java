@@ -9,8 +9,7 @@ import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.packets.SpoceRendering;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.util.ITooltipFlag;
+import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
@@ -24,10 +23,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -75,18 +71,10 @@ public class ItemInspectionTool extends BaseItem {
     }
 
     @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(@NotNull ItemStack stack, @Nullable World worldIn, @NotNull List<String> tooltip, @NotNull ITooltipFlag flagIn) {
-        var model = InspectionToolSelection.fromStack(stack).tooltipModel();
-        for (var line : model.lines()) {
-            switch (line.kind()) {
-                case TRANSLATABLE -> tooltip.add(I18n.format(line.key()));
-                case TRANSLATABLE_WITH_TRANSLATED_ARG ->
-                    tooltip.add(I18n.format(line.key(), I18n.format(line.argumentKey())));
-                case DESCRIPTION -> tooltip.add("§7" + I18n.format(line.key()));
-                case BLANK -> tooltip.add("");
-            }
-        }
+    protected List<LocalizedComponent> buildTooltips(ItemStack stack) {
+        List<LocalizedComponent> tips = super.buildTooltips(stack);
+        tips.addAll(InspectionToolSelection.fromStack(stack).tooltipLines());
+        return tips;
     }
 
     @Override

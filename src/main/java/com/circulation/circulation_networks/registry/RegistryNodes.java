@@ -8,12 +8,10 @@ import com.circulation.circulation_networks.network.nodes.InductionNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.ConsumerNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.GeneratorNode;
 import com.circulation.circulation_networks.network.nodes.machine_node.StorageNode;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
+//? if <1.20
 import net.minecraftforge.common.DimensionManager;
-//?} else {
- /*import net.minecraft.nbt.CompoundTag; 
-*///?}
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
 
@@ -34,21 +32,16 @@ public final class RegistryNodes {
         map.put(nodeClass.getName(), function);
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 '.hasKey(' -> '.contains(' {
     public static INode deserialize(NBTTagCompound tag) {
-    //?} else {
-     /*public static INode deserialize(CompoundTag tag) { 
-    *///?}
         if (tag == null) return null;
-        //? if <1.20 {
         if (!tag.hasKey("name")) return null;
-        //?} else {
-        /*if (!tag.contains("name")) return null;
-        *///?}
-
         //? if <1.20 {
         if (!tag.hasKey("dim") || !isRegisteredDimension(tag.getInteger("dim"))) return null;
-        //?}
+        //?} else {
+        /*if (!tag.contains("dim") || !isRegisteredDimension(tag.getString("dim"))) return null;
+        *///?}
 
         var d = map.get(tag.getString("name"));
         if (d != null) {
@@ -56,14 +49,34 @@ public final class RegistryNodes {
         }
         return null;
     }
+    //~}
+    //~}
 
     //? if <1.20 {
     private static boolean isRegisteredDimension(int dimId) {
         return DimensionManager.isDimensionRegistered(dimId);
     }
-    //?} else {
-    /*private static boolean isRegisteredDimension(int dimId) {
-        return true;
+    //?} else if <1.21 {
+    /*private static boolean isRegisteredDimension(String dimKey) {
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return false;
+        return server.getLevel(
+            net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION,
+                new net.minecraft.resources.ResourceLocation(dimKey)
+            )
+        ) != null;
+    }
+    *///?} else {
+    /*private static boolean isRegisteredDimension(String dimKey) {
+        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return false;
+        return server.getLevel(
+            net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION,
+                net.minecraft.resources.ResourceLocation.parse(dimKey)
+            )
+        ) != null;
     }
     *///?}
 }

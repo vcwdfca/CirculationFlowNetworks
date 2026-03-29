@@ -6,5 +6,5 @@ public enum ChargingDefinition {
     MAIN_HAND,
     OFF_HAND,
     ARMOR,
-    BAUBLES
+    ACCESSORY
 }

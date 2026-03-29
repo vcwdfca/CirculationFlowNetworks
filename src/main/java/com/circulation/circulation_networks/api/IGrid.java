@@ -3,11 +3,8 @@ package com.circulation.circulation_networks.api;
 import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.api.node.INode;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
-//?} else {
-/*import net.minecraft.nbt.CompoundTag;
-*///?}
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -18,12 +15,9 @@ public interface IGrid {
 
     ReferenceSet<INode> getNodes();
 
-    // Only the NBT carrier type differs between versions.
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound ' -> 'CompoundTag ' {
     NBTTagCompound serialize();
-    //?} else {
-    /*CompoundTag serialize();
-    *///?}
+    //~}
 
     /**
      * 获取此网络的中枢节点 / Get the hub node of this network
@@ -39,5 +33,18 @@ public interface IGrid {
      * 设置此网络的中枢节点 / Set the hub node of this network
      */
     default void setHubNode(@Nullable IHubNode hub) {
+    }
+
+    /**
+     * 返回当前网络节点快照版本，用于 GUI 按脏状态决定是否需要重建同步数据。
+     */
+    default long getSnapshotVersion() {
+        return 0L;
+    }
+
+    /**
+     * 标记当前网络节点快照已变化。
+     */
+    default void markSnapshotDirty() {
     }
 }

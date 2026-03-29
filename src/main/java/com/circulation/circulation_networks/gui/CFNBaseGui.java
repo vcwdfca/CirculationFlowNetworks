@@ -8,7 +8,6 @@ import com.circulation.circulation_networks.gui.component.base.ComponentScreenCo
 import com.circulation.circulation_networks.gui.component.base.RenderPhase;
 //? if <1.20 {
 import com.circulation.circulation_networks.packets.ContainerProgressBar;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.renderer.GlStateManager;
@@ -18,6 +17,7 @@ import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 //?} else if <1.21 {
@@ -25,23 +25,26 @@ import org.lwjgl.opengl.GL11;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.world.inventory.Slot;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import java.util.Optional;
 *///?} else {
 /*import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.world.inventory.Slot;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import java.util.Optional;
 *///?}
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-//? if <1.20 {
 import java.awt.Rectangle;
 import java.io.IOException;
-//?}
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +73,7 @@ import java.util.Map;
 public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContainer {
 //?} else {
 /*@OnlyIn(Dist.CLIENT)
-public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContainer> implements ComponentGuiContext {
+public abstract class CFNBaseGui<T extends CFNBaseContainer> extends AbstractContainerScreen<T> {
 *///?}
 
     protected final T container;
@@ -142,16 +145,27 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         //? if <1.20 {
     public void initGui() {
         super.initGui();
+        Keyboard.enableRepeatEvents(true);
         //?} else {
     /*protected void init() {
         super.init();
     *///?}
+        //? if <1.20 {
         CirculationFlowNetworks.sendToServer(new ContainerProgressBar());
+        //?}
         Map<RenderPhase, List<Component>> phaseMap = new EnumMap<>(RenderPhase.class);
         buildComponents(phaseMap);
         componentController.initializeComponents(phaseMap);
         ComponentAtlas.INSTANCE.awaitReady();
     }
+
+    //? if <1.20 {
+    @Override
+    public void onGuiClosed() {
+        super.onGuiClosed();
+        Keyboard.enableRepeatEvents(false);
+    }
+    //?}
 
     // -------------------------------------------------------------------------
     // Abstract rendering hooks
@@ -190,7 +204,7 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         //? if <1.20 {
         drawHoveringText(componentTooltip, mouseX, mouseY);
         //?} else {
-        /*List<net.minecraft.network.chat.Component> mcTooltip = new java.util.ArrayList<>();
+        /*List<net.minecraft.network.chat.Component> mcTooltip = new ObjectArrayList<>();
         for (String line : componentTooltip) {
             mcTooltip.add(net.minecraft.network.chat.Component.literal(line));
         }
@@ -198,6 +212,7 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         *///?}
     }
 
+    //? if <1.20 {
     private void renderCarriedStack(int mouseX, int mouseY) {
         ItemStack carried = Minecraft.getMinecraft().player.inventory.getItemStack();
         if (carried.isEmpty()) return;
@@ -248,6 +263,13 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         GlStateManager.loadIdentity();
         GlStateManager.matrixMode(GL11.GL_MODELVIEW);
     }
+    //?} else {
+    /*private void renderCarriedStack(int mouseX, int mouseY) {
+    }
+
+    private void resetGuiRenderState() {
+    }
+    *///?}
 
     //? if <1.20 {
     @Override
@@ -332,11 +354,11 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
 
         List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
         if (componentTooltip != null && !componentTooltip.isEmpty()) {
-            List<net.minecraft.network.chat.Component> mcTooltip = new java.util.ArrayList<>();
+            List<net.minecraft.network.chat.Component> mcTooltip = new ObjectArrayList<>();
             for (String line : componentTooltip) {
                 mcTooltip.add(net.minecraft.network.chat.Component.literal(line));
             }
-            guiGraphics.renderTooltip(this.font, mcTooltip, java.util.Optional.empty(), mouseX, mouseY);
+            guiGraphics.renderTooltip(this.font, mcTooltip, Optional.empty(), mouseX, mouseY);
         }
 
         this.renderTooltip(guiGraphics, mouseX, mouseY);
@@ -354,11 +376,11 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
 
         List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
         if (componentTooltip != null && !componentTooltip.isEmpty()) {
-            List<net.minecraft.network.chat.Component> mcTooltip = new java.util.ArrayList<>();
+            List<net.minecraft.network.chat.Component> mcTooltip = new ObjectArrayList<>();
             for (String line : componentTooltip) {
                 mcTooltip.add(net.minecraft.network.chat.Component.literal(line));
             }
-            guiGraphics.renderTooltip(this.font, mcTooltip, java.util.Optional.empty(), mouseX, mouseY);
+            guiGraphics.renderTooltip(this.font, mcTooltip, Optional.empty(), mouseX, mouseY);
         }
 
         this.renderTooltip(guiGraphics, mouseX, mouseY);
@@ -450,7 +472,7 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
     //?} else {
-    @Override
+    /^@Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (scrollY != 0) {
             int d = scrollY > 0 ? 1 : -1;
@@ -458,9 +480,10 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
-    //?}
+    ^///?}
     *///?}
 
+    //? if <1.20 {
     public List<Rectangle> getGuiExtraAreas() {
         var list = new ObjectArrayList<Rectangle>();
         for (Component component : componentController.getAllComponents()) {
@@ -471,4 +494,5 @@ public abstract class CFNBaseGui extends AbstractContainerScreen<CFNBaseContaine
         }
         return list;
     }
+    //?}
 }

@@ -8,9 +8,7 @@ import com.circulation.circulation_networks.api.node.IEnergySupplyNode;
 import com.circulation.circulation_networks.api.node.IMachineNode;
 import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
-//? if <1.20 {
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
-//?}
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.utils.Functions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -31,15 +29,10 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -54,19 +47,11 @@ public final class EnergyMachineManager {
     public static final EnergyMachineManager INSTANCE = new EnergyMachineManager();
     private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<IEnergySupplyNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Object2ObjectMap<IEnergySupplyNode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
-    //? if <1.20 {
+    //~ if >=1.20 'TileEntity' -> 'BlockEntity' {
     private final Reference2ObjectMap<INode, Set<TileEntity>> gridMachineMap = new Reference2ObjectOpenHashMap<>();
     private final WeakHashMap<TileEntity, ReferenceSet<INode>> machineGridMap = new WeakHashMap<>();
-    //?} else {
-    /*private final Reference2ObjectMap<INode, Set<BlockEntity>> gridMachineMap = new Reference2ObjectOpenHashMap<>();
-    private final WeakHashMap<BlockEntity, ReferenceSet<INode>> machineGridMap = new WeakHashMap<>();
-    *///?}
     private final Reference2ObjectMap<IGrid, Interaction> interaction = new Reference2ObjectOpenHashMap<>();
-    //? if <1.20 {
     private final ReferenceSet<TileEntity> cache = new ReferenceOpenHashSet<>();
-    //?} else {
-    /*private final ReferenceSet<BlockEntity> cache = new ReferenceOpenHashSet<>();
-    *///?}
 
     {
         scopeNode.defaultReturnValue(Long2ObjectMaps.emptyMap());
@@ -74,15 +59,10 @@ public final class EnergyMachineManager {
         gridMachineMap.defaultReturnValue(ReferenceSets.emptySet());
     }
 
-    //? if <1.20 {
     public WeakHashMap<TileEntity, ReferenceSet<INode>> getMachineGridMap() {
         return machineGridMap;
     }
-    //?} else {
-    /*public WeakHashMap<BlockEntity, ReferenceSet<INode>> getMachineGridMap() {
-        return machineGridMap;
-    }
-    *///?}
+    //~}
 
     public Reference2ObjectMap<IGrid, Interaction> getInteraction() {
         return interaction;
@@ -166,13 +146,11 @@ public final class EnergyMachineManager {
         var gridMap = new Reference2ObjectOpenHashMap<IGrid, EnumMap<IEnergyHandler.EnergyType, Set<IEnergyHandler>>>();
         for (var entry : machineGridMap.entrySet()) {
             var te = entry.getKey();
-            //? if <1.20 {
+            //~ if >=1.20 '.getWorld()' -> '.getLevel()' {
+            //~ if >=1.20 '.isBlockLoaded(' -> '.isLoaded(' {
+            //~ if >=1.20 '.getPos()' -> '.getBlockPos()' {
             if (!te.getWorld().isBlockLoaded(te.getPos())) continue;
             if (PhaseInterrupterManager.INSTANCE.isBlockedByInterrupter(te.getPos(), te.getWorld())) continue;
-            //?} else {
-            /*if (!te.getLevel().isLoaded(te.getBlockPos())) continue;
-            if (PhaseInterrupterManager.INSTANCE.isBlockedByInterrupter(te.getBlockPos(), te.getLevel())) continue;
-            *///?}
             var handler = IEnergyHandler.release(te);
 
             if (handler == null) {
@@ -181,13 +159,12 @@ public final class EnergyMachineManager {
 
             var type = handler.getType();
             if (overrideManager != null) {
-                //? if <1.20 {
                 var override = overrideManager.getOverride(getDimensionId(te.getWorld()), te.getPos());
-                //?} else {
-                /*var override = overrideManager.getOverride(getDimensionId(te.getLevel()), te.getBlockPos());
-                *///?}
                 if (override != null) type = override;
             }
+            //~}
+            //~}
+            //~}
 
             if (type == IEnergyHandler.EnergyType.INVALID) {
                 handler.recycle();
@@ -255,24 +232,19 @@ public final class EnergyMachineManager {
         }
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'TileEntity' -> 'BlockEntity' {
     public void addMachine(TileEntity blockEntity) {
-    //?} else {
-    /*public void addMachine(BlockEntity blockEntity) {
-    *///?}
+    //~}
         if (!RegistryEnergyHandler.isEnergyTileEntity(blockEntity)) return;
         if (RegistryEnergyHandler.isBlack(blockEntity)) return;
-        //? if <1.20 {
+        //~ if >=1.20 '.getPos()' -> '.getBlockPos()' {
+        //~ if >=1.20 '.getWorld()' -> '.getLevel()' {
         var pos = blockEntity.getPos();
         long chunkCoord = Functions.mergeChunkCoords(pos);
 
         var dim = getDimensionId(blockEntity.getWorld());
-        //?} else {
-        /*var pos = blockEntity.getBlockPos();
-        long chunkCoord = Functions.mergeChunkCoords(pos);
-
-        var dim = getDimensionId(blockEntity.getLevel());
-        *///?}
+        //~}
+        //~}
         var map = scopeNode.get(dim);
         if (map == scopeNode.defaultReturnValue()) {
             scopeNode.put(dim, map = new Long2ObjectOpenHashMap<>());
@@ -293,46 +265,38 @@ public final class EnergyMachineManager {
                 s.add(node);
                 set1.add(blockEntity);
 
-                //? if <1.20 {
                 var players = NodeNetworkRendering.getPlayers(node.getGrid());
                 if (players != null && !players.isEmpty()) {
                     for (var player : players) {
                         CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, blockEntity, node, NodeNetworkRendering.MACHINE_ADD), player);
                     }
                 }
-                //?}
             }
             if (s.isEmpty()) return;
             machineGridMap.putIfAbsent(blockEntity, s);
         }
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'TileEntity' -> 'BlockEntity' {
     public void removeMachine(TileEntity blockEntity) {
-    //?} else {
-    /*public void removeMachine(BlockEntity blockEntity) {
-    *///?}
+    //~}
         var set = machineGridMap.remove(blockEntity);
         if (set == null || set.isEmpty()) return;
         for (var node : set) {
             gridMachineMap.get(node).remove(blockEntity);
 
-            //? if <1.20 {
             var players = NodeNetworkRendering.getPlayers(node.getGrid());
             if (players != null && !players.isEmpty()) {
                 for (var player : players) {
                     CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, blockEntity, node, NodeNetworkRendering.MACHINE_REMOVE), player);
                 }
             }
-            //?}
         }
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'TileEntity' -> 'BlockEntity' {
     public void addMachineNode(IMachineNode iMachineNode, TileEntity blockEntity) {
-    //?} else {
-    /*public void addMachineNode(IMachineNode iMachineNode, BlockEntity blockEntity) {
-    *///?}
+    //~}
         var allConnected = new ReferenceOpenHashSet<INode>();
         for (INode candidate : NetworkManager.INSTANCE.getNodesCoveringPosition(iMachineNode.getWorld(), iMachineNode.getPos())) {
             if (candidate.linkScopeCheck(iMachineNode) != INode.LinkType.DISCONNECT) {
@@ -490,11 +454,11 @@ public final class EnergyMachineManager {
 
         for (var te : cache) {
             addMachine(te);
-            //? if <1.20 {
+            //~ if >=1.20 '.getWorld()' -> '.getLevel()' {
+            //~ if >=1.20 '.getPos()' -> '.getBlockPos()' {
             var node = NetworkManager.INSTANCE.getNodeFromPos(te.getWorld(), te.getPos());
-            //?} else {
-            /*var node = NetworkManager.INSTANCE.getNodeFromPos(te.getLevel(), te.getBlockPos());
-            *///?}
+            //~}
+            //~}
             if (node instanceof IMachineNode im) {
                 addMachineNode(im, te);
             }
@@ -546,30 +510,22 @@ public final class EnergyMachineManager {
         interaction.clear();
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 '(World ' -> '(Level ' {
     public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(World world, BlockPos pos) {
-    //?} else {
-    /*public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(Level world, BlockPos pos) {
-    *///?}
         return getEnergyNodes(world, pos.getX() >> 4, pos.getZ() >> 4);
     }
 
-    //? if <1.20 {
     public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(World world, int chunkX, int chunkZ) {
-    //?} else {
-    /*public @Nonnull ReferenceSet<IEnergySupplyNode> getEnergyNodes(Level world, int chunkX, int chunkZ) {
-    *///?}
         var map = scopeNode.get(getDimensionId(world));
         return map.get(Functions.mergeChunkCoords(chunkX, chunkZ));
     }
+    //~}
 
-    //? if <1.20 {
+    //~ if >=1.20 'TileEntity' -> 'BlockEntity' {
     public @Nonnull Set<TileEntity> getMachinesSuppliedBy(IEnergySupplyNode node) {
-    //?} else {
-    /*public @Nonnull Set<BlockEntity> getMachinesSuppliedBy(IEnergySupplyNode node) {
-    *///?}
         return gridMachineMap.getOrDefault(node, Collections.emptySet());
     }
+    //~}
 
     //? if <1.20 {
     private static MinecraftServer getServer() {

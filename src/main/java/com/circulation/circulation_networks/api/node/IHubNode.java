@@ -2,15 +2,17 @@ package com.circulation.circulation_networks.api.node;
 
 import com.circulation.circulation_networks.api.hub.ChargingDefinition;
 import com.circulation.circulation_networks.api.hub.ChargingPreference;
+import com.circulation.circulation_networks.api.hub.HubPermissionLevel;
 import com.circulation.circulation_networks.api.hub.PermissionMode;
-//? if <1.20 {
-import net.minecraft.inventory.IInventory;
+//? if <1.21 {
+import net.minecraftforge.items.IItemHandler;
 //?} else {
-/*import net.minecraft.world.item.ItemStack;
+/*import net.neoforged.neoforge.items.IItemHandler;
 *///?}
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -30,11 +32,7 @@ public interface IHubNode extends IEnergySupplyNode, IChargingNode {
 
     void setPermissionMode(PermissionMode mode);
 
-    //? if <1.20 {
-    IInventory getPlugins();
-    //?} else {
-    /*Container getPlugins();
-        *///?}
+    IItemHandler getPlugins();
 
     @Nonnull
     UUID getChannelId();
@@ -59,4 +57,17 @@ public interface IHubNode extends IEnergySupplyNode, IChargingNode {
     UUID getOwner();
 
     void setOwner(@Nullable UUID owner);
+
+    @Nullable
+    HubPermissionLevel getExplicitPermission(UUID playerId);
+
+    Map<UUID, HubPermissionLevel> getExplicitPermissions();
+
+    void setExplicitPermission(UUID playerId, HubPermissionLevel permissionLevel);
+
+    void removeExplicitPermission(UUID playerId);
+
+    HubPermissionLevel getPermissionLevel(UUID playerId);
+
+    boolean canEditPermissions(UUID playerId);
 }

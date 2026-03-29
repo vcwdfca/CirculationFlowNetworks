@@ -6,13 +6,9 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-import net.minecraft.world.level.Level;
-*///?}
 
 public final class PhaseInterrupterManager {
 
@@ -50,11 +46,9 @@ public final class PhaseInterrupterManager {
         interrupters.remove(interrupter);
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 ' World ' -> ' Level ' {
     public boolean isBlockedByInterrupter(BlockPos tePos, World world) {
-    //?} else {
-    /*public boolean isBlockedByInterrupter(BlockPos tePos, Level world) {
-    *///?}
+    //~}
         if (world == null || isClientWorld(world)) return false;
         int dimId = getDimensionId(world);
 
@@ -70,7 +64,9 @@ public final class PhaseInterrupterManager {
         return false;
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 '(World ' -> '(Level ' {
+    //~ if >=1.20 '.isRemote' -> '.isClientSide' {
+    //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
     private static boolean isClientWorld(World world) {
         return world.isRemote;
     }
@@ -78,13 +74,7 @@ public final class PhaseInterrupterManager {
     private static int getDimensionId(World world) {
         return world.provider.getDimension();
     }
-    //?} else {
-    /*private static boolean isClientWorld(Level world) {
-        return world.isClientSide;
-    }
-
-    private static int getDimensionId(Level world) {
-        return world.dimension().location().hashCode();
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
 }

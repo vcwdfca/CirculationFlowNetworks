@@ -4,11 +4,8 @@ import com.circulation.circulation_networks.api.IGrid;
 import com.circulation.circulation_networks.api.node.IChargingNode;
 import com.circulation.circulation_networks.api.node.IEnergySupplyNode;
 import com.circulation.circulation_networks.api.node.INode;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.util.math.BlockPos;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-*///?}
 
 public final class InspectionTargetSnapshot {
 

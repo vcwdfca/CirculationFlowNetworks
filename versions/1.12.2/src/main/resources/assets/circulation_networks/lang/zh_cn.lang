@@ -31,6 +31,14 @@ item.circulation_networks.hub_channel_plugin.name=中枢频道插件
 item.circulation_networks.hub_channel_plugin.channel=§7频道：§b%s §7(§b%s§7)
 item.circulation_networks.hub_channel_plugin.no_channel=§7未配置频道
 
+item.circulation_networks.wide_area_charging_plugin.name=广域充能插件
+item.circulation_networks.wide_area_charging_plugin.tooltip.0=§7将中枢充能范围扩展至同维度
+item.circulation_networks.wide_area_charging_plugin.tooltip.1=§7所有拥有权限的在线玩家
+
+item.circulation_networks.dimensional_charging_plugin.name=维度充能插件
+item.circulation_networks.dimensional_charging_plugin.tooltip.0=§7将中枢充能范围扩展至所有维度
+item.circulation_networks.dimensional_charging_plugin.tooltip.1=§7所有拥有权限的在线玩家
+
 message.circulation_networks.hub_conflict=§c无法放置节点：连接的网络中检测到中枢冲突！
 
 # Phase Interrupter GUI

@@ -3,11 +3,8 @@ package com.circulation.circulation_networks.items;
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.items.InspectionToolModeModel.ConfigurationMode;
 import com.circulation.circulation_networks.manager.EnergyTypeOverrideManager;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.util.math.BlockPos;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-*///?}
 
 public final class InspectionConfigurationApplyResult {
 
@@ -19,11 +16,9 @@ public final class InspectionConfigurationApplyResult {
 
     private InspectionConfigurationApplyResult(OverlayAction overlayAction, BlockPos pos, IEnergyHandler.EnergyType energyType, String messageKey, String detailKey) {
         this.overlayAction = overlayAction;
-        //? if <1.20 {
+        //~ if >=1.20 '.toLong()' -> '.asLong()' {
         this.packedPos = pos.toLong();
-        //?} else {
-        /*this.packedPos = pos.asLong();
-        *///?}
+        //~}
         this.energyType = energyType;
         this.messageKey = messageKey;
         this.detailKey = detailKey;

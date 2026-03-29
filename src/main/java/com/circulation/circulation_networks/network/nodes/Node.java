@@ -10,70 +10,74 @@ import it.unimi.dsi.fastutil.objects.Reference2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSets;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagLong;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+//? if <1.20
 import net.minecraftforge.common.DimensionManager;
-//?} else {
-/*import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.LongTag;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-*///?}
 import org.jetbrains.annotations.NotNull;
 
+import javax.annotation.Nullable;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 
 public abstract class Node implements INode {
 
     private final BlockPos pos;
     private final Vec3d vec3d;
-    //? if <1.20 {
+    //~ if >=1.20 '<World>' -> '<Level>' {
     private final WeakReference<World> world;
-    //?} else {
-    /*private final WeakReference<Level> world;
-    *///?}
+    //~}
     private final int dimensionId;
+    //? if >=1.20
+    /*private final String dimensionKey;*/
     private final ReferenceSet<INode> neighbors = new ReferenceOpenHashSet<>();
     private final Reference2DoubleMap<INode> distanceMap = new Reference2DoubleOpenHashMap<>();
     private final double linkScope;
     private final double linkScopeSq;
+    @Nullable
+    private String customName;
     private boolean active;
     private IGrid grid;
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 'BlockPos.fromLong(' -> 'BlockPos.of(' {
+    //~ if >=1.20 '.hasKey(' -> '.contains(' {
     public Node(NBTTagCompound nbt) {
+        //? if <1.20 {
         this.dimensionId = nbt.getInteger("dim");
         this.world = new WeakReference<>(resolveWorld(dimensionId));
+        //?} else {
+        /*this.dimensionKey = nbt.getString("dim");
+        //~ if >=1.21 'new net.minecraft.resources.ResourceLocation(' -> 'net.minecraft.resources.ResourceLocation.parse(' {
+        this.dimensionId = new net.minecraft.resources.ResourceLocation(dimensionKey).hashCode();
+        //~}
+        this.world = new WeakReference<>(resolveWorld(dimensionKey));
+        *///?}
         this.pos = BlockPos.fromLong(nbt.getLong("pos"));
         this.vec3d = Vec3d.ofCenter(new Vec3i(pos.getX(), pos.getY(), pos.getZ()));
         this.linkScope = nbt.getDouble("linkScope");
         this.linkScopeSq = linkScope * linkScope;
+        this.customName = normalizeCustomName(nbt.hasKey("customName") ? nbt.getString("customName") : null);
     }
-    //?} else {
-    /*public Node(CompoundTag nbt) {
-        this.dimensionId = nbt.getInt("dim");
-        this.world = new WeakReference<>(null);
-        this.pos = BlockPos.of(nbt.getLong("pos"));
-        this.vec3d = Vec3d.ofCenter(new Vec3i(pos.getX(), pos.getY(), pos.getZ()));
-        this.linkScope = nbt.getDouble("linkScope");
-        this.linkScopeSq = linkScope * linkScope;
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
 
     public Node(INodeBlockEntity blockEntity, double linkScope) {
         this.dimensionId = getDimensionId(blockEntity);
+        //? if >=1.20
+        /*this.dimensionKey = blockEntity.getNodeWorld().dimension().location().toString();*/
         this.world = new WeakReference<>(blockEntity.getNodeWorld());
         this.pos = blockEntity.getNodePos();
         this.vec3d = Vec3d.ofCenter(new Vec3i(pos.getX(), pos.getY(), pos.getZ()));
         this.linkScope = linkScope;
         this.linkScopeSq = linkScope * linkScope;
+        this.customName = normalizeCustomName(resolveDefaultNodeName(blockEntity));
     }
 
     public @NotNull BlockPos getPos() {
@@ -88,55 +92,55 @@ public abstract class Node implements INode {
         return active;
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
+    //~ if >=1.20 '.toLong()' -> '.asLong()' {
+    //~ if >=1.20 'NBTTagList' -> 'ListTag' {
+    //~ if >=1.20 '.appendTag(new NBTTagLong(' -> '.add(LongTag.valueOf(' {
+    //~ if >=1.20 '.set' -> '.put' {
+    //~ if >=1.20 '.setTag("nei' -> '.put("nei' {
     @Override
     public NBTTagCompound serialize() {
         var nbt = new NBTTagCompound();
         nbt.setString("name", this.getClass().getName());
         nbt.setLong("pos", pos.toLong());
+        //? if <1.20 {
         nbt.setInteger("dim", dimensionId);
+        //?} else {
+        /*nbt.putString("dim", dimensionKey);
+        *///?}
         var list = new NBTTagList();
         neighbors.forEach(neighbor -> list.appendTag(new NBTTagLong(neighbor.getPos().toLong())));
         nbt.setTag("neighbors", list);
         nbt.setDouble("linkScope", linkScope);
+        if (customName != null) {
+            nbt.setString("customName", customName);
+        }
         return nbt;
     }
-    //?} else {
-    /*@Override
-    public CompoundTag serialize() {
-        var nbt = new CompoundTag();
-        nbt.putString("name", this.getClass().getName());
-        nbt.putLong("pos", pos.asLong());
-        nbt.putInt("dim", dimensionId);
-        var list = new ListTag();
-        neighbors.forEach(neighbor -> list.add(LongTag.valueOf(neighbor.getPos().asLong())));
-        nbt.put("neighbors", list);
-        nbt.putDouble("linkScope", linkScope);
-        return nbt;
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
+    //~}
+    //~}
+    //~}
 
-    //? if <1.20 {
+    //~ if >=1.20 ' World ' -> ' Level ' {
     public @NotNull World getWorld() {
         var cachedWorld = world.get();
         if (cachedWorld != null) {
             return cachedWorld;
         }
+        //? if <1.20 {
         var resolvedWorld = resolveWorld(dimensionId);
+        //?} else {
+        /*var resolvedWorld = resolveWorld(dimensionKey);
+        *///?}
         if (resolvedWorld != null) {
             return resolvedWorld;
         }
         throw new IllegalStateException("World is null");
     }
-    //?} else {
-    /*public @NotNull Level getWorld() {
-        var cachedWorld = world.get();
-        if (cachedWorld != null) {
-            return cachedWorld;
-        }
-        throw new IllegalStateException("World is null");
-    }
-    *///?}
+    //~}
 
     public void setActive(boolean active) {
         this.active = active;
@@ -181,7 +185,26 @@ public abstract class Node implements INode {
         this.grid = grid;
     }
 
-    //? if <1.20 {
+    @Override
+    public @Nullable String getCustomName() {
+        return customName;
+    }
+
+    @Override
+    public void setCustomName(@Nullable String customName) {
+        String normalizedName = normalizeCustomName(customName);
+        if (Objects.equals(this.customName, normalizedName)) {
+            return;
+        }
+        this.customName = normalizedName;
+        if (grid != null) {
+            grid.markSnapshotDirty();
+        }
+    }
+
+    //~ if >=1.20 ' TileEntity ' -> ' BlockEntity ' {
+    //~ if >=1.20 'tileEntity' -> 'blockEntity' {
+    //~ if >=1.20 '.getTileEntity(' -> '.getBlockEntity(' {
     @Override
     public TileEntity getBlockEntity() {
         var cachedWorld = world.get();
@@ -193,19 +216,9 @@ public abstract class Node implements INode {
         }
         return null;
     }
-    //?} else {
-    /*@Override
-    public BlockEntity getBlockEntity() {
-        var cachedWorld = world.get();
-        if (cachedWorld != null) {
-            var blockEntity = cachedWorld.getBlockEntity(pos);
-            if (blockEntity instanceof INodeBlockEntity) {
-                return blockEntity;
-            }
-        }
-        return null;
-    }
-    *///?}
+    //~}
+    //~}
+    //~}
 
     @Override
     public double distanceSq(INode node) {
@@ -255,17 +268,49 @@ public abstract class Node implements INode {
     private static World resolveWorld(int dimensionId) {
         return DimensionManager.getWorld(dimensionId);
     }
+    //?} else if <1.21 {
+    /*private static Level resolveWorld(String dimensionKey) {
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return null;
+        return server.getLevel(
+            net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION,
+                new net.minecraft.resources.ResourceLocation(dimensionKey)
+            )
+        );
+    }
+    *///?} else {
+    /*private static Level resolveWorld(String dimensionKey) {
+        var server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return null;
+        return server.getLevel(
+            net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.DIMENSION,
+                net.minecraft.resources.ResourceLocation.parse(dimensionKey)
+            )
+        );
+    }
+    *///?}
 
+    //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
     private static int getDimensionId(INodeBlockEntity blockEntity) {
         return blockEntity.getNodeWorld().provider.getDimension();
     }
-    //?} else {
-    /*private static Level resolveWorld(int dimensionId) {
-        return null;
-    }
+    //~}
 
-    private static int getDimensionId(INodeBlockEntity blockEntity) {
-        return blockEntity.getNodeWorld().dimension().location().hashCode();
+    //~ if >=1.20 '.getLocalizedName()' -> '.getName().getString()' {
+    private static String resolveDefaultNodeName(INodeBlockEntity blockEntity) {
+        return blockEntity.getNodeWorld().getBlockState(blockEntity.getNodePos()).getBlock().getLocalizedName();
     }
-    *///?}
+    //~}
+
+    @Nullable
+    private static String normalizeCustomName(@Nullable String customName) {
+        if (customName == null) {
+            return null;
+        }
+
+        String trimmedName = customName.trim();
+        return trimmedName.isEmpty() ? null : trimmedName;
+    }
 }

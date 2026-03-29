@@ -2,13 +2,9 @@ package com.circulation.circulation_networks.items;
 
 import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
 import com.circulation.circulation_networks.utils.Functions;
-//? if <1.20 {
+//~ mc_imports
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-//?} else {
-/*import net.minecraft.nbt.CompoundTag;
-import net.minecraft.world.item.ItemStack;
-*///?}
 //? if >=1.21 {
 /*import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;

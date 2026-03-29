@@ -7,11 +7,12 @@ import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.utils.RenderingUtils;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+//~ mc_imports
+import net.minecraft.util.math.BlockPos;
 //? if <1.20 {
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.relauncher.Side;
@@ -21,7 +22,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
 *///?}
 //? if <1.20 {
 //?} else if <1.21 {

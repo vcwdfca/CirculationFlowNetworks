@@ -3,9 +3,9 @@ package com.circulation.circulation_networks.gui.component.base;
 import com.circulation.circulation_networks.CirculationFlowNetworks;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.client.Minecraft;
+//? if <1.20 {
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
-//? if <1.20 {
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -26,7 +26,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 //?} else {
 /*import net.neoforged.neoforge.common.NeoForge;
-*///?}
+ *///?}
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -68,7 +68,7 @@ import java.util.zip.CRC32;
 @SideOnly(Side.CLIENT)
 //?} else {
 /*@OnlyIn(Dist.CLIENT)
-*///?}
+ *///?}
 public final class ComponentAtlas extends ComponentAtlasRegistry {
 
     public static final ComponentAtlas INSTANCE = new ComponentAtlas();
@@ -82,11 +82,12 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
     private CompletableFuture<StitchResult> future;
     private int glTextureId = 0;
     private File cacheDir;
+    private boolean init;
+
+    // ── Public API ────────────────────────────────────────────────────────────
 
     private ComponentAtlas() {
     }
-
-    // ── Public API ────────────────────────────────────────────────────────────
 
     private static StitchResult stitch(List<SpriteData> sprites) {
         if (sprites.isEmpty()) {
@@ -332,15 +333,23 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         buf.flip();
 
         int texId = GL11.glGenTextures();
+        //? if <1.20 {
         GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
         GlStateManager.bindTexture(texId);
+        //?} else {
+        /*GL11.glBindTexture(GL11.GL_TEXTURE_2D, texId);
+         *///?}
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL12.GL_CLAMP_TO_EDGE);
         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA8, width, height,
             0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buf);
+        //? if <1.20 {
         GlStateManager.bindTexture(0);
+        //?} else {
+        /*GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
+         *///?}
 
         CirculationFlowNetworks.LOGGER.info(
             "Uploaded atlas {}×{} to GL texture #{}", width, height, texId);
@@ -352,6 +361,8 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         img.setRGB(0, 0, 0xFFFFFFFF);
         return img;
     }
+
+    // ── Discovery ─────────────────────────────────────────────────────────────
 
     private static String computeHash(List<SpriteData> sortedSprites) {
         CRC32 crc = new CRC32();
@@ -370,10 +381,6 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
         }
         return String.format("%016x", crc.getValue());
     }
-
-    // ── Discovery ─────────────────────────────────────────────────────────────
-
-    private boolean init;
 
     @SubscribeEvent
     public void onRegisterSprites(RegisterComponentSpritesEvent event) {
@@ -416,13 +423,11 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
             //? if <1.20 {
             ResourceLocation loc = new ResourceLocation(DOMAIN, COMPONENT_DIR + name + ".png");
             try (InputStream is = mc.getResourceManager().getResource(loc).getInputStream()) {
-                //?} else {
-            /*ResourceLocation loc =
-            //? if <1.21 {
-            new ResourceLocation(DOMAIN, COMPONENT_DIR + name + ".png");
-            //?} else {
-            ResourceLocation.fromNamespaceAndPath(DOMAIN, COMPONENT_DIR + name + ".png");
-            //?}
+                //?} else if <1.21 {
+            /*ResourceLocation loc = new ResourceLocation(DOMAIN, COMPONENT_DIR + name + ".png");
+            try (InputStream is = mc.getResourceManager().getResourceOrThrow(loc).open()) {
+            *///?} else {
+            /*ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(DOMAIN, COMPONENT_DIR + name + ".png");
             try (InputStream is = mc.getResourceManager().getResourceOrThrow(loc).open()) {
             *///?}
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -541,8 +546,12 @@ public final class ComponentAtlas extends ComponentAtlasRegistry {
      */
     public void bind() {
         if (glTextureId != 0) {
+            //? if <1.20 {
             GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
             GlStateManager.bindTexture(glTextureId);
+            //?} else {
+            /*GL11.glBindTexture(GL11.GL_TEXTURE_2D, glTextureId);
+             *///?}
         }
     }
 

@@ -42,13 +42,11 @@ public class MachineNodeBlockEntityManager {
         clientTe.clear();
     }
 
-    //? if <1.20 {
+    //~ if >=1.20 'net.minecraft.world.World' -> 'net.minecraft.world.level.Level' {
+    //~ if >=1.20 '.isRemote' -> '.isClientSide' {
     private static boolean isClientWorld(net.minecraft.world.World world) {
         return world.isRemote;
     }
-    //?} else {
-    /*private static boolean isClientWorld(net.minecraft.world.level.Level world) {
-        return world.isClientSide;
-    }
-    *///?}
+    //~}
+    //~}
 }

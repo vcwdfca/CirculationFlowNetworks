@@ -31,6 +31,14 @@ item.circulation_networks.hub_channel_plugin.name=Hub Channel Plugin
 item.circulation_networks.hub_channel_plugin.channel=§7Channel: §b%s §7(§b%s§7)
 item.circulation_networks.hub_channel_plugin.no_channel=§7No channel configured
 
+item.circulation_networks.wide_area_charging_plugin.name=Wide Area Charging Plugin
+item.circulation_networks.wide_area_charging_plugin.tooltip.0=§7Extends Hub charging to all permitted players
+item.circulation_networks.wide_area_charging_plugin.tooltip.1=§7in the same dimension
+
+item.circulation_networks.dimensional_charging_plugin.name=Dimensional Charging Plugin
+item.circulation_networks.dimensional_charging_plugin.tooltip.0=§7Extends Hub charging to all permitted players
+item.circulation_networks.dimensional_charging_plugin.tooltip.1=§7across all dimensions
+
 message.circulation_networks.hub_conflict=§cCannot place node: hub conflict detected in connected networks!
 
 # Phase Interrupter GUI

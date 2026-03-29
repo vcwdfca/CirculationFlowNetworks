@@ -1,7 +1,6 @@
 package com.circulation.circulation_networks.registry;
 
 import com.circulation.circulation_networks.api.node.IMachineNode;
-import com.github.bsideup.jabel.Desugar;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
@@ -10,15 +9,13 @@ import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.api.IEnergyHandlerManager;
 import com.circulation.circulation_networks.api.IMachineNodeBlockEntity;
 import com.circulation.circulation_networks.CFNConfig;
-//? if <1.20 {
+//~ mc_imports
+//? if <1.20
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import org.jetbrains.annotations.NotNull;
-//?} else {
- /*import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BlockEntity; 
-*///?}
 
+import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -26,6 +23,9 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @SuppressWarnings("unused")
 public final class RegistryEnergyHandler {
 
+    //~ if >=1.20 '(TileEntity ' -> '(BlockEntity ' {
+    //~ if >=1.20 ' TileEntity ' -> ' BlockEntity ' {
+    //~ if >=1.20 '<TileEntity>' -> '<BlockEntity>' {
 
     private static Class<?>[] blackListClass;
     private static Class<?>[] supplyBlackListClass;
@@ -44,7 +44,7 @@ public final class RegistryEnergyHandler {
     public record Pair(double multiplying, String unit, int p) implements Comparable<Pair> {
 
         @Override
-        public int compareTo(@NotNull RegistryEnergyHandler.Pair o) {
+        public int compareTo(@Nonnull RegistryEnergyHandler.Pair o) {
             return Integer.compare(p, o.p);
         }
     }
@@ -85,13 +85,8 @@ public final class RegistryEnergyHandler {
         registeredSupplyBlackClasses.add(clazz);
     }
 
-    //? if <1.20 {
     public static boolean isBlack(TileEntity blockEntity) {
         if (blockEntity instanceof IMachineNodeBlockEntity) return true;
-        //?} else {
-     /*public static boolean isBlack(BlockEntity blockEntity) {
-        if (blockEntity instanceof IMachineNodeBlockEntity) return true;
-    *///?}
         if (blackListClass != null) {
             for (Class<?> listClass : blackListClass) {
                 if (listClass.isInstance(blockEntity)) return true;
@@ -106,11 +101,7 @@ public final class RegistryEnergyHandler {
         return false;
     }
 
-    //? if <1.20 {
     public static boolean isSupplyBlack(TileEntity blockEntity) {
-        //?} else {
-        /*public static boolean isSupplyBlack(BlockEntity blockEntity) {
-         *///?}
         if (supplyBlackListClass != null) {
             for (Class<?> listClass : supplyBlackListClass) {
                 if (listClass.isInstance(blockEntity)) return true;
@@ -133,37 +124,19 @@ public final class RegistryEnergyHandler {
         return false;
     }
 
-    //? if <1.20 {
     public static boolean isEnergyTileEntity(TileEntity tile) {
         for (IEnergyHandlerManager manager : list) {
             if (manager.isAvailable(tile)) return true;
         }
         return false;
     }
-    //?} else {
-     /*public static boolean isEnergyTileEntity(BlockEntity blockEntity) {
-        for (IEnergyHandlerManager manager : list) {
-            if (manager.isAvailable(blockEntity)) return true;
-        }
-        return false;
-    } 
-    *///?}
 
-    //? if <1.20 {
     public static IEnergyHandlerManager getEnergyManager(TileEntity tile) {
         for (IEnergyHandlerManager manager : list) {
             if (manager.isAvailable(tile)) return manager;
         }
         return null;
     }
-    //?} else {
-     /*public static IEnergyHandlerManager getEnergyManager(BlockEntity blockEntity) {
-        for (IEnergyHandlerManager manager : list) {
-            if (manager.isAvailable(blockEntity)) return manager;
-        }
-        return null;
-    } 
-    *///?}
 
     public static IEnergyHandlerManager getEnergyManager(ItemStack stack) {
         for (IEnergyHandlerManager manager : list) {
@@ -241,4 +214,7 @@ public final class RegistryEnergyHandler {
         }
     }
 
+    //~}
+    //~}
+    //~}
 }

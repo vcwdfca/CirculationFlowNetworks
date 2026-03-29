@@ -4,8 +4,6 @@ import com.circulation.circulation_networks.container.CFNBaseContainer;
 import com.circulation.circulation_networks.container.EmptyContainer;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryBasic;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -13,8 +11,6 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import javax.annotation.Nonnull;
 
 public class BaseTileEntity extends TileEntity {
-
-    public static final IInventory EMPTY_INV = new InventoryBasic("", false, 0);
 
     public boolean hasGui() {
         return false;

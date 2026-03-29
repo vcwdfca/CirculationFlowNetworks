@@ -2,9 +2,10 @@ package com.circulation.circulation_networks.gui.component.base;
 
 import com.circulation.circulation_networks.container.ComponentSlotLayout;
 import com.circulation.circulation_networks.gui.CFNBaseGui;
-import com.circulation.circulation_networks.utils.CI18n;
-import com.github.bsideup.jabel.Desugar;
+import com.circulation.circulation_networks.tooltip.Composite;
+import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+//? if <1.20 {
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.renderer.GlStateManager;
@@ -14,8 +15,8 @@ import net.minecraft.client.renderer.RenderItem;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
 import org.lwjgl.opengl.GL11;
+//?}
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -238,6 +239,7 @@ public class Component extends Rectangle {
 
     }
 
+    //? if <1.20 {
     protected void renderBoundLayouts(int mouseX, int mouseY) {
         if (boundLayouts.isEmpty()) return;
 
@@ -303,6 +305,10 @@ public class Component extends Rectangle {
         GlStateManager.popMatrix();
         restoreGuiRenderState();
     }
+    //?} else {
+    /*protected void renderBoundLayouts(int mouseX, int mouseY) {
+    }
+    *///?}
 
     protected final boolean isMouseOverSlot(int localMouseX, int localMouseY, int slotX, int slotY) {
         return localMouseX >= slotX && localMouseX < slotX + 16
@@ -339,21 +345,7 @@ public class Component extends Rectangle {
 
     protected List<LocalizedComponent> tooltips = new ObjectArrayList<>();
 
-    //? if <1.20{
-    @Desugar
-        //?}
-    public record Composite(String key, Supplier<Object[]> supplier) implements LocalizedComponent {
-        @Override
-        public String get() {
-            return CI18n.INSTANCE.format(key, supplier.get());
-        }
-    }
-
-    public interface LocalizedComponent extends Supplier<String> {
-        String get();
-    }
-
-    @NotNull
+    @Nonnull
     protected List<LocalizedComponent> getTooltip(int mouseX, int mouseY) {
         List<LocalizedComponent> slotTooltip = collectSlotTooltip(mouseX, mouseY);
         if (!slotTooltip.isEmpty()) {
@@ -362,7 +354,8 @@ public class Component extends Rectangle {
         return tooltips;
     }
 
-    @NotNull
+    @Nonnull
+    //? if <1.20 {
     protected List<LocalizedComponent> collectSlotTooltip(int mouseX, int mouseY) {
         if (boundLayouts.isEmpty()) return Collections.emptyList();
 
@@ -402,7 +395,13 @@ public class Component extends Rectangle {
 
         return Collections.emptyList();
     }
+    //?} else {
+    /*protected List<LocalizedComponent> collectSlotTooltip(int mouseX, int mouseY) {
+        return Collections.emptyList();
+    }
+    *///?}
 
+    //? if <1.20 {
     protected final boolean hasBoundSlotAt(int mouseX, int mouseY) {
         if (boundLayouts.isEmpty()) return false;
 
@@ -422,6 +421,11 @@ public class Component extends Rectangle {
 
         return false;
     }
+    //?} else {
+    /*protected final boolean hasBoundSlotAt(int mouseX, int mouseY) {
+        return false;
+    }
+    *///?}
 
     protected final boolean hasAnyBoundSlotAt(int mouseX, int mouseY) {
         if (hasBoundSlotAt(mouseX, mouseY)) {
@@ -457,7 +461,7 @@ public class Component extends Rectangle {
         return (T) this;
     }
 
-    @NotNull
+    @Nonnull
     public final List<LocalizedComponent> collectTooltip(int mouseX, int mouseY) {
         if (!isVisible() || !contains(mouseX, mouseY)) return Collections.emptyList();
         if (children.isEmpty()) {
@@ -471,6 +475,21 @@ public class Component extends Rectangle {
         }
 
         return getTooltip(mouseX, mouseY);
+    }
+
+    public final void dispatchGlobalMouseClicked(int mouseX, int mouseY, int button) {
+        if (!isVisible()) {
+            return;
+        }
+
+        onGlobalMouseClicked(mouseX, mouseY, button);
+        if (children.isEmpty()) {
+            return;
+        }
+
+        for (Component child : children) {
+            child.dispatchGlobalMouseClicked(mouseX, mouseY, button);
+        }
     }
 
     public final boolean dispatchMouseClicked(int mouseX, int mouseY, int button) {
@@ -540,6 +559,9 @@ public class Component extends Rectangle {
 
     protected boolean onMouseClicked(int mouseX, int mouseY, int button) {
         return false;
+    }
+
+    protected void onGlobalMouseClicked(int mouseX, int mouseY, int button) {
     }
 
     protected boolean onMouseReleased(int mouseX, int mouseY, int button) {
@@ -624,6 +646,7 @@ public class Component extends Rectangle {
         }
     }
 
+    //? if <1.20 {
     protected final void restoreGuiRenderState() {
         RenderHelper.disableStandardItemLighting();
         GlStateManager.disableLighting();
@@ -654,6 +677,10 @@ public class Component extends Rectangle {
         GlStateManager.loadIdentity();
         GlStateManager.matrixMode(GL11.GL_MODELVIEW);
     }
+    //?} else {
+    /*protected final void restoreGuiRenderState() {
+    }
+    *///?}
 
     public void setSize(int width, int height) {
         this.width = width;
