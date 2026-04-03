@@ -1,9 +1,8 @@
 package com.circulation.circulation_networks.math;
 
+import javax.annotation.Nonnull;
 //? if <1.20 {
 import com.github.bsideup.jabel.Desugar;
-
-import javax.annotation.Nonnull;
 
 @Desugar
 //?}
