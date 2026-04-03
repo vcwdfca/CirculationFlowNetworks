@@ -1,7 +1,6 @@
 package com.circulation.circulation_networks.utils;
 
 import com.circulation.circulation_networks.CirculationFlowNetworks;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -46,8 +45,8 @@ public class SyncData {
         return SyncType.INT;
     }
 
-    private static byte @Nullable [] copyBytes(byte[] value) {
-        return value == null ? null : Arrays.copyOf(value, value.length);
+    private static byte[] copyBytes(byte[] value) {
+        return value == null ? value : Arrays.copyOf(value, value.length);
     }
 
     public int getChannel() {

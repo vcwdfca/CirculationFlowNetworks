@@ -387,6 +387,33 @@ public final class PocketNodeManager {
             }
         }
     }
+
+    public void onChunkUnload(World world, int chunkX, int chunkZ) {
+        if (!loaded || isClientWorld(world)) {
+            return;
+        }
+        int dimId = getDimensionId(world);
+        long chunkCoord = Functions.mergeChunkCoords(chunkX, chunkZ);
+
+        LongSet activePositions = getChunkPositions(activeChunkIndex.get(dimId), chunkCoord);
+        if (activePositions == null || activePositions.isEmpty()) {
+            return;
+        }
+
+        Long2ObjectMap<PocketNodeHost> activeDimMap = activeHosts.get(dimId);
+        for (long posLong : new LongOpenHashSet(activePositions)) {
+            PocketNodeHost host = activeDimMap == null ? null : activeDimMap.get(posLong);
+            if (host == null) {
+                continue;
+            }
+            PocketNodeHost removed = removeActiveHost(dimId, posLong);
+            if (removed == null) {
+                continue;
+            }
+            NetworkManager.INSTANCE.removeNode(removed.node());
+            putPending(removed.toRecord());
+        }
+    }
     //~}
 
     //~ if >=1.20 'net.minecraft.util.EnumFacing' -> 'net.minecraft.core.Direction' {
