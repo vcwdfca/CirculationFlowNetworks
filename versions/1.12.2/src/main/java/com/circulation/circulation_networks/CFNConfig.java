@@ -79,7 +79,7 @@ public final class CFNConfig {
         public static class RelayNodeConfig {
             @Config.Comment({"环流中继节点的链接范围", "Link range of Circulation Relay Node"})
             @Config.Name("linkScope")
-            @Config.RangeDouble(min = 1, max = 32)
+            @Config.RangeDouble(min = 1, max = 64)
             public double linkScope = 20;
         }
 
