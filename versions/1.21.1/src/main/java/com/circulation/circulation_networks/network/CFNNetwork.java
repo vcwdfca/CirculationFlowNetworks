@@ -1,13 +1,22 @@
 package com.circulation.circulation_networks.network;
 
+import com.circulation.circulation_networks.packets.BindHubChannel;
+import com.circulation.circulation_networks.packets.CirculationShielderSyncPacket;
 import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.ContainerProgressBar;
 import com.circulation.circulation_networks.packets.ContainerValueConfig;
+import com.circulation.circulation_networks.packets.CreateHubChannel;
+import com.circulation.circulation_networks.packets.DeleteHubChannel;
 import com.circulation.circulation_networks.packets.EnergyWarningRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
+import com.circulation.circulation_networks.packets.PocketNodeRendering;
 import com.circulation.circulation_networks.packets.RenderingClear;
 import com.circulation.circulation_networks.packets.SpoceRendering;
+import com.circulation.circulation_networks.packets.UpdateHubChannelPermission;
+import com.circulation.circulation_networks.packets.UpdateHubChannelSettings;
 import com.circulation.circulation_networks.packets.UpdateItemModeMessage;
+import com.circulation.circulation_networks.packets.UpdateNodeCustomName;
+import com.circulation.circulation_networks.packets.UpdatePlayerChargingMode;
 import com.circulation.circulation_networks.utils.Packet;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,6 +34,14 @@ public final class CFNNetwork {
 
         registerPlayToServer(registrar, ContainerProgressBar.class);
         registerPlayToServer(registrar, UpdateItemModeMessage.class);
+        registerPlayToServer(registrar, BindHubChannel.class);
+        registerPlayToServer(registrar, CirculationShielderSyncPacket.class);
+        registerPlayToServer(registrar, CreateHubChannel.class);
+        registerPlayToServer(registrar, DeleteHubChannel.class);
+        registerPlayToServer(registrar, UpdateHubChannelPermission.class);
+        registerPlayToServer(registrar, UpdateHubChannelSettings.class);
+        registerPlayToServer(registrar, UpdateNodeCustomName.class);
+        registerPlayToServer(registrar, UpdatePlayerChargingMode.class);
 
         registerPlayToClient(registrar, SpoceRendering.class);
         registerPlayToClient(registrar, NodeNetworkRendering.class);
@@ -32,6 +49,7 @@ public final class CFNNetwork {
         registerPlayToClient(registrar, ConfigOverrideRendering.class);
         registerPlayToClient(registrar, ContainerProgressBar.class);
         registerPlayToClient(registrar, ContainerValueConfig.class);
+        registerPlayToClient(registrar, PocketNodeRendering.class);
         registerPlayToClient(registrar, RenderingClear.INSTANCE);
     }
 

@@ -30,7 +30,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.IntSupplier;
 
@@ -41,13 +40,11 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
     public static final int NODE_REMOVE = 2;
     public static final int MACHINE_ADD = 3;
     public static final int MACHINE_REMOVE = 4;
-
-    private static final Object2ReferenceMap<IGrid, ReferenceLinkedOpenHashSet<ServerPlayer>> GRID_PLAYERS = new Object2ReferenceOpenHashMap<>();
-    private static final Reference2ReferenceMap<ServerPlayer, IGrid> PLAYER_GRID = new Reference2ReferenceOpenHashMap<>();
-
     public static final Type<NodeNetworkRendering> TYPE = new Type<>(
         ResourceLocation.parse(CirculationFlowNetworks.MOD_ID + ":node_network_rendering")
     );
+    private static final Object2ReferenceMap<IGrid, ReferenceLinkedOpenHashSet<ServerPlayer>> GRID_PLAYERS = new Object2ReferenceOpenHashMap<>();
+    private static final Reference2ReferenceMap<ServerPlayer, IGrid> PLAYER_GRID = new Reference2ReferenceOpenHashMap<>();
     private int mode;
     private int dim;
     private IGrid grid;
@@ -63,31 +60,26 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
     }
 
     public NodeNetworkRendering(Player player, IGrid grid) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = grid;
         this.nodes = grid.getNodes();
         this.mode = SET;
         this.entryList = new ObjectArrayList<>();
-        for (var entry : EnergyMachineManager.INSTANCE.getMachineGridMap().entrySet()) {
-            if (entry.getKey() instanceof IMachineNodeBlockEntity) {
+        for (var node : this.nodes) {
+            if (!(node instanceof IEnergySupplyNode energySupplyNode)) {
                 continue;
             }
-            for (var node : entry.getValue()) {
-                entryList.add(new Pair(entry.getKey(), node));
+            for (var machine : EnergyMachineManager.INSTANCE.getMachinesSuppliedBy(energySupplyNode)) {
+                if (machine instanceof IMachineNodeBlockEntity) {
+                    continue;
+                }
+                entryList.add(new Pair(machine, node));
             }
         }
     }
 
     public NodeNetworkRendering(Player player, INode node, int mode) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = node.getGrid();
         this.mode = mode;
         this.targetNode = node;
@@ -103,11 +95,7 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
     }
 
     public NodeNetworkRendering(Player player, BlockEntity blockEntity, INode node, int mode) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = node.getGrid();
         this.mode = mode;
         this.entryList = ObjectLists.singleton(new Pair(blockEntity, node));

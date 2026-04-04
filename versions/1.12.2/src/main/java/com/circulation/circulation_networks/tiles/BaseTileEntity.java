@@ -7,6 +7,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 
@@ -22,7 +23,7 @@ public class BaseTileEntity extends TileEntity {
     }
 
     @SideOnly(Side.CLIENT)
-    public GuiContainer getGui(EntityPlayer player) {
+    public @Nullable GuiContainer getGui(EntityPlayer player) {
         return null;
     }
 

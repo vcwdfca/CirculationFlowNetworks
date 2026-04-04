@@ -92,6 +92,10 @@
     }
   },
   "gui": {
+    "hub": {
+      "energy_latency": "Latency:%s/t",
+      "node_count": "Node Count:%s"
+    },
     "circulation_shielder": {
       "title": "Circulation Shielder Configuration",
       "show_range": "Show Range",

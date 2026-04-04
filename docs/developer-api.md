@@ -404,21 +404,21 @@ API.registerNodeType(MY_NODE_TYPE, nbt ->MyCustomNode.deserialize(nbt));
 
 | 方法                                 | 返回类型          | 说明                 |
 |------------------------------------|---------------|--------------------|
-| `release(TileEntity, HubMetadata)` | `static void` | 从对象池释放方块实体关联的处理器实例 |
-| `release(ItemStack, HubMetadata)`  | `static void` | 从对象池释放物品堆关联的处理器实例  |
-| `init(TileEntity, HubMetadata)`    | `void`        | 以方块实体初始化处理器状态      |
-| `init(ItemStack, HubMetadata)`     | `void`        | 以物品堆初始化处理器状态       |
-| `clear(HubMetadata)`               | `void`        | 清空处理器的内部状态         |
-| `recycle(HubMetadata)`             | `void`        | 将处理器实例回收至对象池       |
+| `release(TileEntity, HubMetadata)` | `static @Nullable IEnergyHandler` | 从对象池获取方块实体用处理器；若池为空则新建 |
+| `release(ItemStack, HubMetadata)`  | `static @Nullable IEnergyHandler` | 从对象池获取物品用处理器；若池为空则新建   |
+| `init(TileEntity, HubMetadata)`    | `IEnergyHandler` | 以方块实体初始化处理器状态，并返回 `this` |
+| `init(ItemStack, HubMetadata)`     | `IEnergyHandler` | 以物品堆初始化处理器状态，并返回 `this`  |
+| `clear()`                          | `void`        | 仅清空处理器内部状态；该生命周期重置不再依赖 `HubMetadata` |
+| `recycle()`                        | `void`        | 调用 `clear()` 后将处理器实例回收至对象池 |
 
 **能量操作方法**：
 
 | 方法                                         | 返回类型         | 说明                                   |
 |--------------------------------------------|--------------|--------------------------------------|
-| `receiveEnergy(EnergyAmount, HubMetadata)` | `void`       | 向容器注入能量，`EnergyAmount` 中剩余的值为未能注入的部分 |
-| `extractEnergy(EnergyAmount, HubMetadata)` | `void`       | 从容器提取能量，`EnergyAmount` 中增加的值为成功提取的部分 |
-| `canExtractValue(HubMetadata)`             | `boolean`    | 容器是否有可提取的能量                          |
-| `canReceiveValue(HubMetadata)`             | `boolean`    | 容器是否可接收更多能量                          |
+| `receiveEnergy(EnergyAmount, HubMetadata)` | `EnergyAmount` | 向容器注入能量，并返回实际成功注入的数量                |
+| `extractEnergy(EnergyAmount, HubMetadata)` | `EnergyAmount` | 从容器提取能量，并返回实际成功提取的数量                |
+| `canExtractValue(HubMetadata)`             | `EnergyAmount` | 返回当前可提取的能量数量                         |
+| `canReceiveValue(HubMetadata)`             | `EnergyAmount` | 返回当前可接收的能量数量                         |
 | `canExtract(IEnergyHandler, HubMetadata)`  | `boolean`    | 是否可从此处理器提取（用于兼容性检查）                  |
 | `canReceive(IEnergyHandler, HubMetadata)`  | `boolean`    | 是否可向此处理器注入（用于兼容性检查）                  |
 | `getType(HubMetadata)`                     | `EnergyType` | 处理器的能量类型                             |
@@ -446,10 +446,10 @@ API.registerNodeType(MY_NODE_TYPE, nbt ->MyCustomNode.deserialize(nbt));
 | `isAvailable(ItemStack)`  | `boolean`                         | 判断物品堆是否由此管理器处理      |
 | `getEnergyHandlerClass()` | `Class<? extends IEnergyHandler>` | 返回关联的处理器实现类         |
 | `getPriority()`           | `int`                             | 管理器优先级，数值越小优先级越高    |
-| `newInstance(TileEntity)` | `IEnergyHandler`                  | 为方块实体创建新的处理器实例      |
-| `newInstance(ItemStack)`  | `IEnergyHandler`                  | 为物品堆创建新的处理器实例       |
+| `newBlockEntityInstance()` | `IEnergyHandler`                | 为方块实体场景创建新的处理器实例    |
+| `newItemInstance()`        | `IEnergyHandler`                | 为物品场景创建新的处理器实例      |
 | `getUnit()`               | `String`                          | 默认返回 `"FE"`。能量单位名称。 |
-| `getMultiplying()`        | `int`                             | 默认返回 `1`。能量值的乘数系数。  |
+| `getMultiplying()`        | `double`                          | 默认返回 `1`。能量值的乘数系数。  |
 
 **自定义能量系统集成示例**：
 
@@ -477,13 +477,13 @@ public class MyEnergyManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(TileEntity tile) {
-        return new MyEnergyHandler(tile);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new MyEnergyHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack stack) {
-        return new MyEnergyHandler(stack);
+    public IEnergyHandler newItemInstance() {
+        return new MyEnergyHandler();
     }
 
     @Override

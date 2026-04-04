@@ -22,8 +22,7 @@ public interface IEnergyHandler {
         var m = RegistryEnergyHandler.getEnergyManager(tileEntity);
         if (m == null) return null;
         var q = POOL.get(m.getEnergyHandlerClass());
-        if (q == null || q.isEmpty()) return m.newInstance(tileEntity);
-        var t = q.poll();
+        var t = q == null || q.isEmpty() ? m.newBlockEntityInstance() : q.poll();
         return t.init(tileEntity, hubMetadata);
     }
 
@@ -32,8 +31,7 @@ public interface IEnergyHandler {
         var m = RegistryEnergyHandler.getEnergyManager(stack);
         if (m == null) return null;
         var q = POOL.get(m.getEnergyHandlerClass());
-        if (q.isEmpty()) return m.newInstance(stack);
-        var t = q.poll();
+        var t = q == null || q.isEmpty() ? m.newItemInstance() : q.poll();
         return t.init(stack, hubMetadata);
     }
 
@@ -42,7 +40,7 @@ public interface IEnergyHandler {
 
     IEnergyHandler init(ItemStack itemStack, @Nullable HubNode.HubMetadata hubMetadata);
 
-    void clear(@Nullable HubNode.HubMetadata hubMetadata);
+    void clear();
 
     EnergyAmount receiveEnergy(EnergyAmount maxReceive, @Nullable HubNode.HubMetadata hubMetadata);
 
@@ -56,8 +54,8 @@ public interface IEnergyHandler {
 
     boolean canReceive(IEnergyHandler sendHandler, @Nullable HubNode.HubMetadata hubMetadata);
 
-    default void recycle(@Nullable HubNode.HubMetadata hubMetadata) {
-        this.clear(hubMetadata);
+    default void recycle() {
+        this.clear();
         var queue = POOL.get(this.getClass());
         //? if <1.20 {
         if (queue != null && queue.size() < EnergyMachineManager.INSTANCE.getMachineGridMap().size()) {

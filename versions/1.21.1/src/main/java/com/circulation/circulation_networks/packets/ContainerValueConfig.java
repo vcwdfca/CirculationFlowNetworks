@@ -18,13 +18,12 @@ import java.util.zip.Inflater;
 
 public final class ContainerValueConfig implements Packet<ContainerValueConfig> {
 
-    private static final int COMPRESSION_THRESHOLD = 256;
-    private static final byte TYPE_STRING = 0;
-    private static final byte TYPE_BYTES = 1;
-
     public static final Type<ContainerValueConfig> TYPE = new Type<>(
         ResourceLocation.parse(CirculationFlowNetworks.MOD_ID + ":container_value_config")
     );
+    private static final int COMPRESSION_THRESHOLD = 256;
+    private static final byte TYPE_STRING = 0;
+    private static final byte TYPE_BYTES = 1;
     private final short name;
     private final byte payloadType;
     private final String stringValue;
@@ -47,6 +46,54 @@ public final class ContainerValueConfig implements Packet<ContainerValueConfig> 
         this.payloadType = payloadType;
         this.stringValue = stringValue;
         this.bytesValue = bytesValue;
+    }
+
+    private static byte[] deflate(byte[] input) {
+        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
+        deflater.setInput(input);
+        deflater.finish();
+
+        byte[] buffer = new byte[Math.clamp(input.length, 256, 4096)];
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length)) {
+            while (!deflater.finished()) {
+                int written = deflater.deflate(buffer);
+                if (written <= 0) {
+                    break;
+                }
+                output.write(buffer, 0, written);
+            }
+            return output.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to deflate container sync payload", e);
+        } finally {
+            deflater.end();
+        }
+    }
+
+    private static byte[] inflate(byte[] input) {
+        Inflater inflater = new Inflater();
+        inflater.setInput(input);
+
+        byte[] buffer = new byte[Math.clamp(input.length * 2L, 256, 4096)];
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length * 2)) {
+            while (!inflater.finished()) {
+                int written = inflater.inflate(buffer);
+                if (written > 0) {
+                    output.write(buffer, 0, written);
+                    continue;
+                }
+                if (inflater.needsDictionary() || inflater.needsInput()) {
+                    break;
+                }
+            }
+            return output.toByteArray();
+        } catch (DataFormatException e) {
+            throw new IllegalStateException("Failed to inflate container sync payload", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read container sync payload", e);
+        } finally {
+            inflater.end();
+        }
     }
 
     public ContainerValueConfig decode(RegistryFriendlyByteBuf buf) {
@@ -107,53 +154,5 @@ public final class ContainerValueConfig implements Packet<ContainerValueConfig> 
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
-    }
-
-    private static byte[] deflate(byte[] input) {
-        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
-        deflater.setInput(input);
-        deflater.finish();
-
-        byte[] buffer = new byte[Math.clamp(input.length, 256, 4096)];
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length)) {
-            while (!deflater.finished()) {
-                int written = deflater.deflate(buffer);
-                if (written <= 0) {
-                    break;
-                }
-                output.write(buffer, 0, written);
-            }
-            return output.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to deflate container sync payload", e);
-        } finally {
-            deflater.end();
-        }
-    }
-
-    private static byte[] inflate(byte[] input) {
-        Inflater inflater = new Inflater();
-        inflater.setInput(input);
-
-        byte[] buffer = new byte[Math.clamp(input.length * 2L, 256, 4096)];
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length * 2)) {
-            while (!inflater.finished()) {
-                int written = inflater.inflate(buffer);
-                if (written > 0) {
-                    output.write(buffer, 0, written);
-                    continue;
-                }
-                if (inflater.needsDictionary() || inflater.needsInput()) {
-                    break;
-                }
-            }
-            return output.toByteArray();
-        } catch (DataFormatException e) {
-            throw new IllegalStateException("Failed to inflate container sync payload", e);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to read container sync payload", e);
-        } finally {
-            inflater.end();
-        }
     }
 }

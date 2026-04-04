@@ -5,11 +5,11 @@ import com.circulation.circulation_networks.api.hub.NodeSnapshotEntry;
 import com.circulation.circulation_networks.api.hub.NodeSnapshotList;
 import com.circulation.circulation_networks.container.ContainerHub;
 import com.circulation.circulation_networks.gui.CFNBaseGui;
+import com.circulation.circulation_networks.gui.component.base.Component;
+import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
+import com.circulation.circulation_networks.gui.component.base.DraggableComponent;
 import com.circulation.circulation_networks.handlers.NodeHighlightRenderingHandler;
 import com.circulation.circulation_networks.packets.UpdateNodeCustomName;
-import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
-import com.circulation.circulation_networks.gui.component.base.Component;
-import com.circulation.circulation_networks.gui.component.base.DraggableComponent;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
@@ -150,6 +150,18 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
             addChild(field);
         }
         syncVisibleNameFields();
+    }
+
+    private static int clamp(int value, int max) {
+        return Math.max(0, Math.min(max, value));
+    }
+
+    private static String normalizeEditableName(String name) {
+        if (name == null) {
+            return "";
+        }
+        String trimmed = name.trim();
+        return trimmed.isEmpty() ? "" : trimmed;
     }
 
     @Override
@@ -370,10 +382,6 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
         return true;
     }
 
-    private static int clamp(int value, int max) {
-        return Math.max(0, Math.min(max, value));
-    }
-
     private int getIconVisibleSlot(int mouseX, int mouseY) {
         int absIconX = getAbsoluteX() + VIEWPORT_X + ITEM_X;
         int absIconBaseY = getAbsoluteY() + VIEWPORT_Y + ITEM_Y;
@@ -412,14 +420,6 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
             ));
         }
         gui.mc.player.closeScreen();
-    }
-
-    private static String normalizeEditableName(String name) {
-        if (name == null) {
-            return "";
-        }
-        String trimmed = name.trim();
-        return trimmed.isEmpty() ? "" : trimmed;
     }
 
     private static final class EditableNameField extends TextFieldComponent {

@@ -14,20 +14,18 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
 
 public final class ConfigOverrideRendering implements Packet<ConfigOverrideRendering> {
 
     public static final int SET = 0;
     public static final int ADD = 1;
     public static final int REMOVE = 2;
-
-    private static final long[] EMPTY_LONGS = new long[0];
-    private static final int[] EMPTY_INTS = new int[0];
-
     public static final Type<ConfigOverrideRendering> TYPE = new Type<>(
         ResourceLocation.parse(CirculationFlowNetworks.MOD_ID + ":config_override_rendering")
     );
+    private static final long[] EMPTY_LONGS = new long[0];
+    private static final int[] EMPTY_INTS = new int[0];
+    private static final IEnergyHandler.EnergyType[] ENERGY_TYPES = IEnergyHandler.EnergyType.values();
     private int mode;
     private long pos;
     private int energyTypeOrdinal;
@@ -69,10 +67,7 @@ public final class ConfigOverrideRendering implements Packet<ConfigOverrideRende
     }
 
     public static void sendFullSync(ServerPlayer player) {
-        try (var l = player.level()) {
-            CirculationFlowNetworks.sendToPlayer(new ConfigOverrideRendering(l.dimension().location().hashCode()), player);
-        } catch (IOException ignored) {
-        }
+        CirculationFlowNetworks.sendToPlayer(new ConfigOverrideRendering(player.level().dimension().location().hashCode()), player);
     }
 
     public static void sendAdd(ServerPlayer player, long pos, IEnergyHandler.EnergyType type) {
@@ -137,17 +132,15 @@ public final class ConfigOverrideRendering implements Packet<ConfigOverrideRende
             switch (message.mode) {
                 case SET -> {
                     handler.clear();
-                    var values = IEnergyHandler.EnergyType.values();
                     for (int i = 0; i < message.positions.length; i++) {
-                        if (message.types[i] >= 0 && message.types[i] < values.length) {
-                            handler.addOverride(message.positions[i], values[message.types[i]]);
+                        if (message.types[i] >= 0 && message.types[i] < ENERGY_TYPES.length) {
+                            handler.addOverride(message.positions[i], ENERGY_TYPES[message.types[i]]);
                         }
                     }
                 }
                 case ADD -> {
-                    var values = IEnergyHandler.EnergyType.values();
-                    if (message.energyTypeOrdinal >= 0 && message.energyTypeOrdinal < values.length) {
-                        handler.addOverride(message.pos, values[message.energyTypeOrdinal]);
+                    if (message.energyTypeOrdinal >= 0 && message.energyTypeOrdinal < ENERGY_TYPES.length) {
+                        handler.addOverride(message.pos, ENERGY_TYPES[message.energyTypeOrdinal]);
                     }
                 }
                 case REMOVE -> handler.removeOverride(message.pos);

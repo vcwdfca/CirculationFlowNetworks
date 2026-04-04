@@ -13,6 +13,7 @@ import com.circulation.circulation_networks.manager.MachineNodeBlockEntityManage
 import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.manager.PocketNodeManager;
 import com.circulation.circulation_networks.packets.BindHubChannel;
+import com.circulation.circulation_networks.packets.CirculationShielderSyncPacket;
 import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.ContainerProgressBar;
 import com.circulation.circulation_networks.packets.ContainerValueConfig;
@@ -20,22 +21,21 @@ import com.circulation.circulation_networks.packets.CreateHubChannel;
 import com.circulation.circulation_networks.packets.DeleteHubChannel;
 import com.circulation.circulation_networks.packets.EnergyWarningRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
-import com.circulation.circulation_networks.packets.CirculationShielderSyncPacket;
 import com.circulation.circulation_networks.packets.PocketNodeRendering;
 import com.circulation.circulation_networks.packets.RenderingClear;
 import com.circulation.circulation_networks.packets.SpoceRendering;
 import com.circulation.circulation_networks.packets.UpdateHubChannelPermission;
 import com.circulation.circulation_networks.packets.UpdateHubChannelSettings;
-import com.circulation.circulation_networks.packets.UpdateNodeCustomName;
 import com.circulation.circulation_networks.packets.UpdateItemModeMessage;
+import com.circulation.circulation_networks.packets.UpdateNodeCustomName;
 import com.circulation.circulation_networks.packets.UpdatePlayerChargingMode;
 import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.registry.RegistryItems;
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
 import com.circulation.circulation_networks.tiles.nodes.BaseNodeTileEntity;
-import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.HubPlatformServices;
+import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.Packet;
 import com.feed_the_beast.ftblib.lib.data.ForgePlayer;
 import com.feed_the_beast.ftblib.lib.data.Universe;
@@ -182,17 +182,21 @@ public class CommonProxy implements IGuiHandler {
     public void revalidateLoadedNodeBlockEntities() {
         for (Integer dimId : DimensionManager.getIDs()) {
             World world = DimensionManager.getWorld(dimId);
-            if (world == null || world.isRemote) {
+            revalidateLoadedNodeBlockEntities(world);
+        }
+    }
+
+    public void revalidateLoadedNodeBlockEntities(@Nullable World world) {
+        if (world == null || world.isRemote) {
+            return;
+        }
+        List<TileEntity> loadedTileEntities = new ArrayList<>(world.loadedTileEntityList);
+        for (TileEntity blockEntity : loadedTileEntities) {
+            if (!(blockEntity instanceof BaseNodeTileEntity<?> nodeBlockEntity)) {
                 continue;
             }
-            List<TileEntity> loadedTileEntities = new ArrayList<>(world.loadedTileEntityList);
-            for (TileEntity blockEntity : loadedTileEntities) {
-                if (!(blockEntity instanceof BaseNodeTileEntity<?> nodeBlockEntity)) {
-                    continue;
-                }
-                nodeBlockEntity.syncNodeAfterNetworkInit();
-                BlockEntityLifecycleDispatcher.onValidate(new BlockEntityLifeCycleEvent.Validate(world, blockEntity.getPos(), blockEntity));
-            }
+            nodeBlockEntity.syncNodeAfterNetworkInit();
+            BlockEntityLifecycleDispatcher.onValidate(new BlockEntityLifeCycleEvent.Validate(world, blockEntity.getPos(), blockEntity));
         }
     }
 
@@ -208,6 +212,9 @@ public class CommonProxy implements IGuiHandler {
         if (!event.getWorld().isRemote && event.getWorld().provider.getDimension() == 0) {
             EnergyTypeOverrideManager.get();
             HubChannelManager.INSTANCE.load();
+        }
+        if (!event.getWorld().isRemote && NetworkManager.INSTANCE.isInit()) {
+            revalidateLoadedNodeBlockEntities(event.getWorld());
         }
     }
 

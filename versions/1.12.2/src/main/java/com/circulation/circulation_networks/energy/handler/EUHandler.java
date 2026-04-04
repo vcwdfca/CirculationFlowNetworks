@@ -4,6 +4,7 @@ import com.circulation.circulation_networks.api.EnergyAmount;
 import com.circulation.circulation_networks.api.EnergyAmounts;
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.network.nodes.HubNode;
+import com.circulation.circulation_networks.utils.EnergyAmountConversionUtils;
 import ic2.api.energy.EnergyNet;
 import ic2.api.energy.tile.IEnergySink;
 import ic2.api.energy.tile.IEnergySource;
@@ -12,15 +13,12 @@ import ic2.api.item.ElectricItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 @SuppressWarnings("DataFlowIssue")
 public final class EUHandler implements IEnergyHandler {
+    private static final double MAX_EU_TRANSFER = Long.MAX_VALUE / 4.0D;
 
-    private static final long max = Long.MAX_VALUE >> 2;
-    private static final long maxFE = max << 2;
-    @Nonnull
     private EnergyType energyType;
     @Nullable
     private IEnergySource send;
@@ -31,12 +29,61 @@ public final class EUHandler implements IEnergyHandler {
     @Nullable
     private IEnergySink receive;
 
-    public EUHandler(TileEntity tileEntity) {
-        init(tileEntity, null);
+    public EUHandler() {
     }
 
-    public EUHandler(ItemStack stack) {
-        init(stack, null);
+    static EnergyAmount positiveFeAmountFromEu(double valueEu) {
+        if (!(valueEu > 0.0D)) {
+            return EnergyAmount.obtain(0L);
+        }
+        if (!Double.isFinite(valueEu)) {
+            return EnergyAmount.obtain(Long.MAX_VALUE);
+        }
+        if (valueEu >= MAX_EU_TRANSFER) {
+            return EnergyAmount.obtain(Long.MAX_VALUE);
+        }
+        return EnergyAmountConversionUtils.obtainFromDoubleFloor(valueEu).multiply(4L);
+    }
+
+    static void setAcceptedFeFromEuResult(EnergyAmount targetFe, double resultEu, EnergyAmount requestedEu) {
+        if (!(resultEu > 0.0D)) {
+            targetFe.setZero();
+            return;
+        }
+        if (!Double.isFinite(resultEu)) {
+            targetFe.copyFrom(requestedEu).multiply(4L);
+            return;
+        }
+        EnergyAmountConversionUtils.setFromDoubleFloor(targetFe, resultEu);
+        targetFe.multiply(4L);
+        EnergyAmount requestedFe = EnergyAmount.obtain(requestedEu).multiply(4L);
+        try {
+            targetFe.min(requestedFe);
+        } finally {
+            requestedFe.recycle();
+        }
+    }
+
+    static void setAcceptedFeFromEuRemainder(EnergyAmount targetFe, double remainderEu, EnergyAmount requestedEu) {
+        if (!(remainderEu > 0.0D)) {
+            targetFe.copyFrom(requestedEu).multiply(4L);
+            return;
+        }
+        if (!Double.isFinite(remainderEu)) {
+            targetFe.setZero();
+            return;
+        }
+        EnergyAmount remainderFe = EnergyAmountConversionUtils.obtainFromDoubleFloor(remainderEu).multiply(4L);
+        EnergyAmount requestedFe = EnergyAmount.obtain(requestedEu).multiply(4L);
+        try {
+            targetFe.copyFrom(requestedFe).subtract(remainderFe);
+            if (targetFe.isNegative()) {
+                targetFe.setZero();
+            }
+        } finally {
+            remainderFe.recycle();
+            requestedFe.recycle();
+        }
     }
 
     @Override
@@ -69,7 +116,7 @@ public final class EUHandler implements IEnergyHandler {
     }
 
     @Override
-    public void clear(@Nullable HubNode.HubMetadata hubMetadata) {
+    public void clear() {
         this.energyType = EnergyType.INVALID;
         this.send = null;
         this.receive = null;
@@ -80,48 +127,67 @@ public final class EUHandler implements IEnergyHandler {
     @Override
     public EnergyAmount receiveEnergy(EnergyAmount maxReceive, @Nullable HubNode.HubMetadata hubMetadata) {
         if (isItem) {
-            return EnergyAmount.obtain((long) ElectricItem.manager.charge(itemStack, maxReceive.asLongClamped(), Integer.MAX_VALUE, false, false));
+            EnergyAmount receivable = canReceiveValue(hubMetadata);
+            receivable.min(maxReceive);
+            if (receivable.isZero()) {
+                return receivable;
+            }
+            EnergyAmount euAmount = EnergyAmount.obtain(receivable).divide(4L);
+            try {
+                double charged = ElectricItem.manager.charge(itemStack, EnergyAmountConversionUtils.toDoubleClamped(euAmount), Integer.MAX_VALUE, false, false);
+                setAcceptedFeFromEuResult(receivable, charged, euAmount);
+                return receivable;
+            } finally {
+                euAmount.recycle();
+            }
         } else {
             EnergyAmount receivable = canReceiveValue(hubMetadata);
-            long i;
-            try {
-                i = Math.min(receivable.asLongClamped(), maxReceive.asLongClamped()) >> 2;
-            } finally {
-                receivable.recycle();
+            receivable.min(maxReceive);
+            if (receivable.isZero()) {
+                return receivable;
             }
-            receive.injectEnergy(null, i, 0);
-            return EnergyAmount.obtain(i << 2);
+            EnergyAmount euAmount = EnergyAmount.obtain(receivable).divide(4L);
+            try {
+                double leftover = receive.injectEnergy(null, EnergyAmountConversionUtils.toDoubleClamped(euAmount), 0);
+                setAcceptedFeFromEuRemainder(receivable, leftover, euAmount);
+                return receivable;
+            } finally {
+                euAmount.recycle();
+            }
         }
     }
 
     @Override
     public EnergyAmount extractEnergy(EnergyAmount maxExtract, @Nullable HubNode.HubMetadata hubMetadata) {
         EnergyAmount extractable = canExtractValue(hubMetadata);
-        long o;
-        try {
-            o = Math.min(extractable.asLongClamped(), maxExtract.asLongClamped()) >> 2;
-        } finally {
-            extractable.recycle();
+        extractable.min(maxExtract);
+        if (extractable.isZero()) {
+            return extractable;
         }
-        send.drawEnergy(o);
-        return EnergyAmount.obtain(o << 2);
+        EnergyAmount euAmount = EnergyAmount.obtain(extractable).divide(4L);
+        try {
+            send.drawEnergy(EnergyAmountConversionUtils.toDoubleClamped(euAmount));
+            return extractable;
+        } finally {
+            euAmount.recycle();
+        }
     }
 
     @Override
     public EnergyAmount canExtractValue(@Nullable HubNode.HubMetadata hubMetadata) {
         if (send == null) return EnergyAmounts.ZERO;
-        if (send.getOfferedEnergy() > max) return EnergyAmount.obtain(maxFE);
-        return EnergyAmount.obtain(((long) send.getOfferedEnergy()) << 2);
+        return positiveFeAmountFromEu(send.getOfferedEnergy());
     }
 
     @Override
     public EnergyAmount canReceiveValue(@Nullable HubNode.HubMetadata hubMetadata) {
         if (isItem) {
-            return EnergyAmount.obtain((long) ElectricItem.manager.charge(itemStack, Double.MAX_VALUE, Integer.MAX_VALUE, false, true));
+            return positiveFeAmountFromEu(
+                ElectricItem.manager.charge(itemStack, Double.MAX_VALUE, Integer.MAX_VALUE, false, true)
+            );
         } else {
             if (receive == null) return EnergyAmounts.ZERO;
-            if (receive.getDemandedEnergy() > max) return EnergyAmount.obtain(maxFE);
-            return EnergyAmount.obtain(((long) receive.getDemandedEnergy()) << 2);
+            return positiveFeAmountFromEu(receive.getDemandedEnergy());
         }
     }
 

@@ -58,10 +58,14 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
         addChild(nameField);
 
         addChild(publicModeButton = new ModeButton(MODE_X, MODE_Y, "switch_public", PermissionMode.PUBLIC, gui));
-        addChild(teamModeButton = new ModeButton(MODE_X + MODE_WIDTH + MODE_GAP, MODE_Y, "switch_ftb", PermissionMode.TEAM, gui));
+        addChild(teamModeButton = new ModeButton(MODE_X + MODE_WIDTH + MODE_GAP, MODE_Y, "switch_team", PermissionMode.TEAM, gui));
         addChild(privateModeButton = new ModeButton(MODE_X + (MODE_WIDTH + MODE_GAP) * 2, MODE_Y, "switch_private", PermissionMode.PRIVATE, gui));
 
         addChild(actionButton = new ActionButton(29, 47, gui));
+    }
+
+    private static String normalizeName(String text) {
+        return text == null ? "" : text.trim();
     }
 
     @Override
@@ -257,10 +261,6 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
         }
     }
 
-    private static String normalizeName(String text) {
-        return text == null ? "" : text.trim();
-    }
-
     private final class ModeButton extends AbstractButtonComponent {
 
         private final String baseSprite;
@@ -338,10 +338,10 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
             cache[0] = !isEnabled() && ComponentAtlas.INSTANCE.getRegion(base + "_disabled") != null
                 ? base + "_disabled"
                 : pressed && ComponentAtlas.INSTANCE.getRegion(base + "_pressed") != null
-                    ? base + "_pressed"
-                    : isHovered() && ComponentAtlas.INSTANCE.getRegion(base + "_hovered") != null
-                        ? base + "_hovered"
-                        : base;
+                  ? base + "_pressed"
+                  : isHovered() && ComponentAtlas.INSTANCE.getRegion(base + "_hovered") != null
+                    ? base + "_hovered"
+                    : base;
             cache[1] = null;
             return cache;
         }

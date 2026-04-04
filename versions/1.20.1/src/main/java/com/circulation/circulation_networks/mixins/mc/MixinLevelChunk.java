@@ -18,10 +18,13 @@ import javax.annotation.Nullable;
 @Mixin(LevelChunk.class)
 public abstract class MixinLevelChunk {
 
-    @Shadow @Nullable public abstract BlockEntity getBlockEntity(BlockPos p_62912_);
-
-    @Shadow @Final
+    @Shadow
+    @Final
     Level level;
+
+    @Shadow
+    @Nullable
+    public abstract BlockEntity getBlockEntity(BlockPos p_62912_);
 
     @Inject(method = "addAndRegisterBlockEntity", at = @At("TAIL"))
     private void addAndRegisterBlockEntity(BlockEntity blockEntity, CallbackInfo ci) {

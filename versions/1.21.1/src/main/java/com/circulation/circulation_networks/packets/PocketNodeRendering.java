@@ -17,8 +17,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-
 public final class PocketNodeRendering implements Packet<PocketNodeRendering> {
 
     public static final int SET = 0;
@@ -42,11 +40,7 @@ public final class PocketNodeRendering implements Packet<PocketNodeRendering> {
 
     public PocketNodeRendering(ServerPlayer player) {
         this.mode = SET;
-        try (var level = player.level()) {
-            this.dim = level.dimension().location().hashCode();
-        } catch (IOException ignored) {
-            this.dim = 0;
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.records = PocketNodeManager.INSTANCE.getActiveRecords(dim);
     }
 

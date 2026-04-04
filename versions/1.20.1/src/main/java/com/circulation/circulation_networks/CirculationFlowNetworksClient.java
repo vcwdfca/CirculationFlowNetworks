@@ -1,17 +1,22 @@
 package com.circulation.circulation_networks;
 
+import com.circulation.circulation_networks.gui.GuiCirculationShielder;
+import com.circulation.circulation_networks.gui.GuiHub;
+import com.circulation.circulation_networks.handlers.CirculationShielderRenderingHandler;
 import com.circulation.circulation_networks.handlers.ConfigOverrideRenderingHandler;
 import com.circulation.circulation_networks.handlers.EnergyWarningRenderingHandler;
 import com.circulation.circulation_networks.handlers.ItemToolHandler;
 import com.circulation.circulation_networks.handlers.NodeHighlightRenderingHandler;
 import com.circulation.circulation_networks.handlers.NodeNetworkRenderingHandler;
-import com.circulation.circulation_networks.handlers.CirculationShielderRenderingHandler;
 import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L3;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL46L3;
 import com.circulation.circulation_networks.manager.MachineNodeBlockEntityManager;
+import com.circulation.circulation_networks.registry.CFNMenuTypes;
 import com.circulation.circulation_networks.utils.CI18n;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -36,6 +41,9 @@ final class CirculationFlowNetworksClient {
         MinecraftForge.EVENT_BUS.register(ItemToolHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(CirculationShielderRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.addListener(CirculationFlowNetworksClient::onClientLoggingOut);
+
+        MenuScreens.register(CFNMenuTypes.HUB_MENU, GuiHub::new);
+        MenuScreens.register(CFNMenuTypes.CIRCULATION_SHIELDER_MENU, GuiCirculationShielder::new);
 
         CI18n.setI18nInternal(new CI18n() {
             @Override
@@ -90,16 +98,18 @@ final class CirculationFlowNetworksClient {
     }
 
     private static void onClientLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
-        MachineNodeBlockEntityManager.INSTANCE.clear();
-        NodeNetworkRenderingHandler.INSTANCE.clearLinks();
-        EnergyWarningRenderingHandler.INSTANCE.clear();
-        ConfigOverrideRenderingHandler.INSTANCE.clear();
-        PocketNodeRenderingHandler.INSTANCE.clear();
-        NodeHighlightRenderingHandler.INSTANCE.clear();
-        CirculationShielderRenderingHandler.INSTANCE.clear();
-        if (SpoceRenderingHandler.INSTANCE != null) {
-            SpoceRenderingHandler.INSTANCE.clear();
-        }
+        Minecraft.getInstance().execute(() -> {
+            MachineNodeBlockEntityManager.INSTANCE.clear();
+            NodeNetworkRenderingHandler.INSTANCE.clearLinks();
+            EnergyWarningRenderingHandler.INSTANCE.clear();
+            ConfigOverrideRenderingHandler.INSTANCE.clear();
+            PocketNodeRenderingHandler.INSTANCE.clear();
+            NodeHighlightRenderingHandler.INSTANCE.clear();
+            CirculationShielderRenderingHandler.INSTANCE.clear();
+            if (SpoceRenderingHandler.INSTANCE != null) {
+                SpoceRenderingHandler.INSTANCE.clear();
+            }
+        });
     }
 
     private enum OpenGLLevel {

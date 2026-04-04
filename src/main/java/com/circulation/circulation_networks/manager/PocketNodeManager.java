@@ -507,7 +507,14 @@ public final class PocketNodeManager {
         if (!loaded || world == null || isClientWorld(world)) {
             return false;
         }
-        Long2ObjectMap<PocketNodeHost> dimMap = activeHosts.get(getDimensionId(world));
+        return isActivePocketNode(getDimensionId(world), pos, nodeType);
+    }
+
+    public boolean isActivePocketNode(int dimId, BlockPos pos, @Nullable NodeType<?> nodeType) {
+        if (!loaded || pos == null) {
+            return false;
+        }
+        Long2ObjectMap<PocketNodeHost> dimMap = activeHosts.get(dimId);
         if (dimMap == null) {
             return false;
         }

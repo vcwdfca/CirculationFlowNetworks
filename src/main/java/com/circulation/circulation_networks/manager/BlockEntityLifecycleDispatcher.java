@@ -7,7 +7,17 @@ public final class BlockEntityLifecycleDispatcher {
     private BlockEntityLifecycleDispatcher() {
     }
 
+    static void invokeValidateHook(Object blockEntity) {
+        if (blockEntity instanceof BlockEntityLifecycleAware lifecycleAware) {
+            lifecycleAware.onValidate();
+        }
+    }
+
+    static void invokeInvalidateHook(Object blockEntity) {
+    }
+
     public static void onValidate(BlockEntityLifeCycleEvent.Validate event) {
+        invokeValidateHook(event.getBlockEntity());
         MachineNodeBlockEntityManager.INSTANCE.onBlockEntityValidate(event);
         NetworkManager.INSTANCE.onBlockEntityValidate(event);
         EnergyMachineManager.INSTANCE.onBlockEntityValidate(event);

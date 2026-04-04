@@ -46,13 +46,13 @@ public final class EUHandlerManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(TileEntity tileEntity) {
-        return new EUHandler(tileEntity);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new EUHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack itemStack) {
-        return new EUHandler(itemStack);
+    public IEnergyHandler newItemInstance() {
+        return new EUHandler();
     }
 
     @Override

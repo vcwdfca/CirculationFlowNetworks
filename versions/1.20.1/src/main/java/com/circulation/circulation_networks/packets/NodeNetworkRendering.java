@@ -28,7 +28,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkEvent;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
@@ -59,31 +58,26 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
     }
 
     public NodeNetworkRendering(Player player, IGrid grid) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = grid;
         this.nodes = grid.getNodes();
         this.mode = SET;
         this.entryList = new ObjectArrayList<>();
-        for (var entry : EnergyMachineManager.INSTANCE.getMachineGridMap().entrySet()) {
-            if (entry.getKey() instanceof IMachineNodeBlockEntity) {
+        for (var node : this.nodes) {
+            if (!(node instanceof IEnergySupplyNode energySupplyNode)) {
                 continue;
             }
-            for (var node : entry.getValue()) {
-                entryList.add(new Pair(entry.getKey(), node));
+            for (var machine : EnergyMachineManager.INSTANCE.getMachinesSuppliedBy(energySupplyNode)) {
+                if (machine instanceof IMachineNodeBlockEntity) {
+                    continue;
+                }
+                entryList.add(new Pair(machine, node));
             }
         }
     }
 
     public NodeNetworkRendering(Player player, INode node, int mode) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = node.getGrid();
         this.mode = mode;
         this.targetNode = node;
@@ -99,11 +93,7 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
     }
 
     public NodeNetworkRendering(Player player, BlockEntity blockEntity, INode node, int mode) {
-        try (var l = player.level()) {
-            this.dim = l.dimension().location().hashCode();
-        } catch (IOException ignored) {
-
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.grid = node.getGrid();
         this.mode = mode;
         this.entryList = ObjectLists.singleton(new Pair(blockEntity, node));

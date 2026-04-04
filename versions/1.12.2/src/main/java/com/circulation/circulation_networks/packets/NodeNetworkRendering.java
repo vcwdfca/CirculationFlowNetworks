@@ -199,7 +199,7 @@ public final class NodeNetworkRendering implements Packet<NodeNetworkRendering> 
                 LongSet processedLinks = new LongOpenHashSet();
                 if (mode == SET) {
                     for (var node : nodes) {
-                        if (dim != node.getWorld().provider.getDimension()) continue;
+                        if (dim != node.getDimensionId()) continue;
                         long posA = node.getPos().toLong();
                         for (var neighbor : node.getNeighbors()) {
                             long posB = neighbor.getPos().toLong();

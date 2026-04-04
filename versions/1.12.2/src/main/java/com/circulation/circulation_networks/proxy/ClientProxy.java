@@ -2,12 +2,12 @@ package com.circulation.circulation_networks.proxy;
 
 import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
+import com.circulation.circulation_networks.handlers.CirculationShielderRenderingHandler;
 import com.circulation.circulation_networks.handlers.ConfigOverrideRenderingHandler;
 import com.circulation.circulation_networks.handlers.EnergyWarningRenderingHandler;
 import com.circulation.circulation_networks.handlers.ItemToolHandler;
 import com.circulation.circulation_networks.handlers.NodeHighlightRenderingHandler;
 import com.circulation.circulation_networks.handlers.NodeNetworkRenderingHandler;
-import com.circulation.circulation_networks.handlers.CirculationShielderRenderingHandler;
 import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandler;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L2;
@@ -19,6 +19,7 @@ import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.RegistryItems;
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
 import com.circulation.circulation_networks.utils.CI18n;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -149,13 +150,15 @@ public final class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void onClientStop(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        MachineNodeBlockEntityManager.INSTANCE.clear();
-        NodeNetworkRenderingHandler.INSTANCE.clearLinks();
-        EnergyWarningRenderingHandler.INSTANCE.clear();
-        ConfigOverrideRenderingHandler.INSTANCE.clear();
-        PocketNodeRenderingHandler.INSTANCE.clear();
-        NodeHighlightRenderingHandler.INSTANCE.clear();
-        SpoceRenderingHandler.INSTANCE.clear();
+        Minecraft.getMinecraft().addScheduledTask(() -> {
+            MachineNodeBlockEntityManager.INSTANCE.clear();
+            NodeNetworkRenderingHandler.INSTANCE.clearLinks();
+            EnergyWarningRenderingHandler.INSTANCE.clear();
+            ConfigOverrideRenderingHandler.INSTANCE.clear();
+            PocketNodeRenderingHandler.INSTANCE.clear();
+            NodeHighlightRenderingHandler.INSTANCE.clear();
+            SpoceRenderingHandler.INSTANCE.clear();
+        });
     }
 
     @SubscribeEvent

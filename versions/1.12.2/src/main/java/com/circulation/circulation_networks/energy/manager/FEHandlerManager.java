@@ -35,13 +35,13 @@ public final class FEHandlerManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(TileEntity tileEntity) {
-        return new FEHandler(tileEntity);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new FEHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack itemStack) {
-        return new FEHandler(itemStack);
+    public IEnergyHandler newItemInstance() {
+        return new FEHandler();
     }
 
 }

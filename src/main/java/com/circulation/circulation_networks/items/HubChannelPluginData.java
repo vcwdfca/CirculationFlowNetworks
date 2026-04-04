@@ -7,7 +7,6 @@ import com.circulation.circulation_networks.utils.Functions;
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import org.jetbrains.annotations.Nullable;
 //? if >=1.21 {
 /*import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.CustomData;
@@ -93,19 +92,19 @@ public final class HubChannelPluginData {
         hub.setChannelName("");
     }
 
-    public static @Nullable UUID parseChannelId(String rawChannelId) {
+    public static UUID parseChannelId(String rawChannelId) {
         if (rawChannelId == null || rawChannelId.isEmpty()) {
-            return null;
+            return EMPTY;
         }
         try {
             return UUID.fromString(rawChannelId);
         } catch (IllegalArgumentException ignored) {
-            return null;
+            return EMPTY;
         }
     }
 
     public static boolean isComplete(UUID channelId, String channelName) {
-        return channelId != null && channelName != null && !channelName.isEmpty();
+        return channelId != null && !EMPTY.equals(channelId) && channelName != null && !channelName.isEmpty();
     }
 
     public static boolean isComplete(ChannelInfo channelInfo) {

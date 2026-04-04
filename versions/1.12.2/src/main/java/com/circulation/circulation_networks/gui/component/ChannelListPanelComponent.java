@@ -55,7 +55,7 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
         setSpriteLayers("channel_panel");
 
         addChild(publicFilter = new ModeFilterToggle(29, 9, "switch_public", PermissionMode.PUBLIC, gui));
-        addChild(teamFilter = new ModeFilterToggle(29 + FILTER_WIDTH + 2, 9, "switch_ftb", PermissionMode.TEAM, gui));
+        addChild(teamFilter = new ModeFilterToggle(29 + FILTER_WIDTH + 2, 9, "switch_team", PermissionMode.TEAM, gui));
         addChild(privateFilter = new ModeFilterToggle(29 + (FILTER_WIDTH + 2) * 2, 9, "switch_private", PermissionMode.PRIVATE, gui));
 
         slider = SliderComponent.normalized(this, 124, 31, 168, 0.0d, gui);
@@ -103,6 +103,10 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
                     : CI18n.format("gui.channel_list.tooltip.switch"));
             }
         });
+    }
+
+    private static int clamp(int value, int max) {
+        return Math.max(0, Math.min(max, value));
     }
 
     @Override
@@ -167,7 +171,7 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
     private String getEntrySprite(ChannelSnapshotEntry entry) {
         return switch (entry.permissionMode()) {
             case PUBLIC -> entry.connected() ? "channel_entry_public_connected" : "channel_entry_public";
-            case TEAM -> entry.connected() ? "channel_entry_ftb_connected" : "channel_entry_ftb";
+            case TEAM -> entry.connected() ? "channel_entry_team_connected" : "channel_entry_team";
             default -> entry.connected() ? "channel_entry_private_connected" : "channel_entry_private";
         };
     }
@@ -241,8 +245,8 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
             filtered.add(entry);
         }
         filtered.sort(Comparator.comparing(ChannelSnapshotEntry::connected).reversed()
-            .thenComparing(ChannelSnapshotEntry::name, String.CASE_INSENSITIVE_ORDER)
-            .thenComparing(entry -> entry.id().toString()));
+                                .thenComparing(ChannelSnapshotEntry::name, String.CASE_INSENSITIVE_ORDER)
+                                .thenComparing(entry -> entry.id().toString()));
         return filtered;
     }
 
@@ -280,10 +284,6 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
 
     private String trimToWidth(String text) {
         return Minecraft.getMinecraft().fontRenderer.trimStringToWidth(text == null ? "" : text, ChannelListPanelComponent.ENTRY_TEXT_WIDTH);
-    }
-
-    private static int clamp(int value, int max) {
-        return Math.max(0, Math.min(max, value));
     }
 
     private final class ModeFilterToggle extends AbstractButtonComponent {
@@ -325,9 +325,12 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
         @Override
         protected @Nonnull List<LocalizedComponent> getTooltip(int mouseX, int mouseY) {
             return Collections.singletonList(() -> switch (permissionMode) {
-                case PUBLIC -> active ? CI18n.format("gui.channel_list.tooltip.filter.public.hide") : CI18n.format("gui.channel_list.tooltip.filter.public.show");
-                case TEAM -> active ? CI18n.format("gui.channel_list.tooltip.filter.team.hide") : CI18n.format("gui.channel_list.tooltip.filter.team.show");
-                default -> active ? CI18n.format("gui.channel_list.tooltip.filter.private.hide") : CI18n.format("gui.channel_list.tooltip.filter.private.show");
+                case PUBLIC ->
+                    active ? CI18n.format("gui.channel_list.tooltip.filter.public.hide") : CI18n.format("gui.channel_list.tooltip.filter.public.show");
+                case TEAM ->
+                    active ? CI18n.format("gui.channel_list.tooltip.filter.team.hide") : CI18n.format("gui.channel_list.tooltip.filter.team.show");
+                default ->
+                    active ? CI18n.format("gui.channel_list.tooltip.filter.private.hide") : CI18n.format("gui.channel_list.tooltip.filter.private.show");
             });
         }
     }

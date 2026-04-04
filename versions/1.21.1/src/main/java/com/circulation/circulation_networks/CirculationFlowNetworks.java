@@ -1,6 +1,9 @@
 package com.circulation.circulation_networks;
 
+import com.circulation.circulation_networks.api.ICirculationShielderBlockEntity;
 import com.circulation.circulation_networks.api.INodeBlockEntity;
+import com.circulation.circulation_networks.energy.manager.FEHandlerManager;
+import com.circulation.circulation_networks.energy.manager.MEKHandlerManager;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
 import com.circulation.circulation_networks.manager.BlockEntityLifecycleDispatcher;
 import com.circulation.circulation_networks.manager.ChargingManager;
@@ -15,14 +18,14 @@ import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.packets.PocketNodeRendering;
 import com.circulation.circulation_networks.packets.RenderingClear;
+import com.circulation.circulation_networks.registry.RegistryBlocks;
+import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.registry.RegistryItems;
-import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.HubPlatformServices;
+import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.Packet;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
@@ -30,20 +33,24 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
-import net.neoforged.fml.loading.FMLEnvironment;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Collections;
 import java.util.List;
@@ -55,22 +62,17 @@ public final class CirculationFlowNetworks {
     public static final String MOD_ID = "circulation_networks";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-    public static <T extends Packet<T>> void sendToPlayer(T packet, ServerPlayer player) {
-        CFNNetwork.sendToPlayer(packet, player);
-    }
-
-    public static <T extends Packet<T>> void sendToServer(T packet) {
-        CFNNetwork.sendToServer(packet);
-    }
-
     public CirculationFlowNetworks(IEventBus modEventBus, ModContainer modContainer) {
         CFNConfig.register(modContainer);
         RegistryItems.register(modEventBus);
+        RegistryBlocks.register(modEventBus);
+        registerEnergyHandlers();
         modEventBus.addListener(CFNConfig::onConfigLoad);
         modEventBus.addListener(CFNConfig::onConfigReload);
         modEventBus.addListener(this::onRegisterPayloadHandlers);
+        modEventBus.addListener(this::onLoadComplete);
         if (FMLEnvironment.dist.isClient()) {
-            CirculationFlowNetworksClient.init();
+            CirculationFlowNetworksClient.init(modEventBus);
         }
         installPlatformServices();
         NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);
@@ -83,6 +85,39 @@ public final class CirculationFlowNetworks {
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(this::onPlayerChangedDimension);
+        NeoForge.EVENT_BUS.addListener(this::onServerTickPre);
+        NeoForge.EVENT_BUS.addListener(this::onServerTickPost);
+    }
+
+    public static <T extends Packet<T>> void sendToPlayer(T packet, ServerPlayer player) {
+        CFNNetwork.sendToPlayer(packet, player);
+    }
+
+    public static <T extends Packet<T>> void sendToServer(T packet) {
+        CFNNetwork.sendToServer(packet);
+    }
+
+    public static void onBlockEntityValidate(Level level, BlockPos pos, BlockEntity blockEntity) {
+        var event = new BlockEntityLifeCycleEvent.Validate(level, pos, blockEntity);
+        BlockEntityLifecycleDispatcher.onValidate(event);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    public static void onBlockEntityInvalidate(Level level, BlockPos pos, BlockEntity blockEntity) {
+        var event = new BlockEntityLifeCycleEvent.Invalidate(level, pos, blockEntity);
+        BlockEntityLifecycleDispatcher.onInvalidate(event);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    private void registerEnergyHandlers() {
+        RegistryEnergyHandler.registerEnergyHandler(new FEHandlerManager());
+        if (ModList.get().isLoaded("mekanism")) {
+            RegistryEnergyHandler.registerEnergyHandler(new MEKHandlerManager());
+        }
+    }
+
+    private void onLoadComplete(FMLLoadCompleteEvent event) {
+        RegistryEnergyHandler.lock();
     }
 
     private void installPlatformServices() {
@@ -127,12 +162,20 @@ public final class CirculationFlowNetworks {
         PocketNodeManager.INSTANCE.load();
     }
 
+    private void onServerTickPre(ServerTickEvent.Pre event) {
+        EnergyMachineManager.INSTANCE.onServerTick();
+    }
+
+    private void onServerTickPost(ServerTickEvent.Post event) {
+        MachineNodeBlockEntityManager.INSTANCE.onServerTick();
+    }
+
     private void onChunkLoad(ChunkEvent.Load event) {
         if (!(event.getLevel() instanceof Level level) || level.isClientSide() || !(event.getChunk() instanceof LevelChunk chunk)) {
             return;
         }
         for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-            if (blockEntity instanceof INodeBlockEntity) {
+            if (blockEntity instanceof INodeBlockEntity || blockEntity instanceof ICirculationShielderBlockEntity) {
                 onBlockEntityValidate(level, blockEntity.getBlockPos(), blockEntity);
             }
         }
@@ -196,13 +239,5 @@ public final class CirculationFlowNetworks {
             sendToPlayer(RenderingClear.INSTANCE, player);
             sendToPlayer(new PocketNodeRendering(player), player);
         }
-    }
-
-    public static void onBlockEntityValidate(Level level, BlockPos pos, BlockEntity blockEntity) {
-        BlockEntityLifecycleDispatcher.onValidate(new BlockEntityLifeCycleEvent.Validate(level, pos, blockEntity));
-    }
-
-    public static void onBlockEntityInvalidate(Level level, BlockPos pos, BlockEntity blockEntity) {
-        BlockEntityLifecycleDispatcher.onInvalidate(new BlockEntityLifeCycleEvent.Invalidate(level, pos, blockEntity));
     }
 }

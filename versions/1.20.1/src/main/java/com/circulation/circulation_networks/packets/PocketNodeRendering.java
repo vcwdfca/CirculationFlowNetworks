@@ -15,7 +15,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkEvent;
 
-import java.io.IOException;
 import java.util.function.Supplier;
 
 public final class PocketNodeRendering implements Packet<PocketNodeRendering> {
@@ -38,11 +37,7 @@ public final class PocketNodeRendering implements Packet<PocketNodeRendering> {
 
     public PocketNodeRendering(ServerPlayer player) {
         this.mode = SET;
-        try (var level = player.level()) {
-            this.dim = level.dimension().location().hashCode();
-        } catch (IOException ignored) {
-            this.dim = 0;
-        }
+        this.dim = player.level().dimension().location().hashCode();
         this.records = PocketNodeManager.INSTANCE.getActiveRecords(dim);
     }
 

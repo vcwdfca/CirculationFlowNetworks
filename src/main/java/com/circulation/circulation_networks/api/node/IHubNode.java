@@ -37,7 +37,7 @@ public interface IHubNode extends IEnergySupplyNode, IChargingNode {
     HubNode.HubMetadata getHubData();
 
     default boolean hasPluginCapability(HubPluginCapability<?> capability) {
-        return getHubData().hasKey(capability);
+        return capability != null && getHubData().hasKey(capability);
     }
 
     default <T> T getPluginCapabilityData(HubPluginCapability<T> capability) {

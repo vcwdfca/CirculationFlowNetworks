@@ -7,7 +7,6 @@ import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import com.circulation.circulation_networks.utils.CI18n;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.block.Block;
-import java.util.Collections;
 import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
@@ -24,12 +23,15 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 import static com.circulation.circulation_networks.CirculationFlowNetworks.CREATIVE_TAB;
 import static com.circulation.circulation_networks.CirculationFlowNetworks.MOD_ID;
 
 public abstract class BaseBlock extends Block implements ITileEntityProvider {
+
+    private String[] cachedAutoTooltipKeys;
 
     protected BaseBlock(String name) {
         this(MOD_ID, name);
@@ -45,8 +47,6 @@ public abstract class BaseBlock extends Block implements ITileEntityProvider {
     public boolean hasTileEntity(@NotNull IBlockState state) {
         return false;
     }
-
-    private String[] cachedAutoTooltipKeys;
 
     protected List<LocalizedComponent> buildTooltips(ItemStack stack) {
         if (cachedAutoTooltipKeys == null) {

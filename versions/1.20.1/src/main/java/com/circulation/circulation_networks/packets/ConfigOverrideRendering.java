@@ -13,7 +13,6 @@ import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.util.function.Supplier;
 
 public final class ConfigOverrideRendering implements Packet<ConfigOverrideRendering> {
@@ -24,6 +23,7 @@ public final class ConfigOverrideRendering implements Packet<ConfigOverrideRende
 
     private static final long[] EMPTY_LONGS = new long[0];
     private static final int[] EMPTY_INTS = new int[0];
+    private static final IEnergyHandler.EnergyType[] ENERGY_TYPES = IEnergyHandler.EnergyType.values();
 
     private int mode;
     private long pos;
@@ -66,10 +66,7 @@ public final class ConfigOverrideRendering implements Packet<ConfigOverrideRende
     }
 
     public static void sendFullSync(ServerPlayer player) {
-        try (var l = player.level()) {
-            CirculationFlowNetworks.sendToPlayer(new ConfigOverrideRendering(l.dimension().location().hashCode()), player);
-        } catch (IOException ignored) {
-        }
+        CirculationFlowNetworks.sendToPlayer(new ConfigOverrideRendering(player.level().dimension().location().hashCode()), player);
     }
 
     public static void sendAdd(ServerPlayer player, long pos, IEnergyHandler.EnergyType type) {
@@ -141,17 +138,15 @@ public final class ConfigOverrideRendering implements Packet<ConfigOverrideRende
             switch (message.mode) {
                 case SET -> {
                     handler.clear();
-                    var values = IEnergyHandler.EnergyType.values();
                     for (int i = 0; i < message.positions.length; i++) {
-                        if (message.types[i] >= 0 && message.types[i] < values.length) {
-                            handler.addOverride(message.positions[i], values[message.types[i]]);
+                        if (message.types[i] >= 0 && message.types[i] < ENERGY_TYPES.length) {
+                            handler.addOverride(message.positions[i], ENERGY_TYPES[message.types[i]]);
                         }
                     }
                 }
                 case ADD -> {
-                    var values = IEnergyHandler.EnergyType.values();
-                    if (message.energyTypeOrdinal >= 0 && message.energyTypeOrdinal < values.length) {
-                        handler.addOverride(message.pos, values[message.energyTypeOrdinal]);
+                    if (message.energyTypeOrdinal >= 0 && message.energyTypeOrdinal < ENERGY_TYPES.length) {
+                        handler.addOverride(message.pos, ENERGY_TYPES[message.energyTypeOrdinal]);
                     }
                 }
                 case REMOVE -> handler.removeOverride(message.pos);

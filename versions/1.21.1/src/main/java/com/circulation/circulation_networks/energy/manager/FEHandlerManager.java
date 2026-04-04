@@ -10,12 +10,14 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 
 public final class FEHandlerManager implements IEnergyHandlerManager {
 
+    private static final Direction[] DIRECTIONS = Direction.values();
+
     @Override
     public boolean isAvailable(BlockEntity blockEntity) {
         var level = blockEntity.getLevel();
         if (level == null) return false;
         var pos = blockEntity.getBlockPos();
-        for (Direction direction : Direction.values()) {
+        for (Direction direction : DIRECTIONS) {
             if (level.getCapability(Capabilities.EnergyStorage.BLOCK, pos, direction) != null) return true;
         }
         return false;
@@ -37,17 +39,17 @@ public final class FEHandlerManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(BlockEntity blockEntity) {
-        return new FEHandler(blockEntity);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new FEHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack itemStack) {
-        return new FEHandler(itemStack);
+    public IEnergyHandler newItemInstance() {
+        return new FEHandler();
     }
 
     @Override
     public String getUnit() {
-        return "FE";
+        return IEnergyHandlerManager.super.getUnit();
     }
 }

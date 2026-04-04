@@ -121,6 +121,14 @@ public final class PermissionListPanelComponent extends DraggableComponent imple
         });
     }
 
+    private static String normalizeSearch(String text) {
+        return text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static int clamp(int value, int max) {
+        return Math.max(0, Math.min(max, value));
+    }
+
     @Override
     public void update() {
         syncScrollState();
@@ -372,40 +380,32 @@ public final class PermissionListPanelComponent extends DraggableComponent imple
         return Minecraft.getMinecraft().fontRenderer.trimStringToWidth(text == null ? "" : text, PermissionListPanelComponent.NAME_WIDTH);
     }
 
-    private static String normalizeSearch(String text) {
-        return text == null ? "" : text.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static int clamp(int value, int max) {
-        return Math.max(0, Math.min(max, value));
-    }
-
     //? <1.20
     @Desugar
     private record EntryHit(PermissionSnapshotEntry entry, boolean expanded, boolean toggleHit,
                             HubPermissionLevel buttonTarget) {
 
         private static EntryHit create(PermissionSnapshotEntry entry, boolean expanded, int x, int y, int mouseX, int mouseY) {
-                if (mouseX >= x + TOGGLE_X && mouseX < x + TOGGLE_X + TOGGLE_SIZE && mouseY >= y + TOGGLE_Y && mouseY < y + TOGGLE_Y + TOGGLE_SIZE) {
-                    return new EntryHit(entry, expanded, true, null);
-                }
-                if (!expanded) {
-                    return new EntryHit(entry, false, false, null);
-                }
-                if (containsButton(mouseX, mouseY, x + BUTTON_OWNER_X, y + BUTTON_Y)) {
-                    return new EntryHit(entry, true, false, HubPermissionLevel.OWNER);
-                }
-                if (containsButton(mouseX, mouseY, x + BUTTON_ADMIN_X, y + BUTTON_Y)) {
-                    return new EntryHit(entry, true, false, HubPermissionLevel.ADMIN);
-                }
-                if (containsButton(mouseX, mouseY, x + BUTTON_MEMBER_X, y + BUTTON_Y)) {
-                    return new EntryHit(entry, true, false, HubPermissionLevel.MEMBER);
-                }
-                return new EntryHit(entry, true, false, null);
+            if (mouseX >= x + TOGGLE_X && mouseX < x + TOGGLE_X + TOGGLE_SIZE && mouseY >= y + TOGGLE_Y && mouseY < y + TOGGLE_Y + TOGGLE_SIZE) {
+                return new EntryHit(entry, expanded, true, null);
             }
-
-            private static boolean containsButton(int mouseX, int mouseY, int x, int y) {
-                return mouseX >= x && mouseX < x + BUTTON_SIZE && mouseY >= y && mouseY < y + BUTTON_SIZE;
+            if (!expanded) {
+                return new EntryHit(entry, false, false, null);
             }
+            if (containsButton(mouseX, mouseY, x + BUTTON_OWNER_X, y + BUTTON_Y)) {
+                return new EntryHit(entry, true, false, HubPermissionLevel.OWNER);
+            }
+            if (containsButton(mouseX, mouseY, x + BUTTON_ADMIN_X, y + BUTTON_Y)) {
+                return new EntryHit(entry, true, false, HubPermissionLevel.ADMIN);
+            }
+            if (containsButton(mouseX, mouseY, x + BUTTON_MEMBER_X, y + BUTTON_Y)) {
+                return new EntryHit(entry, true, false, HubPermissionLevel.MEMBER);
+            }
+            return new EntryHit(entry, true, false, null);
         }
+
+        private static boolean containsButton(int mouseX, int mouseY, int x, int y) {
+            return mouseX >= x && mouseX < x + BUTTON_SIZE && mouseY >= y && mouseY < y + BUTTON_SIZE;
+        }
+    }
 }

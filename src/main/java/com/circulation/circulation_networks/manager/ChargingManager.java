@@ -69,6 +69,10 @@ public final class ChargingManager {
      *///?}
     private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<IChargingNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Object2ObjectMap<IChargingNode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
+    private final Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> tickChargeTargetsByGrid = new Reference2ObjectOpenHashMap<>();
+    private final ObjectList<IGrid> activeChargeTargetGrids = new ObjectArrayList<>();
+    private final ReferenceSet<IGrid> processedTransferGrids = new ReferenceOpenHashSet<>();
+    private final ChannelTransferScratch channelTransferScratch = new ChannelTransferScratch();
 
     //? if <1.20 {
     @Optional.Method(modid = "baubles")
@@ -86,7 +90,7 @@ public final class ChargingManager {
                 invs.add(handler);
                 continue;
             }
-            handler.recycle(null);
+            handler.recycle();
         }
         //?} else {
         /*CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
@@ -99,7 +103,7 @@ public final class ChargingManager {
                     invs.add(energyHandler);
                     continue;
                 }
-                energyHandler.recycle(null);
+                energyHandler.recycle();
             }
         });
         *///?}
@@ -110,15 +114,16 @@ public final class ChargingManager {
     //~ if >=1.20 '.getHeldItemMainhand()' -> '.getMainHandItem()' {
     //~ if >=1.20 '.inventory.armorInventory' -> '.getInventory().armor' {
     //~ if >=1.20 '.getUniqueID()' -> '.getUUID()' {
-    private static ObjectList<IEnergyHandler> collectChargeablesForGrid(IGrid grid, EntityPlayer player, PlayerChargeState state) {
+    private static void collectChargeablesForGrid(IGrid grid,
+                                                  EntityPlayer player,
+                                                  PlayerChargeState state,
+                                                  Collection<IEnergyHandler> result) {
         var preferences = resolveChargingPreferences(grid, player);
         if (preferences.isEmpty()) {
-            return ObjectLists.emptyList();
+            return;
         }
 
         HubNode.HubMetadata hubMetadata = getHubMetadata(grid);
-
-        var result = new ObjectArrayList<IEnergyHandler>();
 
         if (preferences.contains(ChargingDefinition.INVENTORY)) {
             collectFromSlots(result, state.cache, ChargingDefinition.INVENTORY, state.inventory, 9, state.inventory.length, hubMetadata);
@@ -134,8 +139,7 @@ public final class ChargingManager {
             }
         }
         if (preferences.contains(ChargingDefinition.ARMOR)) {
-            var armorInventory = player.inventory.armorInventory;
-            collectFromSlots(result, state.cache, ChargingDefinition.ARMOR, armorInventory.toArray(new ItemStack[0]), 0, armorInventory.size(), hubMetadata);
+            collectFromSlots(result, state.cache, ChargingDefinition.ARMOR, state.armor, 0, state.armor.length, hubMetadata);
         }
         if (loadAccessoryIntegration && preferences.contains(ChargingDefinition.ACCESSORY)) {
             //? if <1.20 {
@@ -144,8 +148,6 @@ public final class ChargingManager {
             /*checkAccessory(result, player);
             *///?}
         }
-
-        return result;
     }
 
     private static EnumSet<ChargingDefinition> resolveChargingPreferences(IGrid grid, EntityPlayer player) {
@@ -168,7 +170,7 @@ public final class ChargingManager {
         return preferences;
     }
 
-    private static void collectFromSlots(List<IEnergyHandler> result,
+    private static void collectFromSlots(Collection<IEnergyHandler> result,
                                          EnumMap<ChargingDefinition, List<IEnergyHandler>> cache,
                                          ChargingDefinition definition,
                                          ItemStack[] items,
@@ -190,7 +192,7 @@ public final class ChargingManager {
                     handlers.add(handler);
                     result.add(handler);
                 } else {
-                    handler.recycle(null);
+                    handler.recycle();
                 }
             }
         }
@@ -202,7 +204,7 @@ public final class ChargingManager {
     //~}
     //~}
 
-    private static void collectFromStackWithCache(List<IEnergyHandler> result,
+    private static void collectFromStackWithCache(Collection<IEnergyHandler> result,
                                                   EnumMap<ChargingDefinition, List<IEnergyHandler>> cache,
                                                   ChargingDefinition definition,
                                                   ItemStack stack,
@@ -220,7 +222,7 @@ public final class ChargingManager {
                 cache.put(definition, handlers);
                 result.add(handler);
             } else {
-                handler.recycle(null);
+                handler.recycle();
             }
         }
     }
@@ -234,58 +236,63 @@ public final class ChargingManager {
         }
     }
 
-    private static void transferEnergyToTargets(List<Reference2ObjectMap<IGrid, ObjectList<IEnergyHandler>>> playerGridMaps,
-                                                Reference2ObjectMap<IGrid, EnumMap<IEnergyHandler.EnergyType, ObjectSet<IEnergyHandler>>> machineMap) {
-        var processedGrids = new ReferenceOpenHashSet<IGrid>();
-
-        for (var gridMap : playerGridMaps) {
-            for (var entry : gridMap.entrySet()) {
-                var grid = entry.getKey();
-                if (processedGrids.contains(grid)) {
-                    continue;
-                }
-
-                var chargingTargets = entry.getValue();
-                transferEnergyForGrid(grid, chargingTargets, machineMap, processedGrids);
+    private static void transferEnergyToTargets(Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> chargeTargetsByGrid,
+                                                Reference2ObjectMap<IGrid, EnergyMachineManager.GridTickData> machineMap) {
+        for (var entry : chargeTargetsByGrid.entrySet()) {
+            var grid = entry.getKey();
+            if (INSTANCE.processedTransferGrids.contains(grid)) {
+                continue;
             }
+            transferEnergyForGrid(grid, chargeTargetsByGrid, machineMap, INSTANCE.processedTransferGrids);
         }
     }
 
     private static void transferEnergyForGrid(IGrid grid,
-                                              ObjectList<IEnergyHandler> chargingTargets,
-                                              Reference2ObjectMap<IGrid, EnumMap<IEnergyHandler.EnergyType, ObjectSet<IEnergyHandler>>> machineMap,
+                                              Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> chargeTargetsByGrid,
+                                              Reference2ObjectMap<IGrid, EnergyMachineManager.GridTickData> machineMap,
                                               ReferenceSet<IGrid> processedGrids) {
         processedGrids.add(grid);
+        var chargingTargets = chargeTargetsByGrid.getOrDefault(grid, ObjectSets.emptySet());
 
         var hubNode = grid.getHubNode();
-        if (hubNode != null && hubNode.getChannelId() != null) {
+        if (hubNode != null && !hubNode.getChannelId().equals(HubNode.EMPTY)) {
             var channelGrids = HubChannelManager.INSTANCE.getChannelGrids(hubNode.getChannelId());
             if (channelGrids != null && channelGrids.size() > 1) {
-                var mergedSend = new ObjectLinkedOpenHashSet<IEnergyHandler>();
-                var mergedStorage = new ObjectLinkedOpenHashSet<IEnergyHandler>();
+                var merged = INSTANCE.channelTransferScratch.prepare();
 
                 for (var channelGrid : channelGrids) {
                     processedGrids.add(channelGrid);
+                    merged.timedGrids.add(channelGrid);
                     var handlers = machineMap.get(channelGrid);
-                    if (handlers != null) {
-                        mergedSend.addAll(handlers.getOrDefault(IEnergyHandler.EnergyType.SEND, ObjectSets.emptySet()));
-                        mergedStorage.addAll(handlers.getOrDefault(IEnergyHandler.EnergyType.STORAGE, ObjectSets.emptySet()));
+                    if (handlers != null && handlers.activeThisTick) {
+                        merged.send.addAll(handlers.send);
+                        merged.storage.addAll(handlers.storage);
                     }
+                    merged.targets.addAll(chargeTargetsByGrid.getOrDefault(channelGrid, ObjectSets.emptySet()));
                 }
 
-                transferEnergy(mergedSend, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid);
-                transferEnergy(mergedStorage, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid);
+                if (merged.targets.isEmpty()) {
+                    return;
+                }
+
+                long startNanos = System.nanoTime();
+                transferEnergy(merged.send, merged.targets, EnergyMachineManager.Status.EXTRACT, grid, false);
+                transferEnergy(merged.storage, merged.targets, EnergyMachineManager.Status.EXTRACT, grid, false);
+                EnergyMachineManager.recordDistributedGridTickTimeNanos(merged.timedGrids, System.nanoTime() - startNanos);
                 return;
             }
         }
 
-        var handlers = machineMap.get(grid);
-        if (handlers != null) {
-            var sendMachines = handlers.getOrDefault(IEnergyHandler.EnergyType.SEND, ObjectSets.emptySet());
-            var storageMachines = handlers.getOrDefault(IEnergyHandler.EnergyType.STORAGE, ObjectSets.emptySet());
+        if (chargingTargets.isEmpty()) {
+            return;
+        }
 
-            transferEnergy(sendMachines, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid);
-            transferEnergy(storageMachines, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid);
+        var handlers = machineMap.get(grid);
+        if (handlers != null && handlers.activeThisTick) {
+            long startNanos = System.nanoTime();
+            transferEnergy(handlers.send, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid, false);
+            transferEnergy(handlers.storage, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid, false);
+            EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
         }
     }
 
@@ -299,7 +306,7 @@ public final class ChargingManager {
 
     //? if <1.20 {
     private static int getDimensionId(INode node) {
-        return node.getWorld().provider.getDimension();
+        return node.getDimensionId();
     }
     //?} else {
     /*private static int getDimensionId(INode node) {
@@ -317,13 +324,17 @@ public final class ChargingManager {
     }
 
     //~ if >=1.20 '.getUniqueID()' -> '.getUUID()' {
-    public void onServerTick(MinecraftServer server, Reference2ObjectMap<IGrid, EnumMap<IEnergyHandler.EnergyType, ObjectSet<IEnergyHandler>>> machineMap) {
+    void onServerTick(MinecraftServer server, Reference2ObjectMap<IGrid, EnergyMachineManager.GridTickData> machineMap) {
         var players = server.getPlayerList().getPlayers();
-        var playerGridMaps = new ObjectArrayList<Reference2ObjectMap<IGrid, ObjectList<IEnergyHandler>>>(players.size());
+        prepareChargeTargetScratch();
+        processedTransferGrids.clear();
+        var coveredGridsByPlayer = new ObjectArrayList<ReferenceSet<IGrid>>(players.size());
+        var playerStates = new ObjectArrayList<PlayerChargeState>(players.size());
 
         for (var player : players) {
-            var gridMap = collectPlayerChargeTargets(player);
-            playerGridMaps.add(gridMap);
+            var playerState = new PlayerChargeState(player);
+            playerStates.add(playerState);
+            coveredGridsByPlayer.add(collectPlayerChargeTargets(player, playerState));
         }
 
         // Plugin-based remote charging: extend range beyond spatial index
@@ -337,10 +348,7 @@ public final class ChargingManager {
 
             for (int i = 0; i < players.size(); i++) {
                 var player = players.get(i);
-                var gridMap = playerGridMaps.get(i);
-
-                // Skip if already covered by spatial index
-                if (gridMap.containsKey(grid)) continue;
+                if (coveredGridsByPlayer.get(i).contains(grid)) continue;
 
                 // Wide area: same dimension only; Dimensional: all dimensions
                 if (scope == ChargingPluginScope.WIDE_AREA) {
@@ -352,26 +360,29 @@ public final class ChargingManager {
                 // Permission check
                 if (hub.getPermissionLevel(player.getUniqueID()) == HubPermissionLevel.NONE) continue;
 
-                var playerState = new PlayerChargeState(player);
-                try {
-                    var chargeableItems = collectChargeablesForGrid(grid, player, playerState);
-                    if (!chargeableItems.isEmpty()) {
-                        gridMap.put(grid, chargeableItems);
-                    }
-                } finally {
-                    playerState.clear();
+                var playerState = playerStates.get(i);
+                long startNanos = System.nanoTime();
+                playerState.scratch.clear();
+                collectChargeablesForGrid(grid, player, playerState, playerState.scratch);
+                EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
+                if (!playerState.scratch.isEmpty()) {
+                    getChargeTargets(grid).addAll(playerState.scratch);
                 }
             }
         }
 
-        transferEnergyToTargets(playerGridMaps, machineMap);
+        transferEnergyToTargets(tickChargeTargetsByGrid, machineMap);
 
-        for (var gridMap : playerGridMaps) {
-            for (var handlers : gridMap.values()) {
-                for (var handler : handlers) {
-                    handler.recycle(null);
-                }
+        for (var grid : activeChargeTargetGrids) {
+            var handlers = tickChargeTargetsByGrid.get(grid);
+            for (var handler : handlers) {
+                handler.recycle();
             }
+            handlers.clear();
+        }
+        activeChargeTargetGrids.clear();
+        for (var playerState : playerStates) {
+            playerState.clear();
         }
     }
     //~}
@@ -381,45 +392,61 @@ public final class ChargingManager {
     //~ if >=1.20 '.getPosition()' -> '.blockPosition()' {
     //~ if >=1.20 '.inventory.mainInventory' -> '.getInventory().items' {
     //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
-    private Reference2ObjectMap<IGrid, ObjectList<IEnergyHandler>> collectPlayerChargeTargets(EntityPlayer player) {
-        Reference2ObjectMap<IGrid, ObjectList<IEnergyHandler>> gridMap = new Reference2ObjectOpenHashMap<>();
-        gridMap.defaultReturnValue(ObjectLists.emptyList());
-
+    private ReferenceSet<IGrid> collectPlayerChargeTargets(EntityPlayer player,
+                                                           PlayerChargeState playerState) {
+        ReferenceSet<IGrid> coveredGrids = new ReferenceOpenHashSet<>();
         var map = scopeNode.get(player.dimension);
         if (map == null || map.isEmpty()) {
-            return gridMap;
+            return coveredGrids;
         }
 
         var pos = player.getPosition();
         var nodeSet = map.get(Functions.mergeChunkCoords(pos));
         if (nodeSet == null || nodeSet.isEmpty()) {
-            return gridMap;
+            return coveredGrids;
         }
 
-        var reachableGrids = new ObjectArrayList<IGrid>();
+        ReferenceSet<IGrid> reachableGrids = new ReferenceOpenHashSet<>();
         for (var node : nodeSet) {
-            if (node.chargingScopeCheck(pos)) {
-                reachableGrids.add(node.getGrid());
+            if (!node.chargingScopeCheck(pos)) {
+                continue;
+            }
+            var grid = node.getGrid();
+            if (grid != null) {
+                reachableGrids.add(grid);
             }
         }
 
         if (reachableGrids.isEmpty()) {
-            return gridMap;
+            return coveredGrids;
         }
 
-        var playerState = new PlayerChargeState(player);
-        try {
-            for (var grid : reachableGrids) {
-                var chargeableItems = collectChargeablesForGrid(grid, player, playerState);
-                if (!chargeableItems.isEmpty()) {
-                    gridMap.put(grid, chargeableItems);
-                }
+        for (var grid : reachableGrids) {
+            long startNanos = System.nanoTime();
+            playerState.scratch.clear();
+            collectChargeablesForGrid(grid, player, playerState, playerState.scratch);
+            EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
+            if (!playerState.scratch.isEmpty()) {
+                getChargeTargets(grid).addAll(playerState.scratch);
+                coveredGrids.add(grid);
             }
-        } finally {
-            playerState.clear();
         }
+        return coveredGrids;
+    }
 
-        return gridMap;
+    private void prepareChargeTargetScratch() {
+        for (var grid : activeChargeTargetGrids) {
+            tickChargeTargetsByGrid.get(grid).clear();
+        }
+        activeChargeTargetGrids.clear();
+    }
+
+    private ObjectSet<IEnergyHandler> getChargeTargets(IGrid grid) {
+        ObjectSet<IEnergyHandler> targets = tickChargeTargetsByGrid.computeIfAbsent(grid, ignored -> new ObjectLinkedOpenHashSet<>());
+        if (targets.isEmpty()) {
+            activeChargeTargetGrids.add(grid);
+        }
+        return targets;
     }
 
     public void addNode(INode node) {
@@ -514,22 +541,52 @@ public final class ChargingManager {
     public void onServerStop() {
         scopeNode.clear();
         nodeScope.clear();
+        tickChargeTargetsByGrid.clear();
+        activeChargeTargetGrids.clear();
+        processedTransferGrids.clear();
     }
 
     enum ChargingPluginScope {NONE, WIDE_AREA, DIMENSIONAL}
 
+    private static final class ChannelTransferScratch {
+        final ObjectSet<IEnergyHandler> send = new ObjectLinkedOpenHashSet<>();
+        final ObjectSet<IEnergyHandler> storage = new ObjectLinkedOpenHashSet<>();
+        final ObjectSet<IEnergyHandler> targets = new ObjectLinkedOpenHashSet<>();
+        final ReferenceSet<IGrid> timedGrids = new ReferenceOpenHashSet<>();
+
+        ChannelTransferScratch prepare() {
+            send.clear();
+            storage.clear();
+            targets.clear();
+            timedGrids.clear();
+            return this;
+        }
+    }
+
     private static final class PlayerChargeState {
         final EnumMap<ChargingDefinition, List<IEnergyHandler>> cache = new EnumMap<>(ChargingDefinition.class);
         final ItemStack[] inventory;
+        final ItemStack[] armor;
+        final ObjectArrayList<IEnergyHandler> scratch = new ObjectArrayList<>();
 
         PlayerChargeState(EntityPlayer player) {
             this.inventory = player.inventory.mainInventory.toArray(new ItemStack[0]);
+            this.armor = snapshotArmor(player);
         }
 
         void clear() {
             cache.clear();
+            scratch.clear();
         }
     }
+
+    //~ if >=1.20 '(EntityPlayer player' -> '(Player player' {
+    //~ if >=1.20 '.inventory.armorInventory' -> '.getInventory().armor' {
+    private static ItemStack[] snapshotArmor(EntityPlayer player) {
+        return player.inventory.armorInventory.toArray(new ItemStack[0]);
+    }
+    //~}
+    //~}
     //~}
     //~}
     //~}

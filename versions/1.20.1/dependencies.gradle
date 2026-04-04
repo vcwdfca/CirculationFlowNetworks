@@ -4,4 +4,5 @@ dependencies {
     modImplementation("curse.maven:architectury-api-419699:5137938")
     modImplementation("curse.maven:ftb-library-forge-404465:7296748")
     modImplementation("curse.maven:ftb-teams-forge-404468:7499810")
+    modImplementation("curse.maven:mekanism-268560:6552911")
 }

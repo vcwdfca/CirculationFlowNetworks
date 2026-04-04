@@ -380,10 +380,23 @@ the<JavaPluginExtension>().sourceSets.named("main") {
     resources.setSrcDirs(mainResourceRoots)
 }
 
-// Remove auto-created test source set — no tests in this project.
+val sharedTestJavaDir = rootProject.file("src/test/java")
+val localTestJavaDir = file("src/test/java")
+val sharedTestResourcesDir = rootProject.file("src/test/resources")
+val localTestResourcesDir = file("src/test/resources")
+
+// Keep test sources explicit so version-specific regression tests can live in the repo.
 the<JavaPluginExtension>().sourceSets.matching { it.name == "test" }.all {
-    java.setSrcDirs(emptyList<File>())
-    resources.setSrcDirs(emptyList<File>())
+    java.setSrcDirs(
+        listOf(localTestJavaDir, sharedTestJavaDir)
+            .distinctBy { it.absolutePath }
+            .filter { it.exists() }
+    )
+    resources.setSrcDirs(
+        listOf(localTestResourcesDir, sharedTestResourcesDir)
+            .distinctBy { it.absolutePath }
+            .filter { it.exists() }
+    )
 }
 
 val generatedComponentAtlasPackage = "com.circulation.circulation_networks.gui.component.base"
@@ -527,15 +540,16 @@ dependencies {
         annotationProcessor("com.google.code.gson:gson:2.8.9")
         add("annotationProcessor", mixinAnnotationProcessorDependency)
 
-        if (propertyBool("enable_junit_testing")) {
-            testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
-            testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-        }
     }
 
     if (propertyBool("use_mixins")) {
         compileOnly("org.spongepowered:mixin:0.8.5")
         annotationProcessor("org.spongepowered:mixin:0.8.5:processor")
+    }
+
+    if (propertyBool("enable_junit_testing")) {
+        testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     compileOnlyApi("org.jetbrains:annotations:24.1.0")

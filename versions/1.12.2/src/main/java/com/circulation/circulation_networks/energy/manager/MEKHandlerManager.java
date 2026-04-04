@@ -35,13 +35,13 @@ public final class MEKHandlerManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(TileEntity tileEntity) {
-        return new MEKHandler(tileEntity);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new MEKHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack itemStack) {
-        return new MEKHandler(itemStack);
+    public IEnergyHandler newItemInstance() {
+        return new MEKHandler();
     }
 
     @Override

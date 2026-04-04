@@ -105,13 +105,13 @@ public final class Grid implements IGrid {
 
     //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
     private static int getDimensionId(INode node) {
-        return node.getWorld().provider.getDimension();
+        return node.getDimensionId();
     }
     //~}
 
     private static boolean shouldSerializeNode(INode node) {
         return node != null
-            && !PocketNodeManager.INSTANCE.isActivePocketNode(node.getWorld(), node.getPos(), node.getNodeType());
+            && !PocketNodeManager.INSTANCE.isActivePocketNode(node.getDimensionId(), node.getPos(), node.getNodeType());
     }
 
     public UUID getId() {

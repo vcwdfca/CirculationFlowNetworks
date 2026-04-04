@@ -9,12 +9,8 @@ import java.util.List;
 
 public final class CFNConfig {
 
-    public static String[] classNames = new String[0];
-    public static String[] supplyClassNames = new String[0];
     public static final Node NODE = new Node();
-
     static final ForgeConfigSpec SPEC;
-
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> CLASS_NAMES;
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> SUPPLY_CLASS_NAMES;
     private static final ForgeConfigSpec.DoubleValue PORT_NODE_ENERGY_SCOPE;
@@ -25,24 +21,26 @@ public final class CFNConfig {
     private static final ForgeConfigSpec.DoubleValue HUB_ENERGY_SCOPE;
     private static final ForgeConfigSpec.DoubleValue HUB_CHARGING_SCOPE;
     private static final ForgeConfigSpec.DoubleValue HUB_LINK_SCOPE;
+    public static String[] classNames = new String[0];
+    public static String[] supplyClassNames = new String[0];
 
     static {
         ForgeConfigSpec.Builder builder = new ForgeConfigSpec.Builder();
 
         CLASS_NAMES = builder.comment(
-                "Energy entity blacklist (fully qualified name or class name prefix)",
-                "BlockEntities in the blacklist will not be recognized as energy containers",
-                "Examples:",
-                "  - 'com.example.CustomEnergyTile' Exact match",
-                "  - 'com.example' Prefix match, includes all classes starting with this"
+            "Energy entity blacklist (fully qualified name or class name prefix)",
+            "BlockEntities in the blacklist will not be recognized as energy containers",
+            "Examples:",
+            "  - 'com.example.CustomEnergyTile' Exact match",
+            "  - 'com.example' Prefix match, includes all classes starting with this"
         ).defineListAllowEmpty(List.of("classNames"), List::of, obj -> obj instanceof String);
 
         SUPPLY_CLASS_NAMES = builder.comment(
-                "Energy device blacklist for generic supply nodes (non-specialized).",
-                "Matched devices can ONLY be connected by specialized nodes that override isBlacklisted.",
-                "Examples:",
-                "  - 'com.example.AdvancedEnergyTile' Exact match",
-                "  - 'com.example.advanced' Prefix match"
+            "Energy device blacklist for generic supply nodes (non-specialized).",
+            "Matched devices can ONLY be connected by specialized nodes that override isBlacklisted.",
+            "Examples:",
+            "  - 'com.example.AdvancedEnergyTile' Exact match",
+            "  - 'com.example.advanced' Prefix match"
         ).defineListAllowEmpty(List.of("supplyClassNames"), List::of, obj -> obj instanceof String);
 
         builder.push("Node");

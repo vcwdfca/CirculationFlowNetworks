@@ -1,9 +1,9 @@
 package com.circulation.circulation_networks.container;
 
 import com.circulation.circulation_networks.api.hub.ChannelSnapshotList;
+import com.circulation.circulation_networks.api.hub.ChargingPreference;
 import com.circulation.circulation_networks.api.hub.NodeSnapshotList;
 import com.circulation.circulation_networks.api.hub.PermissionSnapshotList;
-import com.circulation.circulation_networks.api.hub.ChargingPreference;
 import com.circulation.circulation_networks.api.node.IHubNode;
 import com.circulation.circulation_networks.manager.EnergyMachineManager;
 import com.circulation.circulation_networks.manager.HubChannelManager;
@@ -21,6 +21,7 @@ import static com.circulation.circulation_networks.network.nodes.HubNode.EMPTY;
 public class ContainerHub extends CFNBaseContainer {
 
     private static final long ENERGY_REFRESH_INTERVAL = 10L;
+    private static final long LATENCY_REFRESH_INTERVAL = 20L;
     private static final byte CHANNEL_CAPABILITY_FLAG = 0x1;
     private static final byte[] EMPTY_CHANNEL_SNAPSHOT = ChannelSnapshotList.EMPTY.toBytes();
     private static final byte[] EMPTY_PERMISSION_SNAPSHOT = PermissionSnapshotList.EMPTY.toBytes();
@@ -34,6 +35,8 @@ public class ContainerHub extends CFNBaseContainer {
     public String input;
     @GuiSync(1)
     public String output;
+    @GuiSync(9)
+    public String interactionTimeMicros;
     public UUID channelId = EMPTY;
     @GuiSync(2)
     public String channelIdString = EMPTY.toString();
@@ -71,6 +74,7 @@ public class ContainerHub extends CFNBaseContainer {
 
         input = "0";
         output = "0";
+        interactionTimeMicros = "0";
         chargingMode = node.getChargingPreference(playerId);
         syncChannelState();
         availableChannels = ChannelSnapshotList.EMPTY;
@@ -81,9 +85,7 @@ public class ContainerHub extends CFNBaseContainer {
         nodesSnapshot = nodes.toBytes();
 
         if (!node.getWorld().isRemote) {
-            var energy = EnergyMachineManager.INSTANCE.getInteraction().get(node.getGrid());
-            input = energy.getInput().toString();
-            output = energy.getOutput().toString();
+            refreshEnergyStats(true, true);
             syncChannelState();
             refreshSnapshots(true);
         }
@@ -102,10 +104,11 @@ public class ContainerHub extends CFNBaseContainer {
         chargingMode = node.getChargingPreference(playerId);
         chargingModeByte = chargingMode.toByte();
         refreshSnapshots(channelChanged);
-        if (node.getWorld().getTotalWorldTime() % ENERGY_REFRESH_INTERVAL != 0) return;
-        var energy = EnergyMachineManager.INSTANCE.getInteraction().get(node.getGrid());
-        input = energy.getInput().toString();
-        output = energy.getOutput().toString();
+        long worldTime = node.getWorld().getTotalWorldTime();
+        boolean refreshEnergy = worldTime % ENERGY_REFRESH_INTERVAL == 0;
+        boolean refreshLatency = worldTime % LATENCY_REFRESH_INTERVAL == 0;
+        if (!refreshEnergy && !refreshLatency) return;
+        refreshEnergyStats(refreshEnergy, refreshLatency);
     }
 
     private void refreshSnapshots(boolean force) {
@@ -146,8 +149,14 @@ public class ContainerHub extends CFNBaseContainer {
 
     private boolean syncChannelState() {
         UUID currentChannelId = node.getChannelId();
+        if (currentChannelId == null) {
+            currentChannelId = EMPTY;
+        }
         String currentChannelName = node.getChannelName();
-        byte currentChannelStateFlags = getChannelStateFlags(currentChannelId);
+        if (currentChannelName == null) {
+            currentChannelName = "";
+        }
+        byte currentChannelStateFlags = getChannelStateFlags();
         boolean changed = !Objects.equals(channelId, currentChannelId)
             || !Objects.equals(channelName, currentChannelName)
             || channelStateFlags != currentChannelStateFlags;
@@ -158,7 +167,28 @@ public class ContainerHub extends CFNBaseContainer {
         return changed;
     }
 
-    private byte getChannelStateFlags(UUID currentChannelId) {
+    private void refreshEnergyStats(boolean refreshEnergy, boolean refreshLatency) {
+        var energy = EnergyMachineManager.INSTANCE.getInteraction().get(node.getGrid());
+        if (energy == null) {
+            if (refreshEnergy) {
+                input = "0";
+                output = "0";
+            }
+            if (refreshLatency) {
+                interactionTimeMicros = "0";
+            }
+            return;
+        }
+        if (refreshEnergy) {
+            input = energy.getInput().toString();
+            output = energy.getOutput().toString();
+        }
+        if (refreshLatency) {
+            interactionTimeMicros = energy.getInteractionTimeMicrosString();
+        }
+    }
+
+    private byte getChannelStateFlags() {
         byte flags = 0;
         if (node.hasPluginCapability(HubCapabilitys.CHANNEL_CAPABILITY)) {
             flags |= CHANNEL_CAPABILITY_FLAG;
@@ -182,7 +212,7 @@ public class ContainerHub extends CFNBaseContainer {
     }
 
     public boolean hasChannel() {
-        return channelId != null && !channelId.equals(EMPTY);
+        return !EMPTY.equals(channelId);
     }
 
     public boolean hasChannelCapability() {

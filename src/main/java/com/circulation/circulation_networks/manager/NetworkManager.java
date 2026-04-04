@@ -260,7 +260,7 @@ public final class NetworkManager {
     }
 
     private static int getDimensionId(INode node) {
-        return getDimensionId(node.getWorld());
+        return node.getDimensionId();
     }
 
     private static boolean isClientWorld(World world) {
@@ -293,7 +293,7 @@ public final class NetworkManager {
     }
 
     private static int getDimensionId(INode node) {
-        return getDimensionId(node.getWorld());
+        return node.getDimensionId();
     }
 
     private static boolean isClientWorld(Level world) {
@@ -329,6 +329,29 @@ public final class NetworkManager {
 
     public boolean isInit() {
         return init;
+    }
+
+    @Nullable
+    private static Integer resolveGridDimension(IGrid grid) {
+        if (grid == null || grid.getNodes().isEmpty()) {
+            return null;
+        }
+
+        Integer dimId = null;
+        for (INode node : grid.getNodes()) {
+            if (node == null) {
+                continue;
+            }
+            int nodeDimId = node.getDimensionId();
+            if (dimId == null) {
+                dimId = nodeDimId;
+                continue;
+            }
+            if (dimId != nodeDimId) {
+                return null;
+            }
+        }
+        return dimId;
     }
 
     private void registerNodeIndices(int dimId, INode node) {
@@ -417,13 +440,22 @@ public final class NetworkManager {
         if (isClientWorld(event.getWorld())) return;
         var blockEntity = event.getBlockEntity();
         if (blockEntity instanceof INodeBlockEntity nbe) {
+            int dimId = getDimensionId(event.getWorld());
+            if (!init) {
+                markPendingNodeValidation(dimId, event.getPos());
+                return;
+            }
             INode current = getNodeFromPos(event.getWorld(), event.getPos());
             INode actual = nbe.getNode();
+            if (actual == null) {
+                markPendingNodeValidation(dimId, event.getPos());
+                return;
+            }
             if (current != null && current != actual) {
                 removeNode(current);
             }
             addNode(actual, blockEntity);
-            clearPendingNodeValidationIfMatched(getDimensionId(event.getWorld()), event.getPos(), actual);
+            clearPendingNodeValidationIfMatched(dimId, event.getPos(), actual);
         }
     }
 
@@ -823,12 +855,22 @@ public final class NetworkManager {
 
     public void initGrid() {
         var f = getSaveFile();
-        if (!f.exists() || !f.isDirectory()) return;
+        var entries = new ObjectArrayList<GridEntry>();
+        if (!f.exists() || !f.isDirectory()) {
+            EnergyMachineManager.INSTANCE.initGrid(entries);
+            ChargingManager.INSTANCE.initGrid(entries);
+            init = true;
+            return;
+        }
 
         File[] files = f.listFiles(file -> file.isFile() && file.getName().endsWith(".dat"));
-        if (files == null || files.length == 0) return;
+        if (files == null || files.length == 0) {
+            EnergyMachineManager.INSTANCE.initGrid(entries);
+            ChargingManager.INSTANCE.initGrid(entries);
+            init = true;
+            return;
+        }
 
-        var entries = new ObjectArrayList<GridEntry>();
         for (File file : files) {
             var nbt = tryReadCompressedNbt(file, "grid file " + file.getName());
             if (nbt == null) {
@@ -836,8 +878,6 @@ public final class NetworkManager {
             }
             //? if <1.20 {
             if (!nbt.hasKey("dim")) continue;
-            int dimId = nbt.getInteger("dim");
-            if (!isRegisteredDimension(dimId)) continue;
             //?} else if <1.21 {
             /*if (!nbt.contains("dim")) continue;
             var dimLoc = new net.minecraft.resources.ResourceLocation(nbt.getString("dim"));
@@ -861,7 +901,13 @@ public final class NetworkManager {
                 file.delete();
                 continue;
             }
-            entries.add(new GridEntry(dimId, grid));
+
+            Integer resolvedDimId = resolveGridDimension(grid);
+            if (resolvedDimId == null || !isRegisteredDimension(resolvedDimId)) {
+                CirculationFlowNetworks.LOGGER.warn("Skipping grid {} due to inconsistent or unavailable dimension data", file.getName());
+                continue;
+            }
+            entries.add(new GridEntry(resolvedDimId, grid));
         }
 
         for (var entry : entries) {

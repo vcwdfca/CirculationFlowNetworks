@@ -140,7 +140,7 @@ public final class HubNode extends Node implements IHubNode {
 
     @Override
     public void setChannelId(@NotNull UUID channelId) {
-        this.channelId = channelId;
+        this.channelId = channelId != null ? channelId : EMPTY;
         if (!syncingChannelState) {
             HubChannelManager.INSTANCE.bindHub(this);
         }
@@ -153,7 +153,7 @@ public final class HubNode extends Node implements IHubNode {
 
     @Override
     public void setChannelName(@Nonnull String channelName) {
-        this.channelName = channelName;
+        this.channelName = channelName != null ? channelName : "";
         if (!syncingChannelState) {
             HubChannelManager.INSTANCE.updateChannelFromHub(this);
         }

@@ -9,10 +9,9 @@ import com.circulation.circulation_networks.gui.GuiHub;
 import com.circulation.circulation_networks.inventory.CFNInternalInventory;
 import com.circulation.circulation_networks.inventory.CFNInternalInventoryHost;
 import com.circulation.circulation_networks.inventory.CFNInventoryChangeOperation;
-import com.circulation.circulation_networks.items.HubChannelPluginData;
-import com.circulation.circulation_networks.network.hub.HubCapabilitys;
 import com.circulation.circulation_networks.network.hub.HubPluginCapability;
 import com.circulation.circulation_networks.network.nodes.HubNode;
+import com.circulation.circulation_networks.network.nodes.HubPluginStateTracker;
 import com.circulation.circulation_networks.registry.NodeTypes;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,6 +34,24 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
     });
     private boolean init;
     private transient NBTTagCompound initNbt;
+
+    private static boolean isUniquePluginCapability(CFNInternalInventory inventory, int slot, HubPluginCapability<?> capability) {
+        for (int i = 0; i < inventory.getSlots(); i++) {
+            if (i == slot) {
+                continue;
+            }
+
+            ItemStack existing = inventory.getStackInSlot(i);
+            if (existing.isEmpty() || !(existing.getItem() instanceof IHubPlugin plugin)) {
+                continue;
+            }
+
+            if (plugin.getCapability() == capability) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     @Override
     public boolean hasGui() {
@@ -62,7 +79,7 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
         if (node instanceof HubNode hubNode) {
             hubNode.bindPlugins(getPlugins());
         }
-        rebuildHubPluginData();
+        initializeHubPluginState();
     }
 
     public CFNInternalInventory getPlugins() {
@@ -93,14 +110,14 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
             initNbt = nbt;
             init = true;
         } else {
-            rebuildHubPluginData();
+            initializeHubPluginState();
         }
     }
 
     protected void onValidate() {
         super.onValidate();
         if (initNbt != null) {
-            rebuildHubPluginData();
+            initializeHubPluginState();
             initNbt = null;
         }
     }
@@ -110,7 +127,7 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
     protected void onClientValidate() {
         super.onClientValidate();
         if (initNbt != null) {
-            rebuildHubPluginData();
+            initializeHubPluginState();
             initNbt = null;
         }
     }
@@ -118,91 +135,14 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
     @Override
     public void onChangeInventory(CFNInternalInventory inventory, int slot, CFNInventoryChangeOperation operation, ItemStack oldStack, ItemStack newStack) {
         if (init) {
-            saveAllPluginData();
-            savePluginData(oldStack);
-            rebuildHubPluginData();
+            HubPluginStateTracker.saveAllPluginData(getNode(), plugins);
+            HubPluginStateTracker.savePluginData(getNode(), oldStack);
+            HubPluginStateTracker.syncInventoryChange(getNode(), oldStack, newStack);
         }
         markDirty();
     }
 
-    private void rebuildHubPluginData() {
-        IHubNode node = getNode();
-        if (!(node instanceof HubNode hubNode)) {
-            return;
-        }
-
-        clearPluginState(hubNode);
-
-        for (int i = 0; i < plugins.getSlots(); i++) {
-            ItemStack stack = plugins.getStackInSlot(i);
-            if (stack.isEmpty() || !(stack.getItem() instanceof IHubPlugin plugin)) {
-                continue;
-            }
-
-            HubPluginCapability<?> capability = plugin.getCapability();
-            if (hubNode.getHubData().hasKey(capability)) {
-                continue;
-            }
-
-            hubNode.putPluginDataIfAbsent(capability, stack);
-        }
-
-        applyPluginState(hubNode);
-    }
-
-    private void clearPluginState(HubNode node) {
-        node.removePluginData(HubCapabilitys.CHANNEL_CAPABILITY);
-        node.removePluginData(HubCapabilitys.CHARGE_CAPABILITY);
-        HubChannelPluginData.clearHub(node);
-    }
-
-    private void applyPluginState(IHubNode node) {
-        HubChannelPluginData.ChannelInfo channelInfo = node.getHubData().get(HubCapabilitys.CHANNEL_CAPABILITY);
-        if (HubChannelPluginData.isComplete(channelInfo)) {
-            HubChannelPluginData.applyToHub(node, channelInfo);
-        }
-    }
-
-    private void savePluginData(ItemStack stack) {
-        IHubNode node = getNode();
-        if (node == null || stack.isEmpty() || !(stack.getItem() instanceof IHubPlugin plugin)) {
-            return;
-        }
-
-        HubPluginCapability<?> capability = plugin.getCapability();
-        if (!node.getHubData().hasKey(capability)) {
-            return;
-        }
-
-        if (capability == HubCapabilitys.CHANNEL_CAPABILITY) {
-            capability.saveDataRaw(HubChannelPluginData.getChannelInfo(node), stack);
-            return;
-        }
-
-        capability.saveDataRaw(node.getHubData().get(capability), stack);
-    }
-
-    private void saveAllPluginData() {
-        for (int i = 0; i < plugins.getSlots(); i++) {
-            savePluginData(plugins.getStackInSlot(i));
-        }
-    }
-
-    private static boolean isUniquePluginCapability(CFNInternalInventory inventory, int slot, HubPluginCapability<?> capability) {
-        for (int i = 0; i < inventory.getSlots(); i++) {
-            if (i == slot) {
-                continue;
-            }
-
-            ItemStack existing = inventory.getStackInSlot(i);
-            if (existing.isEmpty() || !(existing.getItem() instanceof IHubPlugin plugin)) {
-                continue;
-            }
-
-            if (plugin.getCapability() == capability) {
-                return false;
-            }
-        }
-        return true;
+    private void initializeHubPluginState() {
+        HubPluginStateTracker.initializeFromInventory(getNode(), plugins);
     }
 }

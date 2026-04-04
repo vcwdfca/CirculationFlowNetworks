@@ -1,4 +1,14 @@
 dependencies {
+    def deobfImplementation = { Object notation ->
+        implementation(rfg.deobf(notation))
+    }
+    def deobfRuntimeOnly = { Object notation ->
+        runtimeOnly(rfg.deobf(notation))
+    }
+    def deobfCompileOnly = { Object notation ->
+        compileOnly(rfg.deobf(notation))
+    }
+
     // 1.12.2-only dependencies migrated from the current implementation.
     runtimeOnly 'com.cleanroommc:strip-latest-forge-requirements:1.0'
     runtimeOnly 'com.cleanroommc:osxnarratorblocker:1.0'
@@ -7,18 +17,18 @@ dependencies {
     compileOnly("org.lwjgl:lwjgl:${lwjglVersion}")
 
     implementation 'com.cleanroommc:configanytime:1.0'
-    implementation(rfg.deobf("curse.maven:industrialcraft-2-242638:3078604"))
-    implementation(rfg.deobf("curse.maven:baubles-227083:2518667"))
-    implementation(rfg.deobf("curse.maven:redstone-flux-270789:2920436"))
-    implementation(rfg.deobf('curse.maven:ftb-library-237167:2985811'))
-    implementation(rfg.deobf('curse.maven:ftb-utilities-237102:3157548'))
-    runtimeOnly(rfg.deobf("curse.maven:supermartijn642s-core-lib-454372:7521738"))
-    runtimeOnly(rfg.deobf("curse.maven:supermartijn642s-config-lib-438332:4715393"))
-    runtimeOnly(rfg.deobf("curse.maven:trash-cans-394535:4606884"))
-    runtimeOnly(rfg.deobf("curse.maven:building-gadgets-298187:3005950"))
-    compileOnly(rfg.deobf("mezz.jei:jei_1.12.2:4.16.1.1013"))
-    runtimeOnly(rfg.deobf("curse.maven:ender-utilities-224320:2977010"))
-    runtimeOnly(rfg.deobf("curse.maven:flare-692142:6598523"))
-    runtimeOnly(rfg.deobf("curse.maven:packagedauto-308380:7329681"))
-    implementation(rfg.deobf("curse.maven:mekanism-268560:2835175"))
+    deobfImplementation("curse.maven:industrialcraft-2-242638:3078604")
+    deobfImplementation("curse.maven:baubles-227083:2518667")
+    deobfImplementation("curse.maven:redstone-flux-270789:2920436")
+    deobfImplementation("curse.maven:ftb-library-237167:2985811")
+    deobfImplementation("curse.maven:ftb-utilities-237102:3157548")
+    deobfRuntimeOnly("curse.maven:supermartijn642s-core-lib-454372:7521738")
+    deobfRuntimeOnly("curse.maven:supermartijn642s-config-lib-438332:4715393")
+    deobfRuntimeOnly("curse.maven:trash-cans-394535:4606884")
+    deobfRuntimeOnly("curse.maven:building-gadgets-298187:3005950")
+    deobfCompileOnly("mezz.jei:jei_1.12.2:4.16.1.1013")
+    deobfRuntimeOnly("curse.maven:ender-utilities-224320:2977010")
+    deobfRuntimeOnly("curse.maven:flare-692142:6598523")
+    deobfRuntimeOnly("curse.maven:packagedauto-308380:7329681")
+    deobfImplementation("curse.maven:mekanism-268560:2835175")
 }

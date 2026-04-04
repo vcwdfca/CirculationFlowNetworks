@@ -14,24 +14,21 @@ import javax.annotation.Nullable;
 
 public final class FEHandler implements IEnergyHandler {
 
+    private static final Direction[] DIRECTIONS = Direction.values();
+
     @Nullable
     private IEnergyStorage send;
     @Nullable
     private IEnergyStorage receive;
     private EnergyType energyType;
 
-    public FEHandler(BlockEntity blockEntity) {
-        init(blockEntity, null);
-    }
-
-    public FEHandler(ItemStack stack) {
-        init(stack, null);
+    public FEHandler() {
     }
 
     @Override
     public IEnergyHandler init(BlockEntity blockEntity, @Nullable HubNode.HubMetadata hubMetadata) {
-        for (Direction direction : Direction.values()) {
-            if (this.getType(hubMetadata) == EnergyType.STORAGE) break;
+        for (Direction direction : DIRECTIONS) {
+            if (send != null && receive != null) break;
             var optional = blockEntity.getCapability(ForgeCapabilities.ENERGY, direction);
             optional.ifPresent(ies -> {
                 if (ies.canExtract() && this.send == null) {
@@ -57,7 +54,7 @@ public final class FEHandler implements IEnergyHandler {
     }
 
     @Override
-    public void clear(@Nullable HubNode.HubMetadata hubMetadata) {
+    public void clear() {
         send = null;
         receive = null;
         energyType = null;

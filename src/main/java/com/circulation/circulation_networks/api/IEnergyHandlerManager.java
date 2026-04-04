@@ -16,10 +16,10 @@ public interface IEnergyHandlerManager extends Comparable<IEnergyHandlerManager>
 
     int getPriority();
 
-    IEnergyHandler newInstance(TileEntity tileEntity);
+    IEnergyHandler newBlockEntityInstance();
     //~}
 
-    IEnergyHandler newInstance(ItemStack itemStack);
+    IEnergyHandler newItemInstance();
 
     default String getUnit() {
         return "FE";

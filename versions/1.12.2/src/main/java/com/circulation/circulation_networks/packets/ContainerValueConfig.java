@@ -39,6 +39,54 @@ public class ContainerValueConfig implements Packet<ContainerValueConfig> {
         this.BytesValue = value != null ? value.clone() : new byte[0];
     }
 
+    private static byte[] deflate(byte[] input) {
+        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
+        deflater.setInput(input);
+        deflater.finish();
+
+        byte[] buffer = new byte[Math.max(256, Math.min(4096, input.length))];
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length)) {
+            while (!deflater.finished()) {
+                int written = deflater.deflate(buffer);
+                if (written <= 0) {
+                    break;
+                }
+                output.write(buffer, 0, written);
+            }
+            return output.toByteArray();
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to deflate container sync payload", e);
+        } finally {
+            deflater.end();
+        }
+    }
+
+    private static byte[] inflate(byte[] input) {
+        Inflater inflater = new Inflater();
+        inflater.setInput(input);
+
+        byte[] buffer = new byte[Math.max(256, Math.min(4096, input.length * 2))];
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length * 2)) {
+            while (!inflater.finished()) {
+                int written = inflater.inflate(buffer);
+                if (written > 0) {
+                    output.write(buffer, 0, written);
+                    continue;
+                }
+                if (inflater.needsDictionary() || inflater.needsInput()) {
+                    break;
+                }
+            }
+            return output.toByteArray();
+        } catch (DataFormatException e) {
+            throw new IllegalStateException("Failed to inflate container sync payload", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read container sync payload", e);
+        } finally {
+            inflater.end();
+        }
+    }
+
     @Override
     public void fromBytes(ByteBuf buf) {
         this.Name = buf.readShort();
@@ -91,53 +139,5 @@ public class ContainerValueConfig implements Packet<ContainerValueConfig> {
             }
         }
         return null;
-    }
-
-    private static byte[] deflate(byte[] input) {
-        Deflater deflater = new Deflater(Deflater.BEST_SPEED);
-        deflater.setInput(input);
-        deflater.finish();
-
-        byte[] buffer = new byte[Math.max(256, Math.min(4096, input.length))];
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length)) {
-            while (!deflater.finished()) {
-                int written = deflater.deflate(buffer);
-                if (written <= 0) {
-                    break;
-                }
-                output.write(buffer, 0, written);
-            }
-            return output.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to deflate container sync payload", e);
-        } finally {
-            deflater.end();
-        }
-    }
-
-    private static byte[] inflate(byte[] input) {
-        Inflater inflater = new Inflater();
-        inflater.setInput(input);
-
-        byte[] buffer = new byte[Math.max(256, Math.min(4096, input.length * 2))];
-        try (ByteArrayOutputStream output = new ByteArrayOutputStream(input.length * 2)) {
-            while (!inflater.finished()) {
-                int written = inflater.inflate(buffer);
-                if (written > 0) {
-                    output.write(buffer, 0, written);
-                    continue;
-                }
-                if (inflater.needsDictionary() || inflater.needsInput()) {
-                    break;
-                }
-            }
-            return output.toByteArray();
-        } catch (DataFormatException e) {
-            throw new IllegalStateException("Failed to inflate container sync payload", e);
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to read container sync payload", e);
-        } finally {
-            inflater.end();
-        }
     }
 }

@@ -20,17 +20,12 @@ public final class FEHandler implements IEnergyHandler {
     private IEnergyStorage receive;
     private EnergyType energyType;
 
-    public FEHandler(TileEntity tileEntity) {
-        init(tileEntity, null);
-    }
-
-    public FEHandler(ItemStack stack) {
-        init(stack, null);
+    public FEHandler() {
     }
 
     @Override
     public IEnergyHandler init(TileEntity tileEntity, @Nullable HubNode.HubMetadata hubMetadata) {
-        for (int i = 0; i < 6 && this.getType(hubMetadata) != EnergyType.STORAGE; i++) {
+        for (int i = 0; i < 6 && (this.send == null || this.receive == null); i++) {
             EnumFacing facing = EnumFacing.VALUES[i];
             var ies = tileEntity.getCapability(CapabilityEnergy.ENERGY, facing);
             if (ies == null) continue;
@@ -55,7 +50,7 @@ public final class FEHandler implements IEnergyHandler {
     }
 
     @Override
-    public void clear(@Nullable HubNode.HubMetadata hubMetadata) {
+    public void clear() {
         send = null;
         receive = null;
         energyType = null;

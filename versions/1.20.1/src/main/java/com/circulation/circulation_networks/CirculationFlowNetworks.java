@@ -1,6 +1,9 @@
 package com.circulation.circulation_networks;
 
+import com.circulation.circulation_networks.api.ICirculationShielderBlockEntity;
 import com.circulation.circulation_networks.api.INodeBlockEntity;
+import com.circulation.circulation_networks.energy.manager.FEHandlerManager;
+import com.circulation.circulation_networks.energy.manager.MEKHandlerManager;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
 import com.circulation.circulation_networks.manager.BlockEntityLifecycleDispatcher;
 import com.circulation.circulation_networks.manager.ChargingManager;
@@ -15,32 +18,36 @@ import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.packets.PocketNodeRendering;
 import com.circulation.circulation_networks.packets.RenderingClear;
+import com.circulation.circulation_networks.registry.RegistryBlocks;
+import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.registry.RegistryItems;
-import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.HubPlatformServices;
+import com.circulation.circulation_networks.utils.HubTeamServices;
 import com.circulation.circulation_networks.utils.Packet;
 import dev.ftb.mods.ftbteams.api.FTBTeamsAPI;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.event.level.ChunkEvent;
 import net.minecraftforge.event.level.LevelEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent;
 import net.minecraftforge.event.server.ServerAboutToStartEvent;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.server.ServerLifecycleHooks;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,21 +60,16 @@ public final class CirculationFlowNetworks {
     public static final String MOD_ID = "circulation_networks";
     public static final Logger LOGGER = LogManager.getLogger(MOD_ID);
 
-    public static <T extends Packet<T>> void sendToPlayer(T packet, ServerPlayer player) {
-        CFNNetwork.sendToPlayer(packet, player);
-    }
-
-    public static <T extends Packet<T>> void sendToServer(T packet) {
-        CFNNetwork.sendToServer(packet);
-    }
-
     public CirculationFlowNetworks() {
         CFNNetwork.register();
         CFNConfig.register();
         var modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         RegistryItems.register(modEventBus);
+        RegistryBlocks.register(modEventBus);
+        registerEnergyHandlers();
         modEventBus.addListener(CFNConfig::onConfigLoad);
         modEventBus.addListener(CFNConfig::onConfigReload);
+        modEventBus.addListener(this::onLoadComplete);
         if (FMLEnvironment.dist.isClient()) {
             CirculationFlowNetworksClient.init();
         }
@@ -82,6 +84,38 @@ public final class CirculationFlowNetworks {
         MinecraftForge.EVENT_BUS.addListener(this::onPlayerLoggedIn);
         MinecraftForge.EVENT_BUS.addListener(this::onPlayerLoggedOut);
         MinecraftForge.EVENT_BUS.addListener(this::onPlayerChangedDimension);
+        MinecraftForge.EVENT_BUS.addListener(this::onServerTick);
+    }
+
+    public static <T extends Packet<T>> void sendToPlayer(T packet, ServerPlayer player) {
+        CFNNetwork.sendToPlayer(packet, player);
+    }
+
+    public static <T extends Packet<T>> void sendToServer(T packet) {
+        CFNNetwork.sendToServer(packet);
+    }
+
+    public static void onBlockEntityValidate(Level level, BlockPos pos, BlockEntity blockEntity) {
+        var event = new BlockEntityLifeCycleEvent.Validate(level, pos, blockEntity);
+        BlockEntityLifecycleDispatcher.onValidate(event);
+        MinecraftForge.EVENT_BUS.post(event);
+    }
+
+    public static void onBlockEntityInvalidate(Level level, BlockPos pos, BlockEntity blockEntity) {
+        var event = new BlockEntityLifeCycleEvent.Invalidate(level, pos, blockEntity);
+        BlockEntityLifecycleDispatcher.onInvalidate(event);
+        MinecraftForge.EVENT_BUS.post(event);
+    }
+
+    private void registerEnergyHandlers() {
+        RegistryEnergyHandler.registerEnergyHandler(new FEHandlerManager());
+        if (ModList.get().isLoaded("mekanism")) {
+            RegistryEnergyHandler.registerEnergyHandler(new MEKHandlerManager());
+        }
+    }
+
+    private void onLoadComplete(FMLLoadCompleteEvent event) {
+        RegistryEnergyHandler.lock();
     }
 
     private void installPlatformServices() {
@@ -122,12 +156,20 @@ public final class CirculationFlowNetworks {
         PocketNodeManager.INSTANCE.load();
     }
 
+    private void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            EnergyMachineManager.INSTANCE.onServerTick();
+        } else {
+            MachineNodeBlockEntityManager.INSTANCE.onServerTick();
+        }
+    }
+
     private void onChunkLoad(ChunkEvent.Load event) {
         if (!(event.getLevel() instanceof Level level) || level.isClientSide() || !(event.getChunk() instanceof LevelChunk chunk)) {
             return;
         }
         for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-            if (blockEntity instanceof INodeBlockEntity) {
+            if (blockEntity instanceof INodeBlockEntity || blockEntity instanceof ICirculationShielderBlockEntity) {
                 onBlockEntityValidate(level, blockEntity.getBlockPos(), blockEntity);
             }
         }
@@ -191,13 +233,5 @@ public final class CirculationFlowNetworks {
             sendToPlayer(RenderingClear.INSTANCE, player);
             sendToPlayer(new PocketNodeRendering(player), player);
         }
-    }
-
-    public static void onBlockEntityValidate(Level level, BlockPos pos, BlockEntity blockEntity) {
-        BlockEntityLifecycleDispatcher.onValidate(new BlockEntityLifeCycleEvent.Validate(level, pos, blockEntity));
-    }
-
-    public static void onBlockEntityInvalidate(Level level, BlockPos pos, BlockEntity blockEntity) {
-        BlockEntityLifecycleDispatcher.onInvalidate(new BlockEntityLifeCycleEvent.Invalidate(level, pos, blockEntity));
     }
 }

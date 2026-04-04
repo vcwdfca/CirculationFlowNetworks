@@ -410,21 +410,21 @@ An energy handler that wraps a specific energy system such as FE or EU. Instance
 
 | Method                             | Return Type   | Description                                                                  |
 |------------------------------------|---------------|------------------------------------------------------------------------------|
-| `release(TileEntity, HubMetadata)` | `static void` | Releases a handler instance associated with a block entity back to the pool. |
-| `release(ItemStack, HubMetadata)`  | `static void` | Releases a handler instance associated with an item stack back to the pool.  |
-| `init(TileEntity, HubMetadata)`    | `void`        | Initializes the handler from a block entity.                                 |
-| `init(ItemStack, HubMetadata)`     | `void`        | Initializes the handler from an item stack.                                  |
-| `clear(HubMetadata)`               | `void`        | Clears internal state.                                                       |
-| `recycle(HubMetadata)`             | `void`        | Recycles the handler back to the pool.                                       |
+| `release(TileEntity, HubMetadata)` | `static @Nullable IEnergyHandler` | Obtains a pooled handler for a block entity, or creates one if the pool is empty. |
+| `release(ItemStack, HubMetadata)`  | `static @Nullable IEnergyHandler` | Obtains a pooled handler for an item stack, or creates one if the pool is empty.  |
+| `init(TileEntity, HubMetadata)`    | `IEnergyHandler` | Initializes the handler from a block entity and returns `this`.                |
+| `init(ItemStack, HubMetadata)`     | `IEnergyHandler` | Initializes the handler from an item stack and returns `this`.                 |
+| `clear()`                          | `void`        | Clears internal state only. This lifecycle reset no longer depends on hub metadata. |
+| `recycle()`                        | `void`        | Calls `clear()` and returns the handler to the pool.                          |
 
 **Energy operations**:
 
 | Method                                     | Return Type  | Description                                                                                           |
 |--------------------------------------------|--------------|-------------------------------------------------------------------------------------------------------|
-| `receiveEnergy(EnergyAmount, HubMetadata)` | `void`       | Injects energy into the container. The remaining value in `EnergyAmount` is the unaccepted portion.   |
-| `extractEnergy(EnergyAmount, HubMetadata)` | `void`       | Extracts energy from the container. The value accumulated in `EnergyAmount` is the extracted portion. |
-| `canExtractValue(HubMetadata)`             | `boolean`    | Whether the container has extractable energy.                                                         |
-| `canReceiveValue(HubMetadata)`             | `boolean`    | Whether the container can accept more energy.                                                         |
+| `receiveEnergy(EnergyAmount, HubMetadata)` | `EnergyAmount` | Injects energy and returns the amount that was actually accepted.                                      |
+| `extractEnergy(EnergyAmount, HubMetadata)` | `EnergyAmount` | Extracts energy and returns the amount that was actually extracted.                                    |
+| `canExtractValue(HubMetadata)`             | `EnergyAmount` | Returns the currently extractable amount.                                                              |
+| `canReceiveValue(HubMetadata)`             | `EnergyAmount` | Returns the currently receivable amount.                                                               |
 | `canExtract(IEnergyHandler, HubMetadata)`  | `boolean`    | Whether energy can be extracted from this handler for compatibility checks.                           |
 | `canReceive(IEnergyHandler, HubMetadata)`  | `boolean`    | Whether energy can be injected into this handler for compatibility checks.                            |
 | `getType(HubMetadata)`                     | `EnergyType` | The handler's energy type.                                                                            |
@@ -453,10 +453,10 @@ Energy handler manager interface. Each energy system must implement this interfa
 | `isAvailable(ItemStack)`  | `boolean`                         | Whether an item stack is handled by this manager.    |
 | `getEnergyHandlerClass()` | `Class<? extends IEnergyHandler>` | Returns the associated handler implementation class. |
 | `getPriority()`           | `int`                             | Manager priority. Lower values are checked first.    |
-| `newInstance(TileEntity)` | `IEnergyHandler`                  | Creates a new handler instance for a block entity.   |
-| `newInstance(ItemStack)`  | `IEnergyHandler`                  | Creates a new handler instance for an item stack.    |
+| `newBlockEntityInstance()` | `IEnergyHandler`                | Creates a fresh handler instance for block-entity use. |
+| `newItemInstance()`        | `IEnergyHandler`                | Creates a fresh handler instance for item use.         |
 | `getUnit()`               | `String`                          | Default: `"FE"`. Returns the energy unit name.       |
-| `getMultiplying()`        | `int`                             | Default: `1`. Returns the unit multiplier.           |
+| `getMultiplying()`        | `double`                          | Default: `1`. Returns the unit multiplier.           |
 
 **Custom energy system example**:
 
@@ -484,13 +484,13 @@ public class MyEnergyManager implements IEnergyHandlerManager {
     }
 
     @Override
-    public IEnergyHandler newInstance(TileEntity tile) {
-        return new MyEnergyHandler(tile);
+    public IEnergyHandler newBlockEntityInstance() {
+        return new MyEnergyHandler();
     }
 
     @Override
-    public IEnergyHandler newInstance(ItemStack stack) {
-        return new MyEnergyHandler(stack);
+    public IEnergyHandler newItemInstance() {
+        return new MyEnergyHandler();
     }
 
     @Override

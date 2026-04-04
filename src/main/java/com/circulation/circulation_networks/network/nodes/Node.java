@@ -236,6 +236,11 @@ public class Node implements INode {
     //~}
 
     @Override
+    public int getDimensionId() {
+        return dimensionId;
+    }
+
+    @Override
     public ReferenceSet<INode> getNeighbors() {
         return ReferenceSets.unmodifiable(neighbors);
     }

@@ -1,9 +1,9 @@
 package com.circulation.circulation_networks.energy.handler;
 
 import com.circulation.circulation_networks.api.EnergyAmount;
-import com.circulation.circulation_networks.api.EnergyAmounts;
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.network.nodes.HubNode;
+import com.circulation.circulation_networks.utils.EnergyAmountConversionUtils;
 import mekanism.api.energy.IEnergizedItem;
 import mekanism.api.energy.IStrictEnergyAcceptor;
 import mekanism.api.energy.IStrictEnergyOutputter;
@@ -16,10 +16,15 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 
 import javax.annotation.Nullable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public final class MEKHandler implements IEnergyHandler {
 
     private static final Class<?> inductionPort;
+    private static final double FE_TO_MEK_RATIO = 2.5D;
+    private static final BigInteger MAX_DIRECT_DOUBLE_TRANSFER = BigDecimal.valueOf(Double.MAX_VALUE).toBigInteger();
+    private static final BigInteger MAX_SCALED_DOUBLE_TRANSFER = BigDecimal.valueOf(Double.MAX_VALUE / FE_TO_MEK_RATIO).toBigInteger();
 
     static {
         Class<?> temp;
@@ -35,41 +40,52 @@ public final class MEKHandler implements IEnergyHandler {
         inductionPort = temp;
     }
 
-    private long maxOutput = Long.MAX_VALUE;
+    private final EnergyAmount maxOutput = EnergyAmountConversionUtils.obtainFromDoubleFloor(Double.MAX_VALUE);
+    private final EnergyAmount needEnergy = EnergyAmount.obtain(0L);
     @Nullable
     private IStrictEnergyStorage send;
     @Nullable
     private IStrictEnergyStorage receive;
-
     private boolean isItem;
     private IEnergizedItem receiveItem;
     private ItemStack stack = ItemStack.EMPTY;
-    private long needEnergy;
-
     private EnergyType energyType = EnergyType.INVALID;
     private boolean creative;
 
-    public MEKHandler(TileEntity tileEntity) {
-        init(tileEntity, null);
+    public MEKHandler() {
     }
 
-    public MEKHandler(ItemStack itemStack) {
-        init(itemStack, null);
+    private static void clampToDirectTransfer(EnergyAmount amount) {
+        clampToMaximum(amount, MAX_DIRECT_DOUBLE_TRANSFER);
+    }
+
+    private static void clampToScaledTransfer(EnergyAmount amount) {
+        clampToMaximum(amount, MAX_SCALED_DOUBLE_TRANSFER);
+    }
+
+    private static void clampToMaximum(EnergyAmount amount, BigInteger maximum) {
+        if (amount == null || !amount.isInitialized() || amount.isNegative()) {
+            return;
+        }
+        if (amount.asBigInteger().compareTo(maximum) > 0) {
+            amount.init(maximum);
+        }
     }
 
     @Override
     public IEnergyHandler init(TileEntity tileEntity, @Nullable HubNode.HubMetadata hubMetadata) {
+        EnergyAmountConversionUtils.setFromDoubleFloor(maxOutput, Double.MAX_VALUE);
         if (tileEntity instanceof TileEntityEnergyCube te) {
             creative = te.tier == EnergyCubeTier.CREATIVE;
             send = (IStrictEnergyStorage) tileEntity;
             receive = (IStrictEnergyStorage) tileEntity;
             energyType = EnergyType.STORAGE;
-            maxOutput = (long) te.getMaxOutput();
+            EnergyAmountConversionUtils.setFromDoubleFloor(maxOutput, te.getMaxOutput());
         } else if (inductionPort != null && inductionPort.isInstance(tileEntity)) {
             send = (IStrictEnergyStorage) tileEntity;
             receive = (IStrictEnergyStorage) tileEntity;
             energyType = EnergyType.STORAGE;
-            maxOutput = (long) ((IEnergyWrapper) tileEntity).getMaxOutput();
+            EnergyAmountConversionUtils.setFromDoubleFloor(maxOutput, ((IEnergyWrapper) tileEntity).getMaxOutput());
         } else {
             boolean a = false;
             boolean b = false;
@@ -92,7 +108,7 @@ public final class MEKHandler implements IEnergyHandler {
             else if (b) energyType = EnergyType.SEND;
 
             if (tileEntity instanceof IEnergyWrapper te && te.getMaxOutput() != 0) {
-                maxOutput = (long) te.getMaxOutput();
+                EnergyAmountConversionUtils.setFromDoubleFloor(maxOutput, te.getMaxOutput());
             }
         }
         return this;
@@ -104,66 +120,65 @@ public final class MEKHandler implements IEnergyHandler {
         receiveItem = (IEnergizedItem) itemStack.getItem();
         double i = receiveItem.getMaxTransfer(itemStack);
         double r = (receiveItem.getMaxEnergy(itemStack) - receiveItem.getEnergy(itemStack)) / 10;
-        needEnergy = (long) (i == 0 ? r : Math.min(r, i));
+        EnergyAmountConversionUtils.setFromDoubleFloor(needEnergy, Math.max(0.0D, i == 0 ? r : Math.min(r, i)));
         stack = itemStack;
         energyType = EnergyType.RECEIVE;
         return this;
     }
 
     @Override
-    public void clear(@Nullable HubNode.HubMetadata hubMetadata) {
-        maxOutput = Long.MAX_VALUE;
+    public void clear() {
+        EnergyAmountConversionUtils.setFromDoubleFloor(maxOutput, Double.MAX_VALUE);
         send = null;
         receive = null;
         receiveItem = null;
         energyType = EnergyType.INVALID;
         creative = false;
         isItem = false;
-        needEnergy = 0;
+        needEnergy.setZero();
         stack = ItemStack.EMPTY;
     }
 
     @Override
     public EnergyAmount receiveEnergy(EnergyAmount maxReceive, @Nullable HubNode.HubMetadata hubMetadata) {
         if (isItem) {
-            var i = Math.min(needEnergy, maxReceive.asLongClamped());
-            receiveItem.setEnergy(stack, receiveItem.getEnergy(stack) + i);
-            needEnergy -= i;
-            return EnergyAmount.obtain(i);
-        } else {
-            if (receive == null) return EnergyAmounts.ZERO;
-            EnergyAmount receivable = canReceiveValue(hubMetadata);
-            long i;
-            try {
-                i = Math.min(receivable.asLongClamped(), maxReceive.asLongClamped());
-            } finally {
-                receivable.recycle();
+            EnergyAmount accepted = EnergyAmount.obtain(needEnergy).min(maxReceive);
+            clampToDirectTransfer(accepted);
+            if (!accepted.isZero()) {
+                receiveItem.setEnergy(stack, receiveItem.getEnergy(stack) + EnergyAmountConversionUtils.toDoubleClamped(accepted));
+                needEnergy.subtract(accepted);
             }
-            receive.setEnergy(receive.getEnergy() + i * 2.5);
-            return EnergyAmount.obtain(i);
+            return accepted;
+        } else {
+            if (receive == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+            EnergyAmount receivable = canReceiveValue(hubMetadata);
+            receivable.min(maxReceive);
+            clampToScaledTransfer(receivable);
+            if (!receivable.isZero()) {
+                receive.setEnergy(receive.getEnergy() + EnergyAmountConversionUtils.toDoubleClamped(receivable) * FE_TO_MEK_RATIO);
+            }
+            return receivable;
         }
     }
 
     @Override
     public EnergyAmount extractEnergy(EnergyAmount maxExtract, @Nullable HubNode.HubMetadata hubMetadata) {
-        if (send == null) return EnergyAmounts.ZERO;
+        if (send == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
         EnergyAmount extractable = canExtractValue(hubMetadata);
-        long o;
-        try {
-            o = Math.min(extractable.asLongClamped(), maxExtract.asLongClamped());
-        } finally {
-            extractable.recycle();
+        extractable.min(maxExtract);
+        clampToScaledTransfer(extractable);
+        if (!extractable.isZero() && !creative) {
+            send.setEnergy(send.getEnergy() - EnergyAmountConversionUtils.toDoubleClamped(extractable) * FE_TO_MEK_RATIO);
         }
-        if (!creative) send.setEnergy(send.getEnergy() - o * 2.5);
-        return EnergyAmount.obtain(o);
+        return extractable;
     }
 
     @Override
     public EnergyAmount canExtractValue(@Nullable HubNode.HubMetadata hubMetadata) {
-        if (send == null) return EnergyAmounts.ZERO;
-        if (creative) return EnergyAmounts.LONG_MAX;
-        double o = send.getEnergy() * 0.4;
-        return EnergyAmount.obtain(Math.min((long) o, maxOutput));
+        if (send == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+        if (creative) return EnergyAmount.obtain(maxOutput);
+        EnergyAmount extractable = EnergyAmountConversionUtils.obtainFromDoubleFloor(send.getEnergy() * 0.4D);
+        return extractable.min(maxOutput);
     }
 
     @Override
@@ -171,9 +186,9 @@ public final class MEKHandler implements IEnergyHandler {
         if (isItem) {
             return EnergyAmount.obtain(needEnergy);
         } else {
-            if (receive == null) return EnergyAmounts.ZERO;
-            double i = (receive.getMaxEnergy() - receive.getEnergy()) * 0.4;
-            return EnergyAmount.obtain(Math.min((long) i, maxOutput));
+            if (receive == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+            EnergyAmount receivable = EnergyAmountConversionUtils.obtainFromDoubleFloor((receive.getMaxEnergy() - receive.getEnergy()) * 0.4D);
+            return receivable.min(maxOutput);
         }
     }
 
@@ -185,8 +200,8 @@ public final class MEKHandler implements IEnergyHandler {
 
     @Override
     public boolean canReceive(IEnergyHandler sendHandler, @Nullable HubNode.HubMetadata hubMetadata) {
-        if (isItem) return needEnergy > 0;
-        else return receive != null && (receive.getMaxEnergy() - receive.getEnergy()) * 0.4 >= 0;
+        if (isItem) return needEnergy.isPositive();
+        else return receive != null && (receive.getMaxEnergy() - receive.getEnergy()) * 0.4D > 0.0D;
     }
 
     @Override

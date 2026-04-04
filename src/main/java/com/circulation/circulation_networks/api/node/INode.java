@@ -24,6 +24,12 @@ public interface INode {
     @Nonnull
     World getWorld();
 
+    //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
+    default int getDimensionId() {
+        return getWorld().provider.getDimension();
+    }
+    //~}
+
     @Nonnull
     NodeType<?> getNodeType();
 

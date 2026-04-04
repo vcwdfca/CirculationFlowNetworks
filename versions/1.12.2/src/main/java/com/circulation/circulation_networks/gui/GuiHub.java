@@ -20,9 +20,9 @@ import com.circulation.circulation_networks.gui.component.base.Component;
 import com.circulation.circulation_networks.gui.component.base.DraggableComponent;
 import com.circulation.circulation_networks.gui.component.base.RenderPhase;
 import com.circulation.circulation_networks.packets.UpdatePlayerChargingMode;
+import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.utils.CI18n;
 import com.circulation.circulation_networks.utils.FormatNumberUtils;
-import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.text.TextFormatting;
@@ -40,8 +40,12 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
     private int state;
     private String oldInput;
     private String oldOutput;
+    private String oldInteractionTimeMicros;
+    private int oldNodeCount = Integer.MIN_VALUE;
     private String oldFI;
     private String oldFO;
+    private String oldFT;
+    private String oldNodeCountText;
 
     private ButtonComponent node, playerPowerSupply, upgradePlugin, channel, permission, settings;
     private Component nodeUI, playerPowerSupplyUI, upgradePluginUI, channelUI, permissionUI, settingsUI;
@@ -131,10 +135,13 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
                     ++state;
                     oldInput = null;
                     oldOutput = null;
+                    oldInteractionTimeMicros = null;
                 }).addTooltip(boldTooltip("gui.hub.tooltip.energy_display"))
             )
         );
         bg.add(new TextComponent(11, 12, this, () -> f(container.input, true), 0x79d7ff));
+        bg.add(new TextComponent(120, 16, this, this::formatInteractionTime, 0x79d7ff));
+        bg.add(new TextComponent(11, 124, this, this::formatNodeCount, 0x79d7ff));
         bg.add(new TextComponent(105, 127, this, () -> f(container.output, false), 0x79d7ff));
         List<Component> n = components.computeIfAbsent(RenderPhase.NORMAL, k -> new ObjectArrayList<>());
         int i = -1;
@@ -184,13 +191,13 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
             )
         );
         n.add(channelUI = new ChannelListPanelComponent(37, 0, this, container, () -> {
-            if (settingsUI instanceof ChannelSettingsDialogComponent dialog) {
-                dialog.openCreate();
-                settings.setEnabled(true);
-            }
-        })
-            .setVisible(false)
-            .addChild(getNewClose(channel, 8, 8))
+                if (settingsUI instanceof ChannelSettingsDialogComponent dialog) {
+                    dialog.openCreate();
+                    settings.setEnabled(true);
+                }
+            })
+                .setVisible(false)
+                .addChild(getNewClose(channel, 8, 8))
         );
         n.add(permissionUI = new PermissionListPanelComponent(37, 0, this, container)
             .setVisible(false)
@@ -260,6 +267,36 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
         final String o = (IO ? "I : " : "O : ") + FormatNumberUtils.formatNumber(e) + " " + p.unit() + "/t";
         e.recycle();
         return IO ? (oldFI = o) : (oldFO = o);
+    }
+
+    private String formatInteractionTime() {
+        if (Objects.equals(container.interactionTimeMicros, oldInteractionTimeMicros)) {
+            return oldFT;
+        }
+        oldInteractionTimeMicros = container.interactionTimeMicros;
+        long micros;
+        try {
+            micros = Long.parseLong(container.interactionTimeMicros);
+        } catch (NumberFormatException ignored) {
+            micros = 0L;
+        }
+        String value;
+        if (micros >= 100L) {
+            value = FormatNumberUtils.formatDouble(micros / 1000D, 1) + "ms";
+        } else {
+            value = FormatNumberUtils.formatNumber(micros) + "μs";
+        }
+        return oldFT = CI18n.format("gui.hub.energy_latency", value);
+    }
+
+    private String formatNodeCount() {
+        int nodeCount = container.nodes != null ? container.nodes.getEntries().size() : 0;
+        if (nodeCount == oldNodeCount) {
+            return oldNodeCountText;
+        }
+        oldNodeCount = nodeCount;
+        String value = FormatNumberUtils.formatNumber(nodeCount);
+        return oldNodeCountText = CI18n.format("gui.hub.node_count", value);
     }
 
     private String boldTooltip(String key) {

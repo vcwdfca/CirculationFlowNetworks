@@ -92,6 +92,10 @@
     }
   },
   "gui": {
+    "hub": {
+      "energy_latency": "延迟:%s/t",
+      "node_count": "节点数:%s"
+    },
     "circulation_shielder": {
       "title": "环流屏蔽仪配置",
       "show_range": "显示范围",
