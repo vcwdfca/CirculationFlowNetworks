@@ -34,7 +34,7 @@ Breaking the pedestal drops the node above it.
 The basic unit of the energy network. Detects energy machines (generators, consumers, storage) within range and connects
 them to the network.
 
-- Energy detection range: 8 blocks (configurable)
+- Energy detection range: 8 blocks
 - Link range: 12 blocks
 
 ### Charging Node
@@ -42,7 +42,7 @@ them to the network.
 Charges items in the inventory of players within range. Charging slots are configured through the Hub's charging
 settings tab.
 
-- Charging range: 5 blocks (configurable)
+- Charging range: 5 blocks
 - Link range: 8 blocks
 
 ### Relay Node

@@ -3,6 +3,7 @@ package com.circulation.circulation_networks.registry;
 import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
 import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
 import com.circulation.circulation_networks.items.ItemInspectionTool;
+import com.circulation.circulation_networks.items.ItemMaterial;
 import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
@@ -26,16 +27,25 @@ public final class RegistryItems {
     public static ItemHubChannelPlugin hubChannelPlugin;
     public static ItemWideAreaChargingPlugin wideAreaChargingPlugin;
     public static ItemDimensionalChargingPlugin dimensionalChargingPlugin;
+    public static ItemMaterial circulationSourceCrystal;
+    public static ItemMaterial infernalMeltingCrystal;
+    public static ItemMaterial endCoreCrystal;
 
     public static void registerItems(RegistryEvent.Register<Item> event) {
         inspectionTool = registryItem(new ItemInspectionTool());
         hubChannelPlugin = registryItem(new ItemHubChannelPlugin());
         wideAreaChargingPlugin = registryItem(new ItemWideAreaChargingPlugin());
         dimensionalChargingPlugin = registryItem(new ItemDimensionalChargingPlugin());
+        circulationSourceCrystal = registryItem(new ItemMaterial("circulation_source_crystal"));
+        infernalMeltingCrystal = registryItem(new ItemMaterial("infernal_melting_crystal"));
+        endCoreCrystal = registryItem(new ItemMaterial("end_core_crystal"));
         CFNItems.inspectionTool = inspectionTool;
         CFNItems.hubChannelPlugin = hubChannelPlugin;
         CFNItems.wideAreaChargingPlugin = wideAreaChargingPlugin;
         CFNItems.dimensionalChargingPlugin = dimensionalChargingPlugin;
+        CFNItems.circulationSourceCrystal = circulationSourceCrystal;
+        CFNItems.infernalMeltingCrystal = infernalMeltingCrystal;
+        CFNItems.endCoreCrystal = endCoreCrystal;
 
         ITEMS_TO_REGISTER.forEach(event.getRegistry()::register);
         ITEMS_TO_REGISTER.clear();

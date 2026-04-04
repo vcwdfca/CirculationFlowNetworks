@@ -1,12 +1,17 @@
 package com.circulation.circulation_networks.registry;
 
-//~ mc_imports
-
-import net.minecraft.item.Item;
+import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
+import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
+import com.circulation.circulation_networks.items.ItemInspectionTool;
+import com.circulation.circulation_networks.items.ItemMaterial;
+import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
 
 public final class CFNItems {
-    public static Item inspectionTool;
-    public static Item hubChannelPlugin;
-    public static Item wideAreaChargingPlugin;
-    public static Item dimensionalChargingPlugin;
+    public static ItemInspectionTool inspectionTool;
+    public static ItemHubChannelPlugin hubChannelPlugin;
+    public static ItemWideAreaChargingPlugin wideAreaChargingPlugin;
+    public static ItemDimensionalChargingPlugin dimensionalChargingPlugin;
+    public static ItemMaterial circulationSourceCrystal;
+    public static ItemMaterial infernalMeltingCrystal;
+    public static ItemMaterial endCoreCrystal;
 }

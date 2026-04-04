@@ -41,6 +41,13 @@ public final class RegistryBlocks {
         prepareItemBlockRegister(blockHub = registerBlock(new BlockHub()));
         prepareItemBlockRegister(blockNodePedestal = registerBlock(new BlockNodePedestal()));
 
+        CFNBlocks.blockPortNode = blockPortNode;
+        CFNBlocks.blockChargingNode = blockChargingNode;
+        CFNBlocks.blockRelayNode = blockRelayNode;
+        CFNBlocks.blockCirculationShielder = blockCirculationShielder;
+        CFNBlocks.blockHub = blockHub;
+        CFNBlocks.blockNodePedestal = blockNodePedestal;
+
         BLOCKS_TO_REGISTER.forEach(event.getRegistry()::register);
         BLOCKS_TO_REGISTER.clear();
     }

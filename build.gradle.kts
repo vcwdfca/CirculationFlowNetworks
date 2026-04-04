@@ -544,9 +544,9 @@ dependencies {
 
 if (isLegacyRfg && propertyBool("use_access_transformer")) {
     propertyStringList("access_transformer_locations").forEach { location ->
-        var fileLocation = file("$projectDir/src/main/resources/META-INF/$location")
+        var fileLocation = file("$projectDir/src/main/resources/$location")
         if (!fileLocation.exists()) {
-            fileLocation = rootProject.file("src/main/resources/META-INF/$location")
+            fileLocation = rootProject.file("src/main/resources/$location")
         }
 
         if (!fileLocation.exists()) {

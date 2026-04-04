@@ -31,6 +31,10 @@ item.circulation_networks.inspection_tool.tooltip.0=§8§oIf a hammer can be a w
 item.circulation_networks.inspection_tool.mode.inspection.description=Sneak + Right-click node machine to display node-specific information
 item.circulation_networks.inspection_tool.mode.configuration.description=Sneak + Right-click machine to override network automation machine type detection
 
+item.circulation_networks.circulation_source_crystal.name=Circulation Source Crystal
+item.circulation_networks.infernal_melting_crystal.name=Infernal Melting Crystal
+item.circulation_networks.end_core_crystal.name=End Core Crystal
+
 item.circulation_networks.hub_channel_plugin.name=Hub Channel Plugin
 item.circulation_networks.hub_channel_plugin.channel=§7Channel: §b%s §7(§b%s§7)
 item.circulation_networks.hub_channel_plugin.no_channel=§7No channel configured

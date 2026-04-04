@@ -58,7 +58,7 @@ public final class CFNConfig {
         builder.pop();
 
         builder.push("RelayNode");
-        RELAY_NODE_LINK_SCOPE = builder.comment("Link range of Circulation Relay Node").defineInRange("linkScope", 20.0, 1.0, 32.0);
+        RELAY_NODE_LINK_SCOPE = builder.comment("Link range of Circulation Relay Node").defineInRange("linkScope", 20.0, 1.0, 64.0);
         builder.pop();
 
         builder.push("Hub");

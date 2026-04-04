@@ -11,7 +11,10 @@
   "item": {
     "circulation_networks": {
       "inspection_tool": "Circulation Wrench",
-      "hub_channel_plugin": "Hub Channel Plugin"
+      "hub_channel_plugin": "Hub Channel Plugin",
+      "circulation_source_crystal": "Circulation Source Crystal",
+      "infernal_melting_crystal": "Infernal Melting Crystal",
+      "end_core_crystal": "End Core Crystal"
     }
   },
   "inspection_tool": {

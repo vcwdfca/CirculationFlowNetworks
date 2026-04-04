@@ -11,7 +11,10 @@
   "item": {
     "circulation_networks": {
       "inspection_tool": "环流扳手",
-      "hub_channel_plugin": "中枢频道插件"
+      "hub_channel_plugin": "中枢频道插件",
+      "circulation_source_crystal": "环流源晶",
+      "infernal_melting_crystal": "狱生熔晶",
+      "end_core_crystal": "终末核晶"
     }
   },
   "inspection_tool": {
