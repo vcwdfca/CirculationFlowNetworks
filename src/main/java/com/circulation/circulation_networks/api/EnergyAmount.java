@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.Deque;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.ArrayDeque;
 
 /**
  * Mutable pooled energy value that stays in {@code long} mode for the common
@@ -24,7 +24,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
     protected static final BigInteger BIG_INT_MAX = BigInteger.valueOf(Integer.MAX_VALUE);
     protected static final BigInteger BIG_LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
     protected static final BigInteger BIG_LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
-    protected static final Deque<EnergyAmount> POOL = new ConcurrentLinkedDeque<>();
+    protected static final Deque<EnergyAmount> POOL = new ArrayDeque<>();
     protected byte state = STATE_UNINITIALIZED;
     private long longValue;
     private BigInteger bigValue;
@@ -176,41 +176,31 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
     }
 
     @Override
-    public int intValue() {
+    public final int intValue() {
         if (state == STATE_LONG) {
             return (int) longValue;
         }
         if (state == STATE_UNINITIALIZED) {
             return 0;
         }
-        if (compareTo(EnergyAmounts.INT_MIN) < 0) {
-            return Integer.MIN_VALUE;
-        }
-        if (compareTo(EnergyAmounts.INT_MAX) > 0) {
-            return Integer.MAX_VALUE;
-        }
-        return bigValue.intValue();
+        // STATE_BIG: value is outside long range, hence always outside int range
+        return bigValue.signum() > 0 ? Integer.MAX_VALUE : Integer.MIN_VALUE;
     }
 
     @Override
-    public long longValue() {
+    public final long longValue() {
         if (state == STATE_LONG) {
             return longValue;
         }
         if (state == STATE_UNINITIALIZED) {
             return 0L;
         }
-        if (compareTo(EnergyAmounts.LONG_MIN) < 0) {
-            return Long.MIN_VALUE;
-        }
-        if (compareTo(EnergyAmounts.LONG_MAX) > 0) {
-            return Long.MAX_VALUE;
-        }
-        return bigValue.longValue();
+        // STATE_BIG: value is outside long range by normalize() invariant
+        return bigValue.signum() > 0 ? Long.MAX_VALUE : Long.MIN_VALUE;
     }
 
     @Override
-    public float floatValue() {
+    public final float floatValue() {
         if (state == STATE_LONG) {
             return longValue;
         }
@@ -221,7 +211,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
     }
 
     @Override
-    public double doubleValue() {
+    public final double doubleValue() {
         if (state == STATE_LONG) {
             return longValue;
         }
@@ -280,22 +270,22 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         }
     }
 
-    public boolean isInitialized() {
+    public final boolean isInitialized() {
         return state != STATE_UNINITIALIZED;
     }
 
-    public boolean isBig() {
+    public final boolean isBig() {
         return state == STATE_BIG;
     }
 
-    public boolean isZero() {
+    public final boolean isZero() {
         if (state == STATE_UNINITIALIZED || state == STATE_LONG) {
             return longValue == 0L;
         }
         return false;
     }
 
-    public boolean isPositive() {
+    public final boolean isPositive() {
         if (state == STATE_LONG) {
             return longValue > 0L;
         }
@@ -305,7 +295,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return false;
     }
 
-    public boolean isNegative() {
+    public final boolean isNegative() {
         if (state == STATE_LONG) {
             return longValue < 0L;
         }
@@ -315,11 +305,11 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return false;
     }
 
-    public boolean fitsLong() {
+    public final boolean fitsLong() {
         return state == STATE_LONG || (state == STATE_BIG && fitsInLong(bigValue));
     }
 
-    public long asLongExact() {
+    public final long asLongExact() {
         if (state == STATE_LONG) {
             return longValue;
         }
@@ -329,11 +319,11 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         throw new ArithmeticException("EnergyAmount does not fit into long");
     }
 
-    public long asLongClamped() {
+    public final long asLongClamped() {
         return longValue();
     }
 
-    public BigInteger asBigInteger() {
+    public final BigInteger asBigInteger() {
         if (state == STATE_BIG) {
             return bigValue;
         }
@@ -416,7 +406,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return this;
     }
 
-    public EnergyAmount multiply(long value) {
+    public final EnergyAmount multiply(long value) {
         if (!isInitialized()) {
             return setZero();
         }
@@ -437,7 +427,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return this;
     }
 
-    public EnergyAmount multiply(double value) {
+    public final EnergyAmount multiply(double value) {
         validateFinite(value);
         if (!isInitialized()) {
             return setZero();
@@ -457,7 +447,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return init(truncateToInteger(asBigDecimal().multiply(BigDecimal.valueOf(value))));
     }
 
-    public EnergyAmount multiply(EnergyAmount other) {
+    public final EnergyAmount multiply(EnergyAmount other) {
         if (other == null || !other.isInitialized()) {
             return setZero();
         }
@@ -467,7 +457,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return init(asBigInteger().multiply(other.asBigInteger()));
     }
 
-    public EnergyAmount divide(long value) {
+    public final EnergyAmount divide(long value) {
         if (value == 0L) {
             throw new ArithmeticException("Division by zero");
         }
@@ -489,7 +479,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return this;
     }
 
-    public EnergyAmount divide(double value) {
+    public final EnergyAmount divide(double value) {
         validateFinite(value);
         if (value == 0.0D) {
             throw new ArithmeticException("Division by zero");
@@ -509,7 +499,7 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return init(truncateToInteger(asBigDecimal().divide(BigDecimal.valueOf(value), 32, RoundingMode.DOWN)));
     }
 
-    public EnergyAmount divide(EnergyAmount other) {
+    public final EnergyAmount divide(EnergyAmount other) {
         if (other == null || !other.isInitialized() || other.isZero()) {
             throw new ArithmeticException("Division by zero");
         }
@@ -540,18 +530,19 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         return this;
     }
 
-    public int compareTo(long value) {
+    public final int compareTo(long value) {
         if (state == STATE_UNINITIALIZED) {
             return Long.compare(0L, value);
         }
         if (state == STATE_LONG) {
             return Long.compare(longValue, value);
         }
-        return bigValue.compareTo(toBigInteger(value));
+        // STATE_BIG: value is outside long range, signum determines comparison with any long
+        return bigValue.signum();
     }
 
     @Override
-    public int compareTo(@NotNull EnergyAmount other) {
+    public final int compareTo(@NotNull EnergyAmount other) {
         if (other == null || !other.isInitialized()) {
             return compareTo(0L);
         }
@@ -561,11 +552,20 @@ public class EnergyAmount extends Number implements Comparable<EnergyAmount> {
         if (state == STATE_LONG && other.state == STATE_LONG) {
             return Long.compare(longValue, other.longValue);
         }
-        return asBigInteger().compareTo(other.asBigInteger());
+        // At least one side is STATE_BIG (outside long range)
+        if (state == STATE_BIG) {
+            if (other.state == STATE_BIG) {
+                return bigValue.compareTo(other.bigValue);
+            }
+            // other is LONG; this BIG is outside long range
+            return bigValue.signum();
+        }
+        // this is LONG, other is BIG (outside long range)
+        return -other.bigValue.signum();
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         if (state == STATE_UNINITIALIZED) {
             return "0";
         }

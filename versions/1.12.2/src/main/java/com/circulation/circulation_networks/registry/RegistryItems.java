@@ -4,6 +4,7 @@ import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
 import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
 import com.circulation.circulation_networks.items.ItemInspectionTool;
 import com.circulation.circulation_networks.items.ItemMaterial;
+import com.circulation.circulation_networks.items.ItemPocketNode;
 import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.item.Item;
@@ -23,30 +24,17 @@ public final class RegistryItems {
     private static final List<Item> ITEMS_TO_REGISTER = new LinkedList<>();
     private static final List<Item> ITEM_MODELS_TO_REGISTER = new LinkedList<>();
 
-    public static ItemInspectionTool inspectionTool;
-    public static ItemHubChannelPlugin hubChannelPlugin;
-    public static ItemWideAreaChargingPlugin wideAreaChargingPlugin;
-    public static ItemDimensionalChargingPlugin dimensionalChargingPlugin;
-    public static ItemMaterial circulationSourceCrystal;
-    public static ItemMaterial infernalMeltingCrystal;
-    public static ItemMaterial endCoreCrystal;
-
     public static void registerItems(RegistryEvent.Register<Item> event) {
-        inspectionTool = registryItem(new ItemInspectionTool());
-        hubChannelPlugin = registryItem(new ItemHubChannelPlugin());
-        wideAreaChargingPlugin = registryItem(new ItemWideAreaChargingPlugin());
-        dimensionalChargingPlugin = registryItem(new ItemDimensionalChargingPlugin());
-        circulationSourceCrystal = registryItem(new ItemMaterial("circulation_source_crystal"));
-        infernalMeltingCrystal = registryItem(new ItemMaterial("infernal_melting_crystal"));
-        endCoreCrystal = registryItem(new ItemMaterial("end_core_crystal"));
-        CFNItems.inspectionTool = inspectionTool;
-        CFNItems.hubChannelPlugin = hubChannelPlugin;
-        CFNItems.wideAreaChargingPlugin = wideAreaChargingPlugin;
-        CFNItems.dimensionalChargingPlugin = dimensionalChargingPlugin;
-        CFNItems.circulationSourceCrystal = circulationSourceCrystal;
-        CFNItems.infernalMeltingCrystal = infernalMeltingCrystal;
-        CFNItems.endCoreCrystal = endCoreCrystal;
-
+        CFNItems.inspectionTool = registryItem(new ItemInspectionTool());
+        CFNItems.pocketPortNode = registryItem(new ItemPocketNode("pocket_port_node", NodeTypes.PORT_NODE));
+        CFNItems.pocketChargingNode = registryItem(new ItemPocketNode("pocket_charging_node", NodeTypes.CHARGING_NODE));
+        CFNItems.pocketRelayNode = registryItem(new ItemPocketNode("pocket_relay_node", NodeTypes.RELAY_NODE));
+        CFNItems.hubChannelPlugin = registryItem(new ItemHubChannelPlugin());
+        CFNItems.wideAreaChargingPlugin = registryItem(new ItemWideAreaChargingPlugin());
+        CFNItems.dimensionalChargingPlugin = registryItem(new ItemDimensionalChargingPlugin());
+        CFNItems.circulationSourceCrystal = registryItem(new ItemMaterial("circulation_source_crystal"));
+        CFNItems.infernalMeltingCrystal = registryItem(new ItemMaterial("infernal_melting_crystal"));
+        CFNItems.endCoreCrystal = registryItem(new ItemMaterial("end_core_crystal"));
         ITEMS_TO_REGISTER.forEach(event.getRegistry()::register);
         ITEMS_TO_REGISTER.clear();
     }

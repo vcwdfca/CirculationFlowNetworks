@@ -63,7 +63,8 @@ public final class InspectionToolModeModel {
     public enum InspectionMode {
         ALL,
         SPOCE,
-        LINK;
+        LINK,
+        MACHINE_LINK;
 
         public static InspectionMode fromID(int id) {
             return values()[Math.floorMod(id, values().length)];
@@ -71,6 +72,18 @@ public final class InspectionToolModeModel {
 
         public boolean isMode(InspectionMode mode) {
             return this == ALL || this == mode;
+        }
+
+        public boolean isLinkMode() {
+            return this == ALL || this == LINK || this == MACHINE_LINK;
+        }
+
+        public boolean showNodeLinks() {
+            return this == ALL || this == LINK;
+        }
+
+        public boolean showMachineLinks() {
+            return this == ALL || this == MACHINE_LINK;
         }
 
         public String getLangKey() {

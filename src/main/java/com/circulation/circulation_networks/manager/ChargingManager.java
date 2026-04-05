@@ -21,11 +21,8 @@ import it.unimi.dsi.fastutil.longs.LongSets;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
-import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
@@ -53,9 +50,10 @@ import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumMap;
-import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import static com.circulation.circulation_networks.manager.EnergyMachineManager.transferEnergy;
 
@@ -67,20 +65,25 @@ public final class ChargingManager {
     //?} else {
     /*private static final boolean loadAccessoryIntegration = ModList.get().isLoaded("curios");
      *///?}
+    private static final byte CHARGE_PREF_INVENTORY = 0x01;
+    private static final byte CHARGE_PREF_HOTBAR = 0x02;
+    private static final byte CHARGE_PREF_MAIN_HAND = 0x04;
+    private static final byte CHARGE_PREF_OFF_HAND = 0x08;
+    private static final byte CHARGE_PREF_ARMOR = 0x10;
+    private static final byte CHARGE_PREF_ACCESSORY = 0x20;
+    private static final byte CHARGE_PREF_ALL = 0b00111111;
     private final Int2ObjectMap<Long2ObjectMap<ReferenceSet<IChargingNode>>> scopeNode = new Int2ObjectOpenHashMap<>();
     private final Int2ObjectMap<Object2ObjectMap<IChargingNode, LongSet>> nodeScope = new Int2ObjectOpenHashMap<>();
-    private final Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> tickChargeTargetsByGrid = new Reference2ObjectOpenHashMap<>();
+    private final Reference2ObjectMap<IGrid, Set<IEnergyHandler>> tickChargeTargetsByGrid = new Reference2ObjectOpenHashMap<>();
     private final ObjectList<IGrid> activeChargeTargetGrids = new ObjectArrayList<>();
     private final ReferenceSet<IGrid> processedTransferGrids = new ReferenceOpenHashSet<>();
     private final ChannelTransferScratch channelTransferScratch = new ChannelTransferScratch();
+    private final ObjectArrayList<PlayerChargeState> playerStates = new ObjectArrayList<>();
+    private static final List<IEnergyHandler> EMPTY_HANDLERS = ObjectLists.emptyList();
 
     //? if <1.20 {
     @Optional.Method(modid = "baubles")
-    private static void checkAccessory(Collection<IEnergyHandler> invs, EntityPlayer player, @Nullable HubNode.HubMetadata hubMetadata) {
-        //?} else {
-        /*private static void checkAccessory(Collection<IEnergyHandler> invs, Player player) {
-         *///?}
-        //? if <1.20 {
+    private static void collectAccessory(Collection<IEnergyHandler> invs, EntityPlayer player, @Nullable HubNode.HubMetadata hubMetadata) {
         var h = BaublesApi.getBaublesHandler(player);
         for (var i = 0; i < h.getSlots(); i++) {
             var stack = h.getStackInSlot(i);
@@ -92,23 +95,24 @@ public final class ChargingManager {
             }
             handler.recycle();
         }
-        //?} else {
-        /*CuriosApi.getCuriosInventory(player).ifPresent(handler -> {
-            var equippedCurios = handler.getEquippedCurios();
+    }
+    //?} else {
+    /*private static void collectAccessory(Collection<IEnergyHandler> invs, Player player, @Nullable HubNode.HubMetadata hubMetadata) {
+        CuriosApi.getCuriosInventory(player).ifPresent(curiosHandler -> {
+            var equippedCurios = curiosHandler.getEquippedCurios();
             for (int i = 0; i < equippedCurios.getSlots(); i++) {
                 var stack = equippedCurios.getStackInSlot(i);
                 var energyHandler = IEnergyHandler.release(stack, null);
                 if (energyHandler == null) continue;
-                if (canReceiveMore(energyHandler, null)) {
+                if (canReceiveMore(energyHandler, hubMetadata)) {
                     invs.add(energyHandler);
                     continue;
                 }
                 energyHandler.recycle();
             }
         });
-        *///?}
-    }
-
+     }
+    *///?}
     //~ if >=1.20 ' EntityPlayer player' -> ' Player player' {
     //~ if >=1.20 '.getHeldItemOffhand()' -> '.getOffhandItem()' {
     //~ if >=1.20 '.getHeldItemMainhand()' -> '.getMainHandItem()' {
@@ -118,62 +122,51 @@ public final class ChargingManager {
                                                   EntityPlayer player,
                                                   PlayerChargeState state,
                                                   Collection<IEnergyHandler> result) {
-        var preferences = resolveChargingPreferences(grid, player);
-        if (preferences.isEmpty()) {
+        byte preferences = resolveChargingPreferenceMask(grid, player);
+        if (preferences == 0) {
             return;
         }
 
         HubNode.HubMetadata hubMetadata = getHubMetadata(grid);
 
-        if (preferences.contains(ChargingDefinition.INVENTORY)) {
-            collectFromSlots(result, state.cache, ChargingDefinition.INVENTORY, state.inventory, 9, state.inventory.length, hubMetadata);
+        if ((preferences & CHARGE_PREF_INVENTORY) != 0) {
+            collectFromSlots(result, state.cache, ChargingDefinition.INVENTORY, state.inventory, 9, state.inventory.size(), hubMetadata);
         }
-        if (preferences.contains(ChargingDefinition.OFF_HAND)) {
+        if ((preferences & CHARGE_PREF_OFF_HAND) != 0) {
             collectFromStackWithCache(result, state.cache, ChargingDefinition.OFF_HAND, player.getHeldItemOffhand(), hubMetadata);
         }
-        if (preferences.contains(ChargingDefinition.HOTBAR)) {
+        if ((preferences & CHARGE_PREF_HOTBAR) != 0) {
             collectFromSlots(result, state.cache, ChargingDefinition.HOTBAR, state.inventory, 0, 9, hubMetadata);
         } else {
-            if (preferences.contains(ChargingDefinition.MAIN_HAND)) {
+            if ((preferences & CHARGE_PREF_MAIN_HAND) != 0) {
                 collectFromStackWithCache(result, state.cache, ChargingDefinition.MAIN_HAND, player.getHeldItemMainhand(), hubMetadata);
             }
         }
-        if (preferences.contains(ChargingDefinition.ARMOR)) {
-            collectFromSlots(result, state.cache, ChargingDefinition.ARMOR, state.armor, 0, state.armor.length, hubMetadata);
+        if ((preferences & CHARGE_PREF_ARMOR) != 0) {
+            collectFromSlots(result, state.cache, ChargingDefinition.ARMOR, state.armor, 0, state.armor.size(), hubMetadata);
         }
-        if (loadAccessoryIntegration && preferences.contains(ChargingDefinition.ACCESSORY)) {
-            //? if <1.20 {
-            checkAccessory(result, player, hubMetadata);
-            //?} else {
-            /*checkAccessory(result, player);
-            *///?}
+        if (loadAccessoryIntegration && (preferences & CHARGE_PREF_ACCESSORY) != 0) {
+            collectAccessoryWithCache(result, state.cache, player, hubMetadata);
         }
     }
 
-    private static EnumSet<ChargingDefinition> resolveChargingPreferences(IGrid grid, EntityPlayer player) {
+    private static byte resolveChargingPreferenceMask(IGrid grid, EntityPlayer player) {
         var hubNode = grid.getHubNode();
         if (hubNode == null) {
-            return EnumSet.allOf(ChargingDefinition.class);
+            return CHARGE_PREF_ALL;
         }
 
         if (hubNode.getPermissionLevel(player.getUniqueID()) == HubPermissionLevel.NONE) {
-            return EnumSet.noneOf(ChargingDefinition.class);
+            return 0;
         }
 
-        var preferences = EnumSet.noneOf(ChargingDefinition.class);
-        var hubPrefs = hubNode.getChargingPreference(player.getUniqueID());
-        for (var type : ChargingDefinition.values()) {
-            if (hubPrefs.getPreference(type)) {
-                preferences.add(type);
-            }
-        }
-        return preferences;
+        return hubNode.getChargingPreference(player.getUniqueID()).toByte();
     }
 
     private static void collectFromSlots(Collection<IEnergyHandler> result,
                                          EnumMap<ChargingDefinition, List<IEnergyHandler>> cache,
                                          ChargingDefinition definition,
-                                         ItemStack[] items,
+                                         List<ItemStack> items,
                                          int startIndex, int endIndex,
                                          @Nullable HubNode.HubMetadata hubMetadata) {
         var cached = cache.get(definition);
@@ -182,13 +175,16 @@ public final class ChargingManager {
             return;
         }
 
-        var handlers = new ObjectArrayList<IEnergyHandler>();
+        ObjectArrayList<IEnergyHandler> handlers = null;
         for (int i = startIndex; i < endIndex; i++) {
-            if (i >= items.length) break;
-            var stack = items[i];
+            if (i >= items.size()) break;
+            var stack = items.get(i);
             var handler = IEnergyHandler.release(stack, null);
             if (handler != null) {
                 if (canReceiveMore(handler, hubMetadata)) {
+                    if (handlers == null) {
+                        handlers = new ObjectArrayList<>();
+                    }
                     handlers.add(handler);
                     result.add(handler);
                 } else {
@@ -196,7 +192,7 @@ public final class ChargingManager {
                 }
             }
         }
-        cache.put(definition, handlers);
+        cache.put(definition, handlers == null ? EMPTY_HANDLERS : handlers);
     }
     //~}
     //~}
@@ -216,16 +212,43 @@ public final class ChargingManager {
         }
 
         var handler = IEnergyHandler.release(stack, null);
-        if (handler != null) {
-            if (canReceiveMore(handler, hubMetadata)) {
-                var handlers = ObjectLists.singleton(handler);
-                cache.put(definition, handlers);
-                result.add(handler);
-            } else {
-                handler.recycle();
-            }
+        if (handler == null) {
+            cache.put(definition, EMPTY_HANDLERS);
+            return;
         }
+
+        if (canReceiveMore(handler, hubMetadata)) {
+            var handlers = ObjectLists.singleton(handler);
+            cache.put(definition, handlers);
+            result.add(handler);
+            return;
+        }
+
+        handler.recycle();
+        cache.put(definition, EMPTY_HANDLERS);
     }
+
+    //~ if >=1.20 ' EntityPlayer player' -> ' Player player' {
+    private static void collectAccessoryWithCache(Collection<IEnergyHandler> result,
+                                                  EnumMap<ChargingDefinition, List<IEnergyHandler>> cache,
+                                                  EntityPlayer player,
+                                                  @Nullable HubNode.HubMetadata hubMetadata) {
+        var cached = cache.get(ChargingDefinition.ACCESSORY);
+        if (cached != null) {
+            result.addAll(cached);
+            return;
+        }
+
+        var handlers = new ObjectArrayList<IEnergyHandler>();
+        //? if <1.20 {
+        collectAccessory(handlers, player, hubMetadata);
+        //?} else {
+        /*collectAccessory(handlers, player, hubMetadata);
+         *///?}
+        cache.put(ChargingDefinition.ACCESSORY, handlers.isEmpty() ? EMPTY_HANDLERS : handlers);
+        result.addAll(handlers);
+    }
+    //~}
 
     private static boolean canReceiveMore(IEnergyHandler handler, @Nullable HubNode.HubMetadata hubMetadata) {
         EnergyAmount amount = handler.canReceiveValue(hubMetadata);
@@ -236,7 +259,7 @@ public final class ChargingManager {
         }
     }
 
-    private static void transferEnergyToTargets(Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> chargeTargetsByGrid,
+    private static void transferEnergyToTargets(Reference2ObjectMap<IGrid, Set<IEnergyHandler>> chargeTargetsByGrid,
                                                 Reference2ObjectMap<IGrid, EnergyMachineManager.GridTickData> machineMap) {
         for (var entry : chargeTargetsByGrid.entrySet()) {
             var grid = entry.getKey();
@@ -248,11 +271,11 @@ public final class ChargingManager {
     }
 
     private static void transferEnergyForGrid(IGrid grid,
-                                              Reference2ObjectMap<IGrid, ObjectSet<IEnergyHandler>> chargeTargetsByGrid,
+                                              Reference2ObjectMap<IGrid, Set<IEnergyHandler>> chargeTargetsByGrid,
                                               Reference2ObjectMap<IGrid, EnergyMachineManager.GridTickData> machineMap,
                                               ReferenceSet<IGrid> processedGrids) {
         processedGrids.add(grid);
-        var chargingTargets = chargeTargetsByGrid.getOrDefault(grid, ObjectSets.emptySet());
+        var chargingTargets = chargeTargetsByGrid.getOrDefault(grid, Collections.emptySet());
 
         var hubNode = grid.getHubNode();
         if (hubNode != null && !hubNode.getChannelId().equals(HubNode.EMPTY)) {
@@ -262,23 +285,22 @@ public final class ChargingManager {
 
                 for (var channelGrid : channelGrids) {
                     processedGrids.add(channelGrid);
-                    merged.timedGrids.add(channelGrid);
                     var handlers = machineMap.get(channelGrid);
                     if (handlers != null && handlers.activeThisTick) {
                         merged.send.addAll(handlers.send);
                         merged.storage.addAll(handlers.storage);
                     }
-                    merged.targets.addAll(chargeTargetsByGrid.getOrDefault(channelGrid, ObjectSets.emptySet()));
+                    merged.targets.addAll(chargeTargetsByGrid.getOrDefault(channelGrid, Collections.emptySet()));
                 }
 
                 if (merged.targets.isEmpty()) {
                     return;
                 }
 
-                long startNanos = System.nanoTime();
-                transferEnergy(merged.send, merged.targets, EnergyMachineManager.Status.EXTRACT, grid, false);
-                transferEnergy(merged.storage, merged.targets, EnergyMachineManager.Status.EXTRACT, grid, false);
-                EnergyMachineManager.recordDistributedGridTickTimeNanos(merged.timedGrids, System.nanoTime() - startNanos);
+                var hubMetadata = getHubMetadata(grid);
+                var interactionState = EnergyMachineManager.getOrCreateInteraction(grid);
+                transferEnergy(merged.send, merged.targets, EnergyMachineManager.Status.EXTRACT, hubMetadata, interactionState, false);
+                transferEnergy(merged.storage, merged.targets, EnergyMachineManager.Status.EXTRACT, hubMetadata, interactionState, false);
                 return;
             }
         }
@@ -289,10 +311,10 @@ public final class ChargingManager {
 
         var handlers = machineMap.get(grid);
         if (handlers != null && handlers.activeThisTick) {
-            long startNanos = System.nanoTime();
-            transferEnergy(handlers.send, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid, false);
-            transferEnergy(handlers.storage, chargingTargets, EnergyMachineManager.Status.EXTRACT, grid, false);
-            EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
+            var hubMetadata = getHubMetadata(grid);
+            var interactionState = EnergyMachineManager.getOrCreateInteraction(grid);
+            transferEnergy(handlers.send, chargingTargets, EnergyMachineManager.Status.EXTRACT, hubMetadata, interactionState, false);
+            transferEnergy(handlers.storage, chargingTargets, EnergyMachineManager.Status.EXTRACT, hubMetadata, interactionState, false);
         }
     }
 
@@ -304,15 +326,13 @@ public final class ChargingManager {
         return dimensional ? ChargingPluginScope.DIMENSIONAL : ChargingPluginScope.WIDE_AREA;
     }
 
-    //? if <1.20 {
     private static int getDimensionId(INode node) {
+        //? if <1.20 {
         return node.getDimensionId();
+        //?} else {
+        /*return node.getWorld().dimension().location().hashCode();
+         *///?}
     }
-    //?} else {
-    /*private static int getDimensionId(INode node) {
-        return node.getWorld().dimension().location().hashCode();
-    }
-    *///?}
 
     @Nullable
     private static HubNode.HubMetadata getHubMetadata(@Nullable IGrid grid) {
@@ -328,13 +348,13 @@ public final class ChargingManager {
         var players = server.getPlayerList().getPlayers();
         prepareChargeTargetScratch();
         processedTransferGrids.clear();
-        var coveredGridsByPlayer = new ObjectArrayList<ReferenceSet<IGrid>>(players.size());
-        var playerStates = new ObjectArrayList<PlayerChargeState>(players.size());
+        playerStates.clear();
+        playerStates.ensureCapacity(players.size());
 
         for (var player : players) {
             var playerState = new PlayerChargeState(player);
             playerStates.add(playerState);
-            coveredGridsByPlayer.add(collectPlayerChargeTargets(player, playerState));
+            collectPlayerChargeTargets(player, playerState);
         }
 
         // Plugin-based remote charging: extend range beyond spatial index
@@ -348,7 +368,8 @@ public final class ChargingManager {
 
             for (int i = 0; i < players.size(); i++) {
                 var player = players.get(i);
-                if (coveredGridsByPlayer.get(i).contains(grid)) continue;
+                var playerState = playerStates.get(i);
+                if (playerState.coveredGrids.contains(grid)) continue;
 
                 // Wide area: same dimension only; Dimensional: all dimensions
                 if (scope == ChargingPluginScope.WIDE_AREA) {
@@ -360,11 +381,8 @@ public final class ChargingManager {
                 // Permission check
                 if (hub.getPermissionLevel(player.getUniqueID()) == HubPermissionLevel.NONE) continue;
 
-                var playerState = playerStates.get(i);
-                long startNanos = System.nanoTime();
                 playerState.scratch.clear();
                 collectChargeablesForGrid(grid, player, playerState, playerState.scratch);
-                EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
                 if (!playerState.scratch.isEmpty()) {
                     getChargeTargets(grid).addAll(playerState.scratch);
                 }
@@ -392,21 +410,23 @@ public final class ChargingManager {
     //~ if >=1.20 '.getPosition()' -> '.blockPosition()' {
     //~ if >=1.20 '.inventory.mainInventory' -> '.getInventory().items' {
     //~ if >=1.20 '.provider.getDimension()' -> '.dimension().location().hashCode()' {
-    private ReferenceSet<IGrid> collectPlayerChargeTargets(EntityPlayer player,
-                                                           PlayerChargeState playerState) {
-        ReferenceSet<IGrid> coveredGrids = new ReferenceOpenHashSet<>();
+    private void collectPlayerChargeTargets(EntityPlayer player,
+                                            PlayerChargeState playerState) {
+        var coveredGrids = playerState.coveredGrids;
+        var reachableGrids = playerState.reachableGrids;
+        coveredGrids.clear();
+        reachableGrids.clear();
         var map = scopeNode.get(player.dimension);
         if (map == null || map.isEmpty()) {
-            return coveredGrids;
+            return;
         }
 
         var pos = player.getPosition();
         var nodeSet = map.get(Functions.mergeChunkCoords(pos));
         if (nodeSet == null || nodeSet.isEmpty()) {
-            return coveredGrids;
+            return;
         }
 
-        ReferenceSet<IGrid> reachableGrids = new ReferenceOpenHashSet<>();
         for (var node : nodeSet) {
             if (!node.chargingScopeCheck(pos)) {
                 continue;
@@ -418,20 +438,17 @@ public final class ChargingManager {
         }
 
         if (reachableGrids.isEmpty()) {
-            return coveredGrids;
+            return;
         }
 
         for (var grid : reachableGrids) {
-            long startNanos = System.nanoTime();
             playerState.scratch.clear();
             collectChargeablesForGrid(grid, player, playerState, playerState.scratch);
-            EnergyMachineManager.recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
             if (!playerState.scratch.isEmpty()) {
                 getChargeTargets(grid).addAll(playerState.scratch);
                 coveredGrids.add(grid);
             }
         }
-        return coveredGrids;
     }
 
     private void prepareChargeTargetScratch() {
@@ -441,8 +458,12 @@ public final class ChargingManager {
         activeChargeTargetGrids.clear();
     }
 
-    private ObjectSet<IEnergyHandler> getChargeTargets(IGrid grid) {
-        ObjectSet<IEnergyHandler> targets = tickChargeTargetsByGrid.computeIfAbsent(grid, ignored -> new ObjectLinkedOpenHashSet<>());
+    private Set<IEnergyHandler> getChargeTargets(IGrid grid) {
+        Set<IEnergyHandler> targets = tickChargeTargetsByGrid.get(grid);
+        if (targets == null) {
+            targets = new ReferenceOpenHashSet<>();
+            tickChargeTargetsByGrid.put(grid, targets);
+        }
         if (targets.isEmpty()) {
             activeChargeTargetGrids.add(grid);
         }
@@ -544,49 +565,50 @@ public final class ChargingManager {
         tickChargeTargetsByGrid.clear();
         activeChargeTargetGrids.clear();
         processedTransferGrids.clear();
+        playerStates.clear();
     }
 
     enum ChargingPluginScope {NONE, WIDE_AREA, DIMENSIONAL}
 
     private static final class ChannelTransferScratch {
-        final ObjectSet<IEnergyHandler> send = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> storage = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> targets = new ObjectLinkedOpenHashSet<>();
-        final ReferenceSet<IGrid> timedGrids = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> send = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> storage = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> targets = new ReferenceOpenHashSet<>();
 
         ChannelTransferScratch prepare() {
             send.clear();
             storage.clear();
             targets.clear();
-            timedGrids.clear();
             return this;
         }
     }
 
     private static final class PlayerChargeState {
         final EnumMap<ChargingDefinition, List<IEnergyHandler>> cache = new EnumMap<>(ChargingDefinition.class);
-        final ItemStack[] inventory;
-        final ItemStack[] armor;
+        final List<ItemStack> inventory;
+        final List<ItemStack> armor;
         final ObjectArrayList<IEnergyHandler> scratch = new ObjectArrayList<>();
+        final ReferenceSet<IGrid> coveredGrids = new ReferenceOpenHashSet<>();
+        final ReferenceSet<IGrid> reachableGrids = new ReferenceOpenHashSet<>();
 
+        //~ if >=1.20 '(EntityPlayer player' -> '(Player player' {
+        //~ if >=1.20 '.inventory.mainInventory' -> '.getInventory().items' {
+        //~ if >=1.20 '.inventory.armorInventory' -> '.getInventory().armor' {
         PlayerChargeState(EntityPlayer player) {
-            this.inventory = player.inventory.mainInventory.toArray(new ItemStack[0]);
-            this.armor = snapshotArmor(player);
+            this.inventory = player.inventory.mainInventory;
+            this.armor = player.inventory.armorInventory;
         }
+        //~}
+        //~}
+        //~}
 
         void clear() {
             cache.clear();
             scratch.clear();
+            coveredGrids.clear();
+            reachableGrids.clear();
         }
     }
-
-    //~ if >=1.20 '(EntityPlayer player' -> '(Player player' {
-    //~ if >=1.20 '.inventory.armorInventory' -> '.getInventory().armor' {
-    private static ItemStack[] snapshotArmor(EntityPlayer player) {
-        return player.inventory.armorInventory.toArray(new ItemStack[0]);
-    }
-    //~}
-    //~}
     //~}
     //~}
     //~}

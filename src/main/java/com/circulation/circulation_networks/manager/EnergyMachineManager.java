@@ -30,11 +30,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import it.unimi.dsi.fastutil.objects.ObjectCollection;
-import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
-import it.unimi.dsi.fastutil.objects.ObjectSets;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
@@ -79,6 +75,7 @@ public final class EnergyMachineManager {
     private final ChannelMergeScratch channelMergeScratch = new ChannelMergeScratch();
     private final ReferenceSet<TileEntity> cache = new ReferenceOpenHashSet<>();
     private final Int2ObjectMap<Long2LongMap> lastWarningTicks = new Int2ObjectOpenHashMap<>();
+    private final LongOpenHashSet visibleWarningsScratch = new LongOpenHashSet();
     private long warningTickCounter;
     private long lastWarningCleanupTick;
     private long interactionEpoch;
@@ -89,14 +86,22 @@ public final class EnergyMachineManager {
         gridMachineMap.defaultReturnValue(ReferenceSets.emptySet());
     }
 
-    static void transferEnergy(ObjectCollection<IEnergyHandler> send,
-                               ObjectCollection<IEnergyHandler> receive,
+    static void transferEnergy(Collection<IEnergyHandler> send,
+                               Collection<IEnergyHandler> receive,
                                Status status,
                                IGrid grid,
                                boolean receiversAreStorage) {
         if (send.isEmpty() || receive.isEmpty()) return;
-        HubNode.HubMetadata hubMetadata = getHubMetadata(grid);
-        Interaction interactionState = getOrCreateInteraction(grid);
+        transferEnergy(send, receive, status, getHubMetadata(grid), getOrCreateInteraction(grid), receiversAreStorage);
+    }
+
+    static void transferEnergy(Collection<IEnergyHandler> send,
+                               Collection<IEnergyHandler> receive,
+                               Status status,
+                               @Nullable HubNode.HubMetadata hubMetadata,
+                               @Nullable Interaction interactionState,
+                               boolean receiversAreStorage) {
+        if (send.isEmpty() || receive.isEmpty()) return;
         var si = send.iterator();
         while (si.hasNext()) {
             var sender = si.next();
@@ -140,7 +145,7 @@ public final class EnergyMachineManager {
                                             receiver.recycle();
                                             ri.remove();
                                         }
-                                        if (extractable.compareTo(0L) <= 0) {
+                                        if (!extractable.isPositive()) {
                                             sender.recycle();
                                             si.remove();
                                             break;
@@ -296,46 +301,29 @@ public final class EnergyMachineManager {
             if (handler == null) {
                 continue;
             }
-            if (overrideManager != null) {
-                var override = overrideManager.getOverride(getDimensionId(world), pos);
-                boolean addedToAnyGrid = false;
-                for (var node : entry.getValue()) {
-                    var grid = node.getGrid();
-                    if (grid == null) continue;
-
-                    var type = handler.getType(getHubMetadata(grid));
-                    if (override != null) {
-                        type = override;
-                    }
-                    if (type == IEnergyHandler.EnergyType.INVALID) {
-                        continue;
-                    }
-
-                    addedToAnyGrid = true;
-                    getTickGridData(grid).handlers(type).add(handler);
-                    if (type == IEnergyHandler.EnergyType.RECEIVE) {
-                        getTickGridData(grid).receiveTargets.putIfAbsent(handler, new WarningTarget(getDimensionId(world), getPackedPos(te)));
-                    }
-                }
-                if (!addedToAnyGrid) {
-                    handler.recycle();
-                }
-                continue;
-            }
+            int dimId = getDimensionId(world);
+            var override = overrideManager == null ? null : overrideManager.getOverride(dimId, pos);
             boolean addedToAnyGrid = false;
+            WarningTarget warningTarget = null;
             for (var node : entry.getValue()) {
                 var grid = node.getGrid();
                 if (grid == null) continue;
 
-                var type = handler.getType(getHubMetadata(grid));
+                var type = override != null ? override : handler.getType(getHubMetadata(grid));
                 if (type == IEnergyHandler.EnergyType.INVALID) {
                     continue;
                 }
 
                 addedToAnyGrid = true;
-                getTickGridData(grid).handlers(type).add(handler);
+                var gridData = getTickGridData(grid);
+                gridData.handlers(type).add(handler);
                 if (type == IEnergyHandler.EnergyType.RECEIVE) {
-                    getTickGridData(grid).receiveTargets.putIfAbsent(handler, new WarningTarget(getDimensionId(world), getPackedPos(te)));
+                    if (gridData.receiveTargets.get(handler) == null) {
+                        if (warningTarget == null) {
+                            warningTarget = new WarningTarget(dimId, getPackedPos(te));
+                        }
+                        gridData.receiveTargets.put(handler, warningTarget);
+                    }
                 }
             }
             if (!addedToAnyGrid) {
@@ -365,11 +353,13 @@ public final class EnergyMachineManager {
                             processedTickGrids.add(cg);
                             merged.timedGrids.add(cg);
                         }
+                        var hubMetadata = getHubMetadata(grid);
+                        var interactionState = getOrCreateInteraction(grid);
                         long startNanos = System.nanoTime();
-                        transferEnergy(merged.send, merged.receive, Status.INTERACTION, grid, false);
-                        transferEnergy(merged.storage, merged.receive, Status.EXTRACT, grid, false);
-                        collectWarningPositions(merged.receive, merged.receiveTargets, warningPositionsScratch, getHubMetadata(grid));
-                        transferEnergy(merged.send, merged.storage, Status.RECEIVE, grid, true);
+                        transferEnergy(merged.send, merged.receive, Status.INTERACTION, hubMetadata, interactionState, false);
+                        transferEnergy(merged.storage, merged.receive, Status.EXTRACT, hubMetadata, interactionState, false);
+                        collectWarningPositions(merged.receive, merged.receiveTargets, warningPositionsScratch, hubMetadata);
+                        transferEnergy(merged.send, merged.storage, Status.RECEIVE, hubMetadata, interactionState, true);
                         recordDistributedGridTickTimeNanos(merged.timedGrids, System.nanoTime() - startNanos);
                         continue;
                     }
@@ -382,11 +372,13 @@ public final class EnergyMachineManager {
                 continue;
             }
 
+            var hubMetadata = getHubMetadata(grid);
+            var interactionState = getOrCreateInteraction(grid);
             long startNanos = System.nanoTime();
-            transferEnergy(handlers.send, handlers.receive, Status.INTERACTION, grid, false);
-            transferEnergy(handlers.storage, handlers.receive, Status.EXTRACT, grid, false);
-            collectWarningPositions(handlers.receive, handlers.receiveTargets, warningPositionsScratch, getHubMetadata(grid));
-            transferEnergy(handlers.send, handlers.storage, Status.RECEIVE, grid, true);
+            transferEnergy(handlers.send, handlers.receive, Status.INTERACTION, hubMetadata, interactionState, false);
+            transferEnergy(handlers.storage, handlers.receive, Status.EXTRACT, hubMetadata, interactionState, false);
+            collectWarningPositions(handlers.receive, handlers.receiveTargets, warningPositionsScratch, hubMetadata);
+            transferEnergy(handlers.send, handlers.storage, Status.RECEIVE, hubMetadata, interactionState, true);
             recordGridTickTimeNanos(grid, System.nanoTime() - startNanos);
         }
 
@@ -407,12 +399,12 @@ public final class EnergyMachineManager {
         if (!RegistryEnergyHandler.isEnergyTileEntity(blockEntity)) return;
         if (RegistryEnergyHandler.isBlack(blockEntity)) return;
         //~ if >=1.20 '.getPos()' -> '.getBlockPos()' {
-        //~ if >=1.20 '.getWorld()' -> '.getLevel()' {
         var pos = blockEntity.getPos();
+        //~}
         long chunkCoord = Functions.mergeChunkCoords(pos);
 
+        //~ if >=1.20 '.getWorld()' -> '.getLevel()' {
         var dim = getDimensionId(blockEntity.getWorld());
-        //~}
         //~}
         var map = scopeNode.get(dim);
         if (map == scopeNode.defaultReturnValue()) {
@@ -680,6 +672,7 @@ public final class EnergyMachineManager {
         activeTickGrids.clear();
         processedTickGrids.clear();
         warningPositionsScratch.clear();
+        visibleWarningsScratch.clear();
         lastWarningTicks.clear();
         warningTickCounter = 0L;
         lastWarningCleanupTick = 0L;
@@ -729,12 +722,7 @@ public final class EnergyMachineManager {
         if (durationNanos <= 0L) {
             return;
         }
-        int gridCount = 0;
-        for (IGrid grid : grids) {
-            if (grid != null) {
-                gridCount++;
-            }
-        }
+        int gridCount = grids.size();
         if (gridCount <= 0) {
             return;
         }
@@ -754,17 +742,25 @@ public final class EnergyMachineManager {
     }
 
     @Nullable
-    private static Interaction getOrCreateInteraction(@Nullable IGrid grid) {
+    static Interaction getOrCreateInteraction(@Nullable IGrid grid) {
         if (grid == null) {
             return null;
         }
-        Interaction interaction = INSTANCE.interaction.computeIfAbsent(grid, ignored -> new Interaction());
+        Interaction interaction = INSTANCE.interaction.get(grid);
+        if (interaction == null) {
+            interaction = new Interaction();
+            INSTANCE.interaction.put(grid, interaction);
+        }
         interaction.prepareForTick(INSTANCE.interactionEpoch);
         return interaction;
     }
 
     private GridTickData getTickGridData(IGrid grid) {
-        GridTickData data = tickGridData.computeIfAbsent(grid, ignored -> new GridTickData());
+        GridTickData data = tickGridData.get(grid);
+        if (data == null) {
+            data = new GridTickData();
+            tickGridData.put(grid, data);
+        }
         if (!data.activeThisTick) {
             data.prepareForTick();
             activeTickGrids.add(grid);
@@ -798,7 +794,12 @@ public final class EnergyMachineManager {
             if (target == null || !shouldSendWarning(target)) {
                 continue;
             }
-            warningPositions.computeIfAbsent(target.dimId, ignored -> new LongOpenHashSet()).add(target.posLong);
+            LongSet dimWarnings = warningPositions.get(target.dimId);
+            if (dimWarnings == null) {
+                dimWarnings = new LongOpenHashSet();
+                warningPositions.put(target.dimId, dimWarnings);
+            }
+            dimWarnings.add(target.posLong);
         }
     }
 
@@ -827,15 +828,15 @@ public final class EnergyMachineManager {
             if (dimWarnings == null || dimWarnings.isEmpty()) {
                 continue;
             }
-            LongSet visibleWarnings = new LongOpenHashSet();
+            visibleWarningsScratch.clear();
             for (long posLong : dimWarnings) {
                 BlockPos pos = blockPosFromLong(posLong);
                 if (getPlayerDistanceSq(player, pos) <= WARNING_RENDER_DISTANCE_SQ) {
-                    visibleWarnings.add(posLong);
+                    visibleWarningsScratch.add(posLong);
                 }
             }
-            if (!visibleWarnings.isEmpty()) {
-                CirculationFlowNetworks.sendToPlayer(new EnergyWarningRendering(dimId, visibleWarnings), player);
+            if (!visibleWarningsScratch.isEmpty()) {
+                CirculationFlowNetworks.sendToPlayer(new EnergyWarningRendering(dimId, new LongOpenHashSet(visibleWarningsScratch)), player);
             }
         }
     }
@@ -882,18 +883,18 @@ public final class EnergyMachineManager {
     }
 
     static final class GridTickData {
-        final ObjectSet<IEnergyHandler> send = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> storage = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> receive = new ObjectLinkedOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> send = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> storage = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> receive = new ReferenceOpenHashSet<>();
         final Reference2ObjectMap<IEnergyHandler, WarningTarget> receiveTargets = new Reference2ObjectOpenHashMap<>();
         boolean activeThisTick;
 
-        ObjectSet<IEnergyHandler> handlers(IEnergyHandler.EnergyType type) {
+        ReferenceOpenHashSet<IEnergyHandler> handlers(IEnergyHandler.EnergyType type) {
             return switch (type) {
                 case SEND -> send;
                 case STORAGE -> storage;
                 case RECEIVE -> receive;
-                case INVALID -> ObjectSets.emptySet();
+                case INVALID -> null;
             };
         }
 
@@ -916,7 +917,7 @@ public final class EnergyMachineManager {
             activeThisTick = false;
         }
 
-        private static void recycle(ObjectSet<IEnergyHandler> handlers) {
+        private static void recycle(ReferenceOpenHashSet<IEnergyHandler> handlers) {
             for (var handler : handlers) {
                 handler.recycle();
             }
@@ -924,9 +925,9 @@ public final class EnergyMachineManager {
     }
 
     private static final class ChannelMergeScratch {
-        final ObjectSet<IEnergyHandler> send = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> storage = new ObjectLinkedOpenHashSet<>();
-        final ObjectSet<IEnergyHandler> receive = new ObjectLinkedOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> send = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> storage = new ReferenceOpenHashSet<>();
+        final ReferenceOpenHashSet<IEnergyHandler> receive = new ReferenceOpenHashSet<>();
         final Reference2ObjectMap<IEnergyHandler, WarningTarget> receiveTargets = new Reference2ObjectOpenHashMap<>();
         final ReferenceSet<IGrid> timedGrids = new ReferenceOpenHashSet<>();
 

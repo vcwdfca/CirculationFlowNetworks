@@ -31,6 +31,7 @@ on 1.20+.
     - [NodeType<N>](#nodetypen)
     - [NodeContext](#nodecontext)
     - [NodeDeserializer](#nodedeserializer)
+    - [NodeCreator](#nodecreator)
 - [Block Entity Interfaces](#block-entity-interfaces)
     - [INodeBlockEntity](#inodeblockentity)
     - [IMachineNodeBlockEntity](#imachinenodeblockentity)
@@ -134,7 +135,7 @@ names should not be renamed.
 | Signature                                                                                                | Description                                                                          |
 |----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | `void registerEnergyHandler(@Nonnull IEnergyHandlerManager manager)`                                     | Registers a custom energy handler manager. Must be called before the postInit phase. |
-| `void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function)` | Registers a custom node type together with its NBT deserializer.                     |
+| `void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function, @Nullable NodeCreator creator)` | Registers a custom node type together with its NBT deserializer and runtime creator. |
 
 ---
 
@@ -218,7 +219,7 @@ Marks a node that can interact with nearby energy devices.
 The hub node interface. A network can have only one hub. Hubs provide both energy supply and player charging
 capabilities.
 
-> **Unique internal implementation**: this interface is implemented by the internal `HubNode` singleton. External mods
+> **Unique internal implementation**: this interface has only the internal `HubNode` implementation class. External mods
 > should not implement it; use it for querying and interaction only.
 
 | Method                                                | Return Type                     | Description                                                                     |
@@ -336,6 +337,16 @@ Node creation context. Wraps the world, position, default name, and visual ident
 A functional interface extending `Function<NBTTagCompound, INode>` used to deserialize nodes from NBT.
 
 Register it through `API.registerNodeType()`.
+
+---
+
+### NodeCreator
+
+`com.circulation.circulation_networks.api.NodeCreator`
+
+A functional interface extending `Function<NodeContext, INode>` used to create new node instances at runtime (e.g. when placing a block or a pocket node).
+
+Register it through `API.registerNodeType()`. May be `null` if the type does not support runtime creation.
 
 ---
 
@@ -629,7 +640,7 @@ plugin data is created and saved:
 
 Hub channel interface for cross-grid channel connections and permission management.
 
-> **Unique internal implementation**: this interface is implemented by the internal `HubChannel` singleton. External
+> **Unique internal implementation**: this interface has only the internal `HubChannel` implementation class. External
 > mods should not implement it; use it for querying and interaction only.
 
 | Method                                            | Return Type                     | Description                              |
@@ -815,7 +826,7 @@ public interface ServerTickMachine {
 
 A grid represents a connected subgraph formed by a set of linked nodes.
 
-> **Unique internal implementation**: this interface is implemented by the internal `Grid` singleton. External mods
+> **Unique internal implementation**: this interface has only the internal `Grid` implementation class. External mods
 > should not implement it; use it for querying only.
 
 | Method                 | Return Type           | Description                                            |

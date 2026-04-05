@@ -317,15 +317,16 @@ public final class API {
     }
 
     /**
-     * 注册自定义节点类型及其 NBT 反序列化函数。
+     * 注册自定义节点类型及其 NBT 反序列化函数和运行时创建函数。
      * <p>
-     * Registers a custom node type together with its NBT deserialization function.
+     * Registers a custom node type together with its NBT deserialization function and runtime creator.
      *
      * @param nodeType 节点类型 / the node type to register
      * @param function 从 NBT 中反序列化回节点的方法 / function to deserialize a node from NBT
+     * @param creator  运行时创建节点的方法 / function to create a new node at runtime
      */
-    public static void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function) {
-        NodeTypes.register(nodeType, function);
+    public static void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function, @Nonnull NodeCreator creator) {
+        NodeTypes.register(nodeType, function, creator);
     }
     //~}
     //~}

@@ -19,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.ArrayDeque;
 
 @SuppressWarnings("unused")
 public final class RegistryEnergyHandler {
@@ -48,7 +48,7 @@ public final class RegistryEnergyHandler {
      */
     public static void registerEnergyHandler(IEnergyHandlerManager manager) {
         list.add(manager);
-        IEnergyHandler.POOL.put(manager.getEnergyHandlerClass(), new ConcurrentLinkedDeque<>());
+        IEnergyHandler.POOL.put(manager.getEnergyHandlerClass(), new ArrayDeque<>());
         referenceSet.add(new Pair(manager.getMultiplying(), manager.getUnit(), manager.getPriority()));
     }
 

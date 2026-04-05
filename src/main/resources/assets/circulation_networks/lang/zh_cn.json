@@ -2,8 +2,11 @@
   "block": {
     "circulation_networks": {
       "port_node": "环流端口节点",
+      "port_node.tooltip.0": "§7用于连接机器",
       "charging_node": "环流充能节点",
+      "charging_node.tooltip.0": "§7用于为玩家充能",
       "relay_node": "环流中继节点",
+      "relay_node.tooltip.0": "§7具有更长的节点连接距离",
       "circulation_shielder": "环流屏蔽仪",
       "hub": "环流中枢"
     }
@@ -11,6 +14,12 @@
   "item": {
     "circulation_networks": {
       "inspection_tool": "环流扳手",
+      "pocket_port_node": "口袋端口节点",
+      "pocket_port_node.tooltip.0": "§7用于连接机器的口袋节点",
+      "pocket_charging_node": "口袋充能节点",
+      "pocket_charging_node.tooltip.0": "§7用于为玩家充能的口袋节点",
+      "pocket_relay_node": "口袋中继节点",
+      "pocket_relay_node.tooltip.0": "§7具有更长的节点连接距离的口袋节点",
       "hub_channel_plugin": "中枢频道插件",
       "circulation_source_crystal": "环流源晶",
       "infernal_melting_crystal": "狱生熔晶",
@@ -30,7 +39,8 @@
         "inspection": {
           "all": "显示全部信息",
           "spoce": "显示连接范围",
-          "link": "显示节点网络"
+          "link": "显示节点网络",
+          "machine_link": "显示机器连接"
         },
         "configuration": {
           "send": "能量输出",

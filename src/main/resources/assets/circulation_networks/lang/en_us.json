@@ -2,8 +2,11 @@
   "block": {
     "circulation_networks": {
       "port_node": "Circulation Port Node",
+      "port_node.tooltip.0": "§7Connects machines",
       "charging_node": "Circulation Charging Node",
+      "charging_node.tooltip.0": "§7Charges players",
       "relay_node": "Circulation Relay Node",
+      "relay_node.tooltip.0": "§7Has a longer node connection distance",
       "circulation_shielder": "Circulation Shielder",
       "hub": "Circulation Hub"
     }
@@ -11,6 +14,12 @@
   "item": {
     "circulation_networks": {
       "inspection_tool": "Circulation Wrench",
+      "pocket_port_node": "Pocket Port Node",
+      "pocket_port_node.tooltip.0": "§7A pocket node for connecting machines",
+      "pocket_charging_node": "Pocket Charging Node",
+      "pocket_charging_node.tooltip.0": "§7A pocket node for charging players",
+      "pocket_relay_node": "Pocket Relay Node",
+      "pocket_relay_node.tooltip.0": "§7A pocket node with a longer node connection distance",
       "hub_channel_plugin": "Hub Channel Plugin",
       "circulation_source_crystal": "Circulation Source Crystal",
       "infernal_melting_crystal": "Infernal Melting Crystal",
@@ -30,7 +39,8 @@
         "inspection": {
           "all": "Show All Information",
           "spoce": "Show Link Range",
-          "link": "Show Node Network"
+          "link": "Show Node Network",
+          "machine_link": "Show Machine Links"
         },
         "configuration": {
           "send": "Energy Output",

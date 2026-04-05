@@ -29,6 +29,7 @@
     - [NodeType\<N\>](#nodetypen)
     - [NodeContext](#nodecontext)
     - [NodeDeserializer](#nodedeserializer)
+    - [NodeCreator](#nodecreator)
 - [方块实体接口](#方块实体接口)
     - [INodeBlockEntity](#inodeblockentity)
     - [IMachineNodeBlockEntity](#imachinenodeblockentity)
@@ -131,7 +132,7 @@ ReferenceSet<INode> allNodes = API.getAllNodes();
 | 方法签名                                                                                                     | 说明                                  |
 |----------------------------------------------------------------------------------------------------------|-------------------------------------|
 | `void registerEnergyHandler(@Nonnull IEnergyHandlerManager manager)`                                     | 注册自定义的能量管理器。**必须在 postInit 阶段前调用**。 |
-| `void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function)` | 注册自定义节点类型及其 NBT 反序列化函数。             |
+| `void registerNodeType(@Nonnull NodeType<? extends INode> nodeType, @Nonnull NodeDeserializer function, @Nullable NodeCreator creator)` | 注册自定义节点类型及其 NBT 反序列化函数和运行时创建函数。 |
 
 ---
 
@@ -214,7 +215,7 @@ ReferenceSet<INode> allNodes = API.getAllNodes();
 
 中枢节点接口。一个网络中只能存在一个中枢节点。中枢节点同时具有能量供应和玩家充能能力。
 
-> **唯一内部实现**：此接口由 `HubNode` 单例实现，外部模组不应实现此接口，仅供查询和交互使用。
+> **唯一内部实现**：此接口只有 `HubNode` 这一内部实现类，外部模组不应实现此接口，仅供查询和交互使用。
 
 | 方法                                                    | 返回类型                            | 说明                            |
 |-------------------------------------------------------|---------------------------------|-------------------------------|
@@ -331,6 +332,16 @@ API.registerNodeType(MY_NODE_TYPE, nbt ->MyCustomNode.deserialize(nbt));
 函数式接口，继承自 `Function<NBTTagCompound, INode>`，用于从 NBT 数据反序列化节点。
 
 通过 `API.registerNodeType()` 注册。
+
+---
+
+### NodeCreator
+
+`com.circulation.circulation_networks.api.NodeCreator`
+
+函数式接口，继承自 `Function<NodeContext, INode>`，用于在运行时创建新节点实例（如放置方块或口袋节点时）。
+
+通过 `API.registerNodeType()` 注册。可为 `null`，表示该类型不支持运行时创建。
 
 ---
 
@@ -621,7 +632,7 @@ API.registerEnergyHandler(new MyEnergyManager());
 
 中枢频道接口，管理跨网格的频道连接和权限。
 
-> **唯一内部实现**：此接口由 `HubChannel` 单例实现，外部模组不应实现此接口，仅供查询和交互使用。
+> **唯一内部实现**：此接口只有 `HubChannel` 这一内部实现类，外部模组不应实现此接口，仅供查询和交互使用。
 
 | 方法                                                | 返回类型                            | 说明          |
 |---------------------------------------------------|---------------------------------|-------------|
@@ -806,7 +817,7 @@ public interface ServerTickMachine {
 
 网格（Grid）代表一组互相链接的节点所组成的连通子图。
 
-> **唯一内部实现**：此接口由 `Grid` 单例实现，外部模组不应实现此接口，仅供查询使用。
+> **唯一内部实现**：此接口只有 `Grid` 这一内部实现类，外部模组不应实现此接口，仅供查询使用。
 
 | 方法                     | 返回类型                  | 说明                  |
 |------------------------|-----------------------|---------------------|

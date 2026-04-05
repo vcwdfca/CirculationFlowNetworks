@@ -1,8 +1,10 @@
 package com.circulation.circulation_networks.registry;
 
+import com.circulation.circulation_networks.api.NodeCreator;
 import com.circulation.circulation_networks.api.NodeDeserializer;
 import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.api.node.NodeType;
+import com.circulation.circulation_networks.CFNConfig;
 import com.circulation.circulation_networks.network.nodes.ChargingNode;
 import com.circulation.circulation_networks.network.nodes.HubNode;
 import com.circulation.circulation_networks.network.nodes.Node;
@@ -27,29 +29,34 @@ public final class NodeTypes {
 
     private static final Object2ReferenceMap<String, NodeType<?>> TYPES_BY_ID = new Object2ReferenceOpenHashMap<>();
     private static final Object2ReferenceMap<String, NodeDeserializer> DESERIALIZERS_BY_TYPE_ID = new Object2ReferenceOpenHashMap<>();
+    private static final Object2ReferenceMap<String, NodeCreator> CREATORS_BY_TYPE_ID = new Object2ReferenceOpenHashMap<>();
 
     private NodeTypes() {
     }
 
-    private static <N extends INode> NodeType<N> type(String id, Class<N> nodeClass, boolean allowsPocketNode, String fallbackVisualId, NodeDeserializer deserializer) {
+    private static <N extends INode> NodeType<N> type(String id, Class<N> nodeClass, boolean allowsPocketNode, String fallbackVisualId, NodeDeserializer deserializer, @Nullable NodeCreator creator) {
         var nodeType = new SimpleNodeType<>(id, nodeClass, allowsPocketNode, fallbackVisualId);
-        register(nodeType, deserializer);
+        register(nodeType, deserializer, creator);
         return nodeType;
     }
 
-    public static final NodeType<HubNode> HUB = type("hub", HubNode.class, false, "circulation_networks:hub", HubNode::new);
+    public static final NodeType<HubNode> HUB = type("hub", HubNode.class, false, "circulation_networks:hub", HubNode::new,
+        ctx -> new HubNode(ctx, CFNConfig.NODE.hub.energyScope, CFNConfig.NODE.hub.chargingScope, CFNConfig.NODE.hub.linkScope));
 
-    public static final NodeType<PortNode> PORT_NODE = type("port_node", PortNode.class, false, "circulation_networks:port_node", PortNode::new);
+    public static final NodeType<PortNode> PORT_NODE = type("port_node", PortNode.class, true, "circulation_networks:port_node", PortNode::new,
+        ctx -> new PortNode(ctx, CFNConfig.NODE.portNode.energyScope, CFNConfig.NODE.portNode.linkScope));
 
-    public static final NodeType<ChargingNode> CHARGING_NODE = type("charging_node", ChargingNode.class, false, "circulation_networks:charging_node", ChargingNode::new);
+    public static final NodeType<ChargingNode> CHARGING_NODE = type("charging_node", ChargingNode.class, true, "circulation_networks:charging_node", ChargingNode::new,
+        ctx -> new ChargingNode(ctx, CFNConfig.NODE.chargingNode.chargingScope, CFNConfig.NODE.chargingNode.linkScope));
 
-    public static final NodeType<Node> RELAY_NODE = type("relay_node", Node.class, false, "circulation_networks:relay_node", Node::new);
+    public static final NodeType<Node> RELAY_NODE = type("relay_node", Node.class, true, "circulation_networks:relay_node", Node::new,
+        ctx -> new Node(NodeTypes.RELAY_NODE, ctx, CFNConfig.NODE.relayNode.linkScope));
 
     public static @Nullable NodeType<?> getById(@Nullable String id) {
         return id == null ? null : TYPES_BY_ID.get(id);
     }
 
-    public static <N extends INode> @NotNull NodeType<N> register(@NotNull NodeType<N> nodeType, @NotNull NodeDeserializer deserializer) {
+    public static <N extends INode> @NotNull NodeType<N> register(@NotNull NodeType<N> nodeType, @NotNull NodeDeserializer deserializer, @Nullable NodeCreator creator) {
         String typeId = nodeType.id();
         NodeType<?> existingType = TYPES_BY_ID.get(typeId);
         if (existingType != null && existingType != nodeType) {
@@ -57,10 +64,17 @@ public final class NodeTypes {
         }
         TYPES_BY_ID.put(typeId, nodeType);
         registerTypeDeserializer(typeId, deserializer);
+        if (creator != null) {
+            registerTypeCreator(typeId, creator);
+        }
         return nodeType;
     }
 
-    public static final NodeType<GeneratorNode> GENERATOR = type("generator", GeneratorNode.class, false, "", GeneratorNode::new);
+    public static @Nullable NodeCreator getCreator(@NotNull String typeId) {
+        return CREATORS_BY_TYPE_ID.get(typeId);
+    }
+
+    public static final NodeType<GeneratorNode> GENERATOR = type("generator", GeneratorNode.class, false, "", GeneratorNode::new, null);
 
     //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
     //~ if >=1.20 '.hasKey(' -> '.contains(' {
@@ -87,7 +101,7 @@ public final class NodeTypes {
     //~}
     //~}
 
-    public static final NodeType<StorageNode> STORAGE = type("storage", StorageNode.class, false, "", StorageNode::new);
+    public static final NodeType<StorageNode> STORAGE = type("storage", StorageNode.class, false, "", StorageNode::new, null);
 
     private static void registerTypeDeserializer(String typeId, NodeDeserializer deserializer) {
         NodeDeserializer existing = DESERIALIZERS_BY_TYPE_ID.get(typeId);
@@ -97,7 +111,15 @@ public final class NodeTypes {
         DESERIALIZERS_BY_TYPE_ID.put(typeId, deserializer);
     }
 
-    public static final NodeType<ConsumerNode> CONSUMER = type("consumer", ConsumerNode.class, false, "", ConsumerNode::new);
+    private static void registerTypeCreator(String typeId, NodeCreator creator) {
+        NodeCreator existing = CREATORS_BY_TYPE_ID.get(typeId);
+        if (existing != null && existing != creator) {
+            throw new IllegalStateException("Duplicate node type creator registration: " + typeId);
+        }
+        CREATORS_BY_TYPE_ID.put(typeId, creator);
+    }
+
+    public static final NodeType<ConsumerNode> CONSUMER = type("consumer", ConsumerNode.class, false, "", ConsumerNode::new, null);
 
     //? if <1.20 {
     private static boolean isRegisteredDimension(int dimId) {

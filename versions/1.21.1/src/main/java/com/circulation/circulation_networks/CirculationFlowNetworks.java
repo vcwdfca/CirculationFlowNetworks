@@ -78,7 +78,6 @@ public final class CirculationFlowNetworks {
         NeoForge.EVENT_BUS.addListener(this::onServerAboutToStart);
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
         NeoForge.EVENT_BUS.addListener(this::onChunkLoad);
-        NeoForge.EVENT_BUS.addListener(this::onChunkUnload);
         NeoForge.EVENT_BUS.addListener(this::onBlockBreak);
         NeoForge.EVENT_BUS.addListener(this::onLevelSave);
         NeoForge.EVENT_BUS.addListener(this::onServerStopping);
@@ -181,13 +180,6 @@ public final class CirculationFlowNetworks {
         }
         NetworkManager.INSTANCE.validatePendingNodesInChunk(level, chunk.getPos().x, chunk.getPos().z);
         PocketNodeManager.INSTANCE.onChunkLoad(level, chunk.getPos().x, chunk.getPos().z);
-    }
-
-    private void onChunkUnload(ChunkEvent.Unload event) {
-        if (!(event.getLevel() instanceof Level level) || level.isClientSide() || !(event.getChunk() instanceof LevelChunk chunk)) {
-            return;
-        }
-        PocketNodeManager.INSTANCE.onChunkUnload(level, chunk.getPos().x, chunk.getPos().z);
     }
 
     private void onBlockBreak(BlockEvent.BreakEvent event) {

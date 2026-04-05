@@ -172,8 +172,12 @@ public final class NodeNetworkRenderingHandler {
          *///?}
         if (!(stack.getItem() == CFNItems.inspectionTool
             && InspectionToolState.getFunction(stack) == ToolFunction.INSPECTION
-            && InspectionMode.fromID(InspectionToolState.getSubMode(stack)).isMode(InspectionMode.LINK)))
+            && InspectionMode.fromID(InspectionToolState.getSubMode(stack)).isLinkMode()))
             return;
+
+        InspectionMode currentMode = InspectionMode.fromID(InspectionToolState.getSubMode(stack));
+        boolean showNodes = currentMode.showNodeLinks();
+        boolean showMachines = currentMode.showMachineLinks();
 
         //? if <1.20 {
         double doubleX = p.lastTickPosX + (p.posX - p.lastTickPosX) * event.getPartialTicks();
@@ -221,67 +225,75 @@ public final class NodeNetworkRenderingHandler {
         RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
         *///?}
 
-        for (var link : nodeLinks) {
-            RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, GLOW_RADIUS, 0.3f, 0.3f, 1.0f, 0.25f);
-            RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, CORE_RADIUS, 0.3f, 0.3f, 1.0f, 1.0f);
+        if (showNodes) {
+            for (var link : nodeLinks) {
+                RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, GLOW_RADIUS, 0.3f, 0.3f, 1.0f, 0.25f);
+                RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, CORE_RADIUS, 0.3f, 0.3f, 1.0f, 1.0f);
+            }
         }
-        for (var link : machineLinks) {
-            RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, GLOW_RADIUS, 1.0f, 0.3f, 0.3f, 0.25f);
-            RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, CORE_RADIUS, 1.0f, 0.3f, 0.3f, 1.0f);
+        if (showMachines) {
+            for (var link : machineLinks) {
+                RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, GLOW_RADIUS, 1.0f, 0.3f, 0.3f, 0.25f);
+                RenderingUtils.drawLaserCylinder(link.from.x, link.from.y, link.from.z, link.to.x, link.to.y, link.to.z, CORE_RADIUS, 1.0f, 0.3f, 0.3f, 1.0f);
+            }
         }
 
-        for (var pos : nodePoss.elementSet()) {
-            boolean alsoMachine = machinePoss.contains(pos);
-            //? if <1.20 {
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(pos.x, pos.y, pos.z);
-            //?} else if <1.21 {
-            /*RenderSystem.getModelViewStack().pushPose();
-            RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.getModelViewStack().pushMatrix();
-            RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
-            *///?}
-            if (alsoMachine) {
-                drawSphere(1.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
-                drawSphere(1.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
-            } else {
-                drawSphere(0.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
-                drawSphere(0.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
+        if (showNodes) {
+            for (var pos : nodePoss.elementSet()) {
+                boolean alsoMachine = showMachines && machinePoss.contains(pos);
+                //? if <1.20 {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(pos.x, pos.y, pos.z);
+                //?} else if <1.21 {
+                /*RenderSystem.getModelViewStack().pushPose();
+                RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
+                RenderSystem.applyModelViewMatrix();
+                *///?} else {
+                /*RenderSystem.getModelViewStack().pushMatrix();
+                RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
+                *///?}
+                if (alsoMachine) {
+                    drawSphere(1.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
+                    drawSphere(1.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
+                } else {
+                    drawSphere(0.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
+                    drawSphere(0.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
+                }
+                //? if <1.20 {
+                GlStateManager.popMatrix();
+                //?} else if <1.21 {
+                /*RenderSystem.getModelViewStack().popPose();
+                RenderSystem.applyModelViewMatrix();
+                *///?} else {
+                /*RenderSystem.getModelViewStack().popMatrix();
+                 *///?}
             }
-            //? if <1.20 {
-            GlStateManager.popMatrix();
-            //?} else if <1.21 {
-            /*RenderSystem.getModelViewStack().popPose();
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.getModelViewStack().popMatrix();
-             *///?}
         }
-        for (var pos : machinePoss.elementSet()) {
-            if (nodePoss.contains(pos)) continue;
-            //? if <1.20 {
-            GlStateManager.pushMatrix();
-            GlStateManager.translate(pos.x, pos.y, pos.z);
-            //?} else if <1.21 {
-            /*RenderSystem.getModelViewStack().pushPose();
-            RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.getModelViewStack().pushMatrix();
-            RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
-            *///?}
-            drawSphere(1.0f, 0.0f, 0.0f, SPHERE_GLOW_RADIUS, 0.3f);
-            drawSphere(1.0f, 0.0f, 0.0f, SPHERE_CORE_RADIUS, 0.9f);
-            //? if <1.20 {
-            GlStateManager.popMatrix();
-            //?} else if <1.21 {
-            /*RenderSystem.getModelViewStack().popPose();
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.getModelViewStack().popMatrix();
-             *///?}
+        if (showMachines) {
+            for (var pos : machinePoss.elementSet()) {
+                if (showNodes && nodePoss.contains(pos)) continue;
+                //? if <1.20 {
+                GlStateManager.pushMatrix();
+                GlStateManager.translate(pos.x, pos.y, pos.z);
+                //?} else if <1.21 {
+                /*RenderSystem.getModelViewStack().pushPose();
+                RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
+                RenderSystem.applyModelViewMatrix();
+                *///?} else {
+                /*RenderSystem.getModelViewStack().pushMatrix();
+                RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
+                *///?}
+                drawSphere(1.0f, 0.0f, 0.0f, SPHERE_GLOW_RADIUS, 0.3f);
+                drawSphere(1.0f, 0.0f, 0.0f, SPHERE_CORE_RADIUS, 0.9f);
+                //? if <1.20 {
+                GlStateManager.popMatrix();
+                //?} else if <1.21 {
+                /*RenderSystem.getModelViewStack().popPose();
+                RenderSystem.applyModelViewMatrix();
+                *///?} else {
+                /*RenderSystem.getModelViewStack().popMatrix();
+                 *///?}
+            }
         }
 
         //? if <1.20 {

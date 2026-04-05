@@ -2,7 +2,7 @@ package com.circulation.circulation_networks.packets;
 
 import com.circulation.circulation_networks.items.InspectionToolModeModel;
 import com.circulation.circulation_networks.items.InspectionToolState;
-import com.circulation.circulation_networks.registry.RegistryItems;
+import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.utils.Packet;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.item.ItemStack;
@@ -34,7 +34,7 @@ public final class UpdateItemModeMessage implements Packet<UpdateItemModeMessage
     public IMessage onMessage(UpdateItemModeMessage message, MessageContext ctx) {
         ItemStack stack = ctx.getServerHandler().player.getHeldItemMainhand();
 
-        if (stack.getItem() == RegistryItems.inspectionTool && stack.getTagCompound() != null) {
+        if (stack.getItem() == CFNItems.inspectionTool && stack.getTagCompound() != null) {
             var function = InspectionToolState.getFunction(stack);
             InspectionToolState.setSubMode(stack, InspectionToolModeModel.wrapSubMode(message.mode, function));
         }

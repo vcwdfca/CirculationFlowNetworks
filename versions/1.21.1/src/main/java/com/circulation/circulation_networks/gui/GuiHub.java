@@ -36,7 +36,7 @@ import java.util.function.BooleanSupplier;
 @OnlyIn(Dist.CLIENT)
 public class GuiHub extends CFNBaseGui<ContainerHub> {
 
-    private int state;
+    private static int state;
     private String oldInput;
     private String oldOutput;
     private String oldInteractionTimeMicros;

@@ -5,7 +5,7 @@ import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.api.node.NodeContext;
 import com.circulation.circulation_networks.api.node.NodeType;
 import com.circulation.circulation_networks.manager.NetworkManager;
-import com.circulation.circulation_networks.network.nodes.NodeTypeFactory;
+import com.circulation.circulation_networks.utils.Functions;
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -112,7 +112,7 @@ public abstract class BaseNodeTileEntity<N extends INode> extends BaseTileEntity
                 if (existingNode != null) {
                     NetworkManager.INSTANCE.removeNode(existingNode);
                 }
-                node = NodeTypeFactory.createNode(nodeType, createNodeContext());
+                node = Functions.createNode(nodeType, createNodeContext());
             } else if (existingNode != null && existingNode != node) {
                 NetworkManager.INSTANCE.removeNode(existingNode);
             }
@@ -125,7 +125,7 @@ public abstract class BaseNodeTileEntity<N extends INode> extends BaseTileEntity
     protected void onClientValidate() {
         var nodeType = getNodeType();
         if (node == null || !nodeType.matches(node)) {
-            node = NodeTypeFactory.createNode(nodeType, createNodeContext());
+            node = Functions.createNode(nodeType, createNodeContext());
         }
         onNodeBound(node);
         node.setActive(true);

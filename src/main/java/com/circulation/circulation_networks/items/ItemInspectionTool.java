@@ -239,7 +239,7 @@ public class ItemInspectionTool extends BaseItem {
                 player
             );
         }
-        if (mode.isMode(InspectionMode.LINK)) {
+        if (mode.isLinkMode()) {
             CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
             NodeNetworkRendering.addPlayer(node.getGrid(), player);
         }
@@ -268,7 +268,7 @@ public class ItemInspectionTool extends BaseItem {
                 player
             );
         }
-        if (mode.isMode(InspectionMode.LINK)) {
+        if (mode.isLinkMode()) {
             CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
             NodeNetworkRendering.addPlayer(node.getGrid(), player);
         }

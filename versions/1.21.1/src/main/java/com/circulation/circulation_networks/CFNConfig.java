@@ -7,6 +7,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 public final class CFNConfig {
 
     public static final Node NODE = new Node();

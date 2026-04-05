@@ -5,7 +5,9 @@ import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
 import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
 import com.circulation.circulation_networks.items.ItemInspectionTool;
 import com.circulation.circulation_networks.items.ItemMaterial;
+import com.circulation.circulation_networks.items.ItemPocketNode;
 import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
+import com.circulation.circulation_networks.registry.NodeTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -23,6 +25,9 @@ public final class RegistryItems {
     private static void onRegisterItems(RegisterEvent event) {
         event.register(net.minecraft.core.registries.Registries.ITEM, helper -> {
             CFNItems.inspectionTool = register(helper, "inspection_tool", new ItemInspectionTool(new Item.Properties()));
+            CFNItems.pocketPortNode = register(helper, "pocket_port_node", new ItemPocketNode(NodeTypes.PORT_NODE, new Item.Properties()));
+            CFNItems.pocketChargingNode = register(helper, "pocket_charging_node", new ItemPocketNode(NodeTypes.CHARGING_NODE, new Item.Properties()));
+            CFNItems.pocketRelayNode = register(helper, "pocket_relay_node", new ItemPocketNode(NodeTypes.RELAY_NODE, new Item.Properties()));
             CFNItems.hubChannelPlugin = register(helper, "hub_channel_plugin", new ItemHubChannelPlugin(new Item.Properties()));
             CFNItems.wideAreaChargingPlugin = register(helper, "wide_area_charging_plugin", new ItemWideAreaChargingPlugin(new Item.Properties()));
             CFNItems.dimensionalChargingPlugin = register(helper, "dimensional_charging_plugin", new ItemDimensionalChargingPlugin(new Item.Properties()));

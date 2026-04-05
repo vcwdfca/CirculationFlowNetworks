@@ -6,7 +6,7 @@ import com.circulation.circulation_networks.api.node.NodeContext;
 import com.circulation.circulation_networks.api.node.NodeType;
 import com.circulation.circulation_networks.manager.BlockEntityLifecycleAware;
 import com.circulation.circulation_networks.manager.NetworkManager;
-import com.circulation.circulation_networks.network.nodes.NodeFactory;
+import com.circulation.circulation_networks.utils.Functions;
 import com.circulation.circulation_networks.tiles.BaseCFNBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -90,7 +90,7 @@ public abstract class BaseNodeBlockEntity<N extends INode> extends BaseCFNBlockE
                 if (existingNode != null) {
                     NetworkManager.INSTANCE.removeNode(existingNode);
                 }
-                node = NodeFactory.createNode(nodeType, createNodeContext());
+                node = Functions.createNode(nodeType, createNodeContext());
             } else if (existingNode != null && existingNode != node) {
                 NetworkManager.INSTANCE.removeNode(existingNode);
             }
@@ -109,7 +109,7 @@ public abstract class BaseNodeBlockEntity<N extends INode> extends BaseCFNBlockE
     protected void onClientValidate() {
         var nodeType = getNodeType();
         if (node == null || !nodeType.matches(node)) {
-            node = NodeFactory.createNode(nodeType, createNodeContext());
+            node = Functions.createNode(nodeType, createNodeContext());
         }
         onNodeBound(node);
         node.setActive(true);
