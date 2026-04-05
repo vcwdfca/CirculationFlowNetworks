@@ -253,7 +253,6 @@ public final class PocketNodeManager {
     }
     *///?}
 
-    //~ if >=1.20 'NBTTagCompound' -> 'CompoundTag' {
     //~ if >=1.20 'NBTTagList' -> 'ListTag' {
     //~ if >=1.20 '.tagCount()' -> '.size()' {
     public void load() {
@@ -269,7 +268,9 @@ public final class PocketNodeManager {
             return;
         }
 
+        //~ if >=1.20 'NBTTagCompound ' -> 'CompoundTag ' {
         NBTTagCompound nbt = NetworkManager.tryReadCompressedNbt(saveFile, "pocket node save");
+        //~}
         if (nbt == null) {
             return;
         }
@@ -299,7 +300,6 @@ public final class PocketNodeManager {
 
         recoverPocketHostsFromLoadedNodes();
     }
-    //~}
     //~}
     //~}
 

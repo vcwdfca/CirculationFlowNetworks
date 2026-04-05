@@ -55,14 +55,15 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.BufferUploader;
 *///?}
-//? if <1.20 {
-//?} else if <1.21 {
+//? if >=1.20 {
 /*//~ neo_imports
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.minecraftforge.event.TickEvent;
-*///?} else {
-/*import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
+*///?}
+//? if >=1.20 <1.21 {
+/*import net.minecraftforge.event.TickEvent;
+*///?}
+//? if >=1.21 {
+/*import net.neoforged.neoforge.client.event.ClientTickEvent;
 *///?}
 import org.lwjgl.opengl.GL11;
 

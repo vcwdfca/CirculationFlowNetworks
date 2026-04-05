@@ -6,7 +6,7 @@ public class ItemMaterial extends BaseItem {
     public ItemMaterial(String name) {
         super(name);
 //?} else {
-/*  public ItemMaterial(Properties properties) {
+  /*public ItemMaterial(Properties properties) {
         super(properties);
 *///?}
     }

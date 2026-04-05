@@ -9,7 +9,7 @@ import net.minecraft.block.Block;
 import net.minecraft.util.ResourceLocation;
 //?} else {
 /*import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
 *///?}
 import org.jetbrains.annotations.Nullable;
 

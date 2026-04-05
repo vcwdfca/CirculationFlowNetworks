@@ -80,6 +80,7 @@ public class TileEntityHub extends BaseNodeTileEntity<IHubNode> implements IHubN
             hubNode.bindPlugins(getPlugins());
         }
         initializeHubPluginState();
+        init = true;
     }
 
     public CFNInternalInventory getPlugins() {

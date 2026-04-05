@@ -73,6 +73,7 @@ public class HubBlockEntity extends BaseNodeBlockEntity<IHubNode> implements IHu
             hubNode.bindPlugins(getPlugins());
         }
         initializeHubPluginState();
+        init = true;
     }
 
     public CFNInternalInventory getPlugins() {

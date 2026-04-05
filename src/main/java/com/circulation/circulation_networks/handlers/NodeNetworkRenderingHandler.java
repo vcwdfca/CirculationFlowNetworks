@@ -36,11 +36,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.util.Mth;
 *///?}
-//? if <1.20 {
-//?} else if <1.21 {
-/*//~ neo_imports
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-*///?} else {
+//? if >=1.20 {
 /*//~ neo_imports
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 *///?}
