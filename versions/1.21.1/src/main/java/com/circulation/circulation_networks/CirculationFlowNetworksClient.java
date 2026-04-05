@@ -20,6 +20,8 @@ import net.minecraft.client.resources.language.I18n;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.lwjgl.opengl.GL11;
 
@@ -31,9 +33,19 @@ final class CirculationFlowNetworksClient {
     }
 
     static void init(IEventBus modEventBus) {
-        openGLLevel = detectOpenGLLevel();
-        SpoceRenderingHandler.INSTANCE = createSpoceHandler();
-        NeoForge.EVENT_BUS.register(SpoceRenderingHandler.INSTANCE);
+        // Defer GL detection to the render thread — GL context is only current on the main thread
+        Minecraft.getInstance().execute(() -> {
+            openGLLevel = detectOpenGLLevel();
+            SpoceRenderingHandler.INSTANCE = createSpoceHandler();
+        });
+        // Use addListener instead of register() to avoid NeoForge restriction
+        // on @SubscribeEvent methods in superclass when registering a subclass
+        NeoForge.EVENT_BUS.addListener((RenderLevelStageEvent e) -> {
+            if (SpoceRenderingHandler.INSTANCE != null) SpoceRenderingHandler.INSTANCE.onRenderWorldLast(e);
+        });
+        NeoForge.EVENT_BUS.addListener((ClientTickEvent.Pre e) -> {
+            if (SpoceRenderingHandler.INSTANCE != null) SpoceRenderingHandler.INSTANCE.onClientTick(e);
+        });
         NeoForge.EVENT_BUS.register(NodeNetworkRenderingHandler.INSTANCE);
         NeoForge.EVENT_BUS.register(EnergyWarningRenderingHandler.INSTANCE);
         NeoForge.EVENT_BUS.register(ConfigOverrideRenderingHandler.INSTANCE);

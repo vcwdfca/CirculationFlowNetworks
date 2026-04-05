@@ -71,7 +71,7 @@ public final class CirculationFlowNetworks {
         modEventBus.addListener(CFNConfig::onConfigReload);
         modEventBus.addListener(this::onLoadComplete);
         if (FMLEnvironment.dist.isClient()) {
-            CirculationFlowNetworksClient.init();
+            CirculationFlowNetworksClient.init(modEventBus);
         }
         installPlatformServices();
         MinecraftForge.EVENT_BUS.addListener(this::onServerAboutToStart);

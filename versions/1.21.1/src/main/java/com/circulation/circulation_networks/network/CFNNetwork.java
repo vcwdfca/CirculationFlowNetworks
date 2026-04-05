@@ -32,7 +32,7 @@ public final class CFNNetwork {
     public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
 
-        registerPlayToServer(registrar, ContainerProgressBar.class);
+        registerPlayBidirectional(registrar, ContainerProgressBar.class);
         registerPlayToServer(registrar, UpdateItemModeMessage.class);
         registerPlayToServer(registrar, BindHubChannel.class);
         registerPlayToServer(registrar, CirculationShielderSyncPacket.class);
@@ -47,7 +47,6 @@ public final class CFNNetwork {
         registerPlayToClient(registrar, NodeNetworkRendering.class);
         registerPlayToClient(registrar, EnergyWarningRendering.class);
         registerPlayToClient(registrar, ConfigOverrideRendering.class);
-        registerPlayToClient(registrar, ContainerProgressBar.class);
         registerPlayToClient(registrar, ContainerValueConfig.class);
         registerPlayToClient(registrar, PocketNodeRendering.class);
         registerPlayToClient(registrar, RenderingClear.INSTANCE);
@@ -67,6 +66,14 @@ public final class CFNNetwork {
 
     public static <T extends Packet<T>> void registerPlayToClient(PayloadRegistrar registrar, T packet) {
         registrar.playToClient(payloadType(packet), packet.streamCodec(), packet::handle);
+    }
+
+    public static <T extends Packet<T>> void registerPlayBidirectional(PayloadRegistrar registrar, Class<T> packetClass) {
+        registerPlayBidirectional(registrar, createPacket(packetClass));
+    }
+
+    public static <T extends Packet<T>> void registerPlayBidirectional(PayloadRegistrar registrar, T packet) {
+        registrar.playBidirectional(payloadType(packet), packet.streamCodec(), packet::handle);
     }
 
     public static <T extends Packet<T>> void registerPlayToServer(PayloadRegistrar registrar, Class<T> packetClass) {

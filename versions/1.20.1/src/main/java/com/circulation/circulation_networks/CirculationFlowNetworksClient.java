@@ -20,6 +20,8 @@ import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import org.lwjgl.opengl.GL11;
 
 final class CirculationFlowNetworksClient {
@@ -29,10 +31,13 @@ final class CirculationFlowNetworksClient {
     private CirculationFlowNetworksClient() {
     }
 
-    static void init() {
-        openGLLevel = detectOpenGLLevel();
-        SpoceRenderingHandler.INSTANCE = createSpoceHandler();
-        MinecraftForge.EVENT_BUS.register(SpoceRenderingHandler.INSTANCE);
+    static void init(IEventBus modEventBus) {
+        // Defer GL detection to the render thread — GL context is only current on the main thread
+        Minecraft.getInstance().execute(() -> {
+            openGLLevel = detectOpenGLLevel();
+            SpoceRenderingHandler.INSTANCE = createSpoceHandler();
+            MinecraftForge.EVENT_BUS.register(SpoceRenderingHandler.INSTANCE);
+        });
         MinecraftForge.EVENT_BUS.register(NodeNetworkRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(EnergyWarningRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.register(ConfigOverrideRenderingHandler.INSTANCE);
@@ -42,8 +47,10 @@ final class CirculationFlowNetworksClient {
         MinecraftForge.EVENT_BUS.register(CirculationShielderRenderingHandler.INSTANCE);
         MinecraftForge.EVENT_BUS.addListener(CirculationFlowNetworksClient::onClientLoggingOut);
 
-        MenuScreens.register(CFNMenuTypes.HUB_MENU, GuiHub::new);
-        MenuScreens.register(CFNMenuTypes.CIRCULATION_SHIELDER_MENU, GuiCirculationShielder::new);
+        modEventBus.addListener((FMLClientSetupEvent event) -> event.enqueueWork(() -> {
+            MenuScreens.register(CFNMenuTypes.HUB_MENU, GuiHub::new);
+            MenuScreens.register(CFNMenuTypes.CIRCULATION_SHIELDER_MENU, GuiCirculationShielder::new);
+        }));
 
         CI18n.setI18nInternal(new CI18n() {
             @Override

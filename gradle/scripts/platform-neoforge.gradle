@@ -1,3 +1,5 @@
+import groovy.text.SimpleTemplateEngine
+
 (configurations.named('ksp') ?: configurations.create('ksp'))
 apply plugin: 'net.neoforged.moddev'
 apply plugin: 'dev.kikugie.fletching-table.neoforge'
@@ -8,7 +10,10 @@ neoForge {
 
     runs {
         if (use_mixins.toString().toBoolean()) {
-            def mixinConfigs = mixin_configs.toString().split(' ').findAll { !it.isEmpty() }.collect { "mixins.${it}.json" }
+            def rawConfigs = mixin_configs.toString()
+            def engine = new SimpleTemplateEngine()
+            def resolvedConfigs = engine.createTemplate(rawConfigs).make(project.properties).toString()
+            def mixinConfigs = resolvedConfigs.split(' ').findAll { !it.isEmpty() }.collect { "mixins.${it}.json" }
             configureEach {
                 mixinConfigs.each { config ->
                     programArgument '--mixin.config'
