@@ -2,9 +2,9 @@ package com.circulation.circulation_networks.items;
 
 import com.circulation.circulation_networks.api.IEnergyHandler;
 
-public final class InspectionToolModeModel {
+public final class CirculationConfiguratorModeModel {
 
-    private InspectionToolModeModel() {
+    private CirculationConfiguratorModeModel() {
     }
 
     public static int normalizeScrollDelta(int rawWheelDelta) {
@@ -45,7 +45,7 @@ public final class InspectionToolModeModel {
         }
 
         public String getLangKey() {
-            return "item.circulation_networks.inspection_tool.mode." + name().toLowerCase();
+            return "item.circulation_networks.circulation_configurator.mode." + name().toLowerCase();
         }
 
         public String getDescriptionLangKey() {
@@ -87,7 +87,7 @@ public final class InspectionToolModeModel {
         }
 
         public String getLangKey() {
-            return "item.circulation_networks.inspection_tool.submode.inspection." + name().toLowerCase();
+            return "item.circulation_networks.circulation_configurator.submode.inspection." + name().toLowerCase();
         }
     }
 
@@ -112,7 +112,7 @@ public final class InspectionToolModeModel {
         }
 
         public String getLangKey() {
-            return "item.circulation_networks.inspection_tool.submode.configuration." + name().toLowerCase();
+            return "item.circulation_networks.circulation_configurator.submode.configuration." + name().toLowerCase();
         }
     }
 }

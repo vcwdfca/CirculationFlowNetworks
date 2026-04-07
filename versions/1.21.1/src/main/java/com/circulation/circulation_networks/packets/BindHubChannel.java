@@ -6,7 +6,6 @@ import com.circulation.circulation_networks.manager.HubChannelManager;
 import com.circulation.circulation_networks.network.hub.HubCapabilitys;
 import com.circulation.circulation_networks.utils.Packet;
 import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -62,7 +61,7 @@ public final class BindHubChannel implements Packet<BindHubChannel> {
 
     @NotNull
     @Override
-    public Type<? extends CustomPacketPayload> type() {
+    public Type<BindHubChannel> type() {
         return TYPE;
     }
 }

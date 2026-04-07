@@ -8,6 +8,7 @@ import groovy.lang.Binding
 import groovy.lang.GroovyObject
 import groovy.lang.GroovyShell
 import groovy.text.SimpleTemplateEngine
+import org.gradle.api.tasks.Sync
 import org.gradle.jvm.tasks.Jar
 import java.util.Properties
 
@@ -21,7 +22,6 @@ plugins {
     id("com.gtnewhorizons.retrofuturagradle") version "2.0.2" apply false
     id("net.neoforged.moddev") version "2.0.140" apply false
     id("net.neoforged.moddev.legacyforge") version "2.0.140" apply false
-    id("dev.kikugie.fletching-table") version "0.1.0-alpha.13" apply false
     id("com.matthewprenger.cursegradle") version "1.4.0" apply false
     id("com.modrinth.minotaur") version "2.+" apply false
     id("org.jetbrains.changelog") version "2.5.0"
@@ -645,6 +645,17 @@ tasks.named<ProcessResources>("processResources") {
     }
 }
 
+val syncLegacyForgeResourcesToClasses = if (currentPlatform == "legacyforge") {
+    tasks.register<Sync>("syncLegacyForgeResourcesToClasses") {
+        dependsOn(tasks.named("compileJava"))
+        from(tasks.named<ProcessResources>("processResources"))
+        into(tasks.named<JavaCompile>("compileJava").flatMap { it.destinationDirectory })
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+} else {
+    null
+}
+
 tasks.named<Jar>("jar") {
     manifest {
         val attributeMap = mutableMapOf<String, Any>()
@@ -682,6 +693,9 @@ if (isLegacyRfg) {
 }
 
 tasks.withType<JavaExec>().configureEach {
+    if (syncLegacyForgeResourcesToClasses != null && name in setOf("runClient", "runServer", "runData")) {
+        dependsOn(syncLegacyForgeResourcesToClasses)
+    }
     if (name in setOf("runClient", "runServer", "runData")) {
         javaLauncher.set(runtimeJavaLauncher)
     }
@@ -790,6 +804,12 @@ tasks.named<ProcessResources>("processResources") {
 
 tasks.named("compileJava") {
     dependsOn(generateComponentAtlasRegistration)
+}
+
+if (syncLegacyForgeResourcesToClasses != null) {
+    tasks.named("classes") {
+        dependsOn(syncLegacyForgeResourcesToClasses)
+    }
 }
 
 tasks.matching { it.name == "kspKotlin" }.configureEach {

@@ -4,6 +4,7 @@ import com.circulation.circulation_networks.api.hub.PermissionMode;
 import com.circulation.circulation_networks.container.ContainerHub;
 import com.circulation.circulation_networks.manager.HubChannelManager;
 import com.circulation.circulation_networks.network.hub.HubCapabilitys;
+import com.circulation.circulation_networks.utils.HubPlatformServices;
 import com.circulation.circulation_networks.utils.Packet;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
@@ -51,7 +52,8 @@ public final class UpdateHubChannelSettings implements Packet<UpdateHubChannelSe
                 containerHub.node,
                 sender.getUUID(),
                 message.name,
-                PermissionMode.fromId(message.permissionModeId)
+                PermissionMode.fromId(message.permissionModeId),
+                HubPlatformServices.INSTANCE.hasChannelManagementOverride(sender)
             );
         });
         context.setPacketHandled(true);

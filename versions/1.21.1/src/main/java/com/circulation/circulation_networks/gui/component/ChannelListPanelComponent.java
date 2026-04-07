@@ -179,7 +179,7 @@ public final class ChannelListPanelComponent extends DraggableComponent implemen
                 guiGraphics.fill(x, y, x + ENTRY_WIDTH, y + ENTRY_HEIGHT, 0xCC3D6176);
             }
         }
-        drawCenteredText(trimToWidth(entry.name()), x + 19, y + 4);
+        drawCenteredText(trimToWidth(entry.name()), x + 19, alignTextY(y, ENTRY_HEIGHT));
     }
 
     private String getEntrySprite(ChannelSnapshotEntry entry) {

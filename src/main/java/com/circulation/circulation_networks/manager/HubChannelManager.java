@@ -283,6 +283,10 @@ public final class HubChannelManager {
     }
 
     public boolean updateChannelSettings(IHubNode hub, UUID playerId, String rawName, PermissionMode permissionMode) {
+        return updateChannelSettings(hub, playerId, rawName, permissionMode, false);
+    }
+
+    public boolean updateChannelSettings(IHubNode hub, UUID playerId, String rawName, PermissionMode permissionMode, boolean privilegedOverride) {
         ensureLoaded();
         HubChannel channel = getCurrentChannel(hub);
         if (channel == null) {
@@ -290,8 +294,8 @@ public final class HubChannelManager {
         }
 
         HubPermissionLevel playerPermission = channel.getPermissionLevel(playerId);
-        boolean canRename = playerPermission == HubPermissionLevel.OWNER || playerPermission == HubPermissionLevel.ADMIN;
-        boolean canChangeMode = playerPermission == HubPermissionLevel.OWNER;
+        boolean canRename = privilegedOverride || playerPermission == HubPermissionLevel.OWNER || playerPermission == HubPermissionLevel.ADMIN;
+        boolean canChangeMode = privilegedOverride || playerPermission == HubPermissionLevel.OWNER;
         if (!canRename) {
             return false;
         }
@@ -313,9 +317,16 @@ public final class HubChannelManager {
     }
 
     public boolean deleteChannel(IHubNode hub, UUID playerId) {
+        return deleteChannel(hub, playerId, false);
+    }
+
+    public boolean deleteChannel(IHubNode hub, UUID playerId, boolean privilegedOverride) {
         ensureLoaded();
         HubChannel channel = getCurrentChannel(hub);
-        if (channel == null || channel.getPermissionLevel(playerId) != HubPermissionLevel.OWNER) {
+        if (channel == null) {
+            return false;
+        }
+        if (!privilegedOverride && channel.getPermissionLevel(playerId) != HubPermissionLevel.OWNER) {
             return false;
         }
 
@@ -333,6 +344,10 @@ public final class HubChannelManager {
     }
 
     public boolean updateExplicitPermission(IHubNode hub, UUID actorId, UUID targetId, @Nullable HubPermissionLevel permissionLevel) {
+        return updateExplicitPermission(hub, actorId, targetId, permissionLevel, false);
+    }
+
+    public boolean updateExplicitPermission(IHubNode hub, UUID actorId, UUID targetId, @Nullable HubPermissionLevel permissionLevel, boolean privilegedOverride) {
         ensureLoaded();
         if (actorId == null || targetId == null) {
             return false;
@@ -345,7 +360,7 @@ public final class HubChannelManager {
 
         HubPermissionLevel actorPermission = channel.getPermissionLevel(actorId);
         HubPermissionLevel targetPermission = channel.getPermissionLevel(targetId);
-        if (!canChangePermission(channel, actorId, actorPermission, targetId, targetPermission, permissionLevel)) {
+        if (!canChangePermission(channel, actorId, actorPermission, targetId, targetPermission, permissionLevel, privilegedOverride)) {
             return false;
         }
 
@@ -527,7 +542,8 @@ public final class HubChannelManager {
                                                HubPermissionLevel actorPermission,
                                                UUID targetId,
                                                HubPermissionLevel targetPermission,
-                                               @Nullable HubPermissionLevel requestedPermission) {
+                                               @Nullable HubPermissionLevel requestedPermission,
+                                               boolean privilegedOverride) {
         if (actorId.equals(targetId)) {
             return false;
         }
@@ -536,6 +552,9 @@ public final class HubChannelManager {
         }
         if (requestedPermission == HubPermissionLevel.OWNER) {
             return false;
+        }
+        if (privilegedOverride) {
+            return true;
         }
 
         return switch (actorPermission) {

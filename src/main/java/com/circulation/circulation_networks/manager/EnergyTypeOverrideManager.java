@@ -2,11 +2,13 @@ package com.circulation.circulation_networks.manager;
 
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
+import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 //? if <1.20 {
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -18,7 +20,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.level.ServerPlayer;
 *///?}
+import net.minecraft.server.MinecraftServer;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -54,6 +58,32 @@ public final class EnergyTypeOverrideManager {
             INSTANCE.saveToFile();
         }
     }
+
+    //? if <1.20 {
+    private static MinecraftServer getServer() {
+        return com.circulation.circulation_networks.CirculationFlowNetworks.server;
+    }
+
+    private static int getPlayerDimensionId(EntityPlayerMP player) {
+        return player.dimension;
+    }
+    //?} else if <1.21 {
+    /*private static MinecraftServer getServer() {
+        return net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+    }
+
+    private static int getPlayerDimensionId(ServerPlayer player) {
+        return player.level().dimension().location().hashCode();
+    }
+    *///?} else {
+    /*private static MinecraftServer getServer() {
+        return net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+    }
+
+    private static int getPlayerDimensionId(ServerPlayer player) {
+        return player.level().dimension().location().hashCode();
+    }
+    *///?}
 
     //~ if >=1.20 'net.minecraft.world.World' -> 'net.minecraft.world.level.Level' {
     //~ if >=1.20 '.isRemote' -> '.isClientSide' {
@@ -96,7 +126,24 @@ public final class EnergyTypeOverrideManager {
 
     public void onBlockEntityInvalidate(BlockEntityLifeCycleEvent.Invalidate event) {
         if (isClientWorld(event.getWorld())) return;
-        clearOverride(getDimensionId(event.getWorld()), event.getPos());
+        int dim = getDimensionId(event.getWorld());
+        BlockPos pos = event.getPos();
+        if (getOverride(dim, pos) != null) {
+            MinecraftServer server = getServer();
+            if (server != null) {
+                //~ if >=1.20 '.toLong()' -> '.asLong()' {
+                long packedPos = pos.toLong();
+                //~}
+                //~ if >=1.20 'EntityPlayerMP' -> 'ServerPlayer' {
+                for (EntityPlayerMP player : server.getPlayerList().getPlayers()) {
+                    if (getPlayerDimensionId(player) == dim) {
+                        ConfigOverrideRendering.sendRemove(player, packedPos);
+                    }
+                }
+                //~}
+            }
+        }
+        clearOverride(dim, pos);
     }
     //~}
     //~}

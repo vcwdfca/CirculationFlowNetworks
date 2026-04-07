@@ -15,6 +15,7 @@ public class SyncData {
     private long numericVersion = 0L;
     private String stringVersion = null;
     private byte[] bytesVersion = null;
+    private byte[] bytesSourceVersion = null;
     public SyncData(Object container, Field field, GuiSync annotation, SyncUpdateCallback updateCallback) {
         this.source = container;
         this.field = field;
@@ -57,6 +58,7 @@ public class SyncData {
         numericVersion = 0L;
         stringVersion = null;
         bytesVersion = null;
+        bytesSourceVersion = null;
     }
 
     public void tick(SyncSender sender) {
@@ -66,7 +68,12 @@ public class SyncData {
             if (syncType == SyncType.STRING) {
                 needsSync = !Objects.equals(val, stringVersion);
             } else if (syncType == SyncType.BYTES) {
-                needsSync = !Arrays.equals((byte[]) val, bytesVersion);
+                byte[] bytes = (byte[]) val;
+                if (bytes == bytesSourceVersion) {
+                    needsSync = false;
+                } else {
+                    needsSync = !Arrays.equals(bytes, bytesVersion);
+                }
             } else {
                 long numeric = extractNumericValue(val);
                 needsSync = numeric != numericVersion;
@@ -101,7 +108,10 @@ public class SyncData {
     private void updateCachedVersion(Object val) {
         switch (syncType) {
             case STRING -> stringVersion = (String) val;
-            case BYTES -> bytesVersion = copyBytes((byte[]) val);
+            case BYTES -> {
+                bytesSourceVersion = (byte[]) val;
+                bytesVersion = copyBytes((byte[]) val);
+            }
             case INT, LONG, BYTE, SHORT, BOOLEAN, ENUM -> numericVersion = extractNumericValue(val);
         }
     }

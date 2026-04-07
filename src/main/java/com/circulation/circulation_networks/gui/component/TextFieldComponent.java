@@ -25,6 +25,14 @@ public class TextFieldComponent extends Component {
      *///?}
     private Predicate<Character> inputAllowed = ALLOW_ALL_INPUT;
     private int maxLength;
+    private int textInsetLeft = 0;
+    private int textInsetTop = 0;
+    private int textInsetRight = 0;
+    private int textInsetBottom = 0;
+    //? if >=1.20 {
+    /*private int nativeWidth = -1;
+    private int nativeHeight = -1;
+    *///?}
     @Nullable
     private Boolean backgroundDrawing;
 
@@ -98,6 +106,7 @@ public class TextFieldComponent extends Component {
         textField.setFocused(focused);
         //?} else {
         /*textField.setFocused(focused);
+        syncScreenFocus();
          *///?}
         return this;
     }
@@ -113,6 +122,36 @@ public class TextFieldComponent extends Component {
 
     private boolean isCharacterInputAllowed(char typedChar) {
         return !shouldFilterCharacter(typedChar) || inputAllowed.test(typedChar);
+    }
+
+    public TextFieldComponent setTextInsets(int left, int top, int right, int bottom) {
+        this.textInsetLeft = Math.max(0, left);
+        this.textInsetTop = Math.max(0, top);
+        this.textInsetRight = Math.max(0, right);
+        this.textInsetBottom = Math.max(0, bottom);
+        //? if <1.20 {
+        syncTextFieldBounds();
+        applyNativeState();
+        //?} else {
+        /*rebuildEditBox();
+         *///?}
+        return this;
+    }
+
+    protected final int getInnerTextX() {
+        return getAbsoluteX() + textInsetLeft;
+    }
+
+    protected final int getInnerTextY() {
+        return getAbsoluteY() + textInsetTop;
+    }
+
+    protected final int getInnerTextWidth() {
+        return Math.max(1, width - textInsetLeft - textInsetRight);
+    }
+
+    protected final int getInnerTextHeight() {
+        return Math.max(1, height - textInsetTop - textInsetBottom);
     }
 
     @Nullable
@@ -168,11 +207,28 @@ public class TextFieldComponent extends Component {
         //? if <1.20 {
         syncTextFieldBounds();
         applyNativeState();
-        return textField.mouseClicked(mouseX, mouseY, button);
+        boolean handled = textField.mouseClicked(mouseX, mouseY, button);
+        if (!handled && button == 0 && super.contains(mouseX, mouseY) && isEnabled()) {
+            textField.setFocused(true);
+            return true;
+        }
+        return handled;
         //?} else {
         /*syncTextFieldBounds();
         applyNativeState();
-        return textField.mouseClicked(mouseX, mouseY, button);
+        boolean handled = textField.mouseClicked(mouseX, mouseY, button);
+        if (handled) {
+            textField.setFocused(true);
+            syncScreenFocus();
+            return true;
+        }
+        if (button == 0 && super.contains(mouseX, mouseY) && isEnabled()) {
+            textField.setFocused(true);
+            syncScreenFocus();
+            return true;
+        }
+        syncScreenFocus();
+        return false;
         *///?}
     }
 
@@ -208,8 +264,8 @@ public class TextFieldComponent extends Component {
         /*if (!textField.isFocused() || super.contains(mouseX, mouseY)) {
             return;
         }
-        syncTextFieldBounds();
-        textField.mouseClicked(mouseX, mouseY, button);
+        textField.setFocused(false);
+        syncScreenFocus();
         *///?}
     }
 
@@ -225,10 +281,10 @@ public class TextFieldComponent extends Component {
 
     //? if <1.20 {
     private void syncTextFieldBounds() {
-        textField.x = getAbsoluteX();
-        textField.y = getAbsoluteY();
-        textField.width = width;
-        textField.height = height;
+        textField.x = getInnerTextX();
+        textField.y = getInnerTextY();
+        textField.width = getInnerTextWidth();
+        textField.height = getInnerTextHeight();
     }
 
     private void applyNativeState() {
@@ -240,12 +296,14 @@ public class TextFieldComponent extends Component {
     }
     //?} else {
     /*private EditBox createEditBox(int maxLength) {
+        nativeWidth = getInnerTextWidth();
+        nativeHeight = getInnerTextHeight();
         EditBox field = new EditBox(
             Minecraft.getInstance().font,
-            getAbsoluteX(),
-            getAbsoluteY(),
-            width,
-            height,
+            getInnerTextX(),
+            getInnerTextY(),
+            nativeWidth,
+            nativeHeight,
             net.minecraft.network.chat.Component.literal("")
         );
         field.setCanLoseFocus(true);
@@ -256,16 +314,24 @@ public class TextFieldComponent extends Component {
     private void rebuildEditBox() {
         String text = textField != null ? textField.getValue() : "";
         boolean focused = textField != null && textField.isFocused();
+        syncScreenFocus();
         textField = createEditBox(maxLength);
         textField.setValue(text);
         textField.setFocused(focused);
         applyNativeState();
+        syncScreenFocus();
     }
 
     private void syncTextFieldBounds() {
-        textField.setX(getAbsoluteX());
-        textField.setY(getAbsoluteY());
-        textField.setWidth(width);
+        int innerWidth = getInnerTextWidth();
+        int innerHeight = getInnerTextHeight();
+        if (nativeWidth != innerWidth || nativeHeight != innerHeight) {
+            rebuildEditBox();
+            return;
+        }
+        textField.setX(getInnerTextX());
+        textField.setY(getInnerTextY());
+        textField.setWidth(innerWidth);
     }
 
     private void applyNativeState() {
@@ -276,6 +342,15 @@ public class TextFieldComponent extends Component {
         }
         if (backgroundDrawing != null) {
             textField.setBordered(backgroundDrawing);
+        }
+        syncScreenFocus();
+    }
+
+    private void syncScreenFocus() {
+        if (textField.isFocused() && isVisible() && isEnabled()) {
+            gui.focusComponentInput(textField);
+        } else {
+            gui.clearComponentInputFocus(textField);
         }
     }
     *///?}

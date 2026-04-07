@@ -60,7 +60,7 @@ public final class PermissionListPanelComponent extends DraggableComponent imple
         this.container = container;
         setSpriteLayers("permission_panel");
 
-        searchField = new TextFieldComponent(33, 13, 95, 10, gui, 32, false);
+        searchField = new TextFieldComponent(29, 9, 103, 18, gui, 32, false).setTextInsets(4, 5, 4, 5);
         addChild(searchField);
 
         slider = SliderComponent.normalized(this, 124, 31, 190, 0.0d, gui);
@@ -211,7 +211,7 @@ public final class PermissionListPanelComponent extends DraggableComponent imple
             restoreGuiRenderState();
         }
 
-        drawCenteredText(trimToWidth(entry.name()), x + 4, y + 4);
+        drawCenteredText(trimToWidth(entry.name()), x + 4, alignTextY(y, ENTRY_COLLAPSED_HEIGHT));
         renderToggleButton(expanded, x + TOGGLE_X, y + TOGGLE_Y, mouseX, mouseY);
 
         if (!expanded) {
@@ -325,10 +325,13 @@ public final class PermissionListPanelComponent extends DraggableComponent imple
     }
 
     private boolean canEditTarget(PermissionSnapshotEntry entry, HubPermissionLevel targetPermission) {
-        HubPermissionLevel self = getCurrentUserPermission();
         if (targetPermission == HubPermissionLevel.OWNER || entry.permission() == HubPermissionLevel.OWNER) {
             return false;
         }
+        if (container.hasChannelManagementOverride()) {
+            return true;
+        }
+        HubPermissionLevel self = getCurrentUserPermission();
         return switch (self) {
             case OWNER -> targetPermission != HubPermissionLevel.OWNER;
             case ADMIN ->

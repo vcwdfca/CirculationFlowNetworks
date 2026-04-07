@@ -1,13 +1,19 @@
 package com.circulation.circulation_networks.blocks;
 
+import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
 import com.circulation.circulation_networks.items.BaseItemTooltipModel;
+import com.circulation.circulation_networks.manager.PocketNodeManager;
+import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import com.circulation.circulation_networks.utils.CI18n;
+import com.circulation.circulation_networks.utils.PocketNodeInteractionHelper;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -66,6 +72,26 @@ public abstract class BaseBlock extends Block implements EntityBlock {
             return menuProvider;
         }
         return null;
+    }
+
+    @Override
+    protected @NotNull ItemInteractionResult useItemOn(@NotNull ItemStack stack, @NotNull BlockState state, @NotNull Level level,
+                                                       @NotNull BlockPos pos, @NotNull Player player, @NotNull InteractionHand hand,
+                                                       @NotNull BlockHitResult hit) {
+        if (PocketNodeInteractionHelper.shouldPrioritizeConfiguratorDetach(
+            hand == InteractionHand.MAIN_HAND,
+            player.isShiftKeyDown(),
+            stack.getItem() == CFNItems.circulationConfigurator
+        )) {
+            if (level.isClientSide()) {
+                if (PocketNodeRenderingHandler.INSTANCE.hasNode(level.dimension().location().hashCode(), pos)) {
+                    return ItemInteractionResult.sidedSuccess(true);
+                }
+            } else if (PocketNodeManager.INSTANCE.removePocketNode(level, pos, true)) {
+                return ItemInteractionResult.sidedSuccess(false);
+            }
+        }
+        return super.useItemOn(stack, state, level, pos, player, hand, hit);
     }
 
     @Override

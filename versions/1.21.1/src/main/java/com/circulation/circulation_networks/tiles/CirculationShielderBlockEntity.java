@@ -22,7 +22,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
 
     private transient final BlockPos.MutableBlockPos min = new BlockPos.MutableBlockPos();
     private transient final BlockPos.MutableBlockPos max = new BlockPos.MutableBlockPos();
-    private int scope;
+    private int scope = 10;
     private boolean redstoneMode = false;
     private boolean showingRange = false;
 
@@ -100,7 +100,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
 
     @Override
     public void onValidate() {
-        if (level != null && !level.isClientSide()) {
+        if (level != null) {
             CirculationShielderManager.INSTANCE.register(this, level.dimension().location().hashCode());
         }
     }
@@ -119,7 +119,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
 
     @Override
     public void setRemoved() {
-        if (level != null && !level.isClientSide()) {
+        if (level != null) {
             CirculationShielderManager.INSTANCE.unregister(this, level.dimension().location().hashCode());
         }
         super.setRemoved();

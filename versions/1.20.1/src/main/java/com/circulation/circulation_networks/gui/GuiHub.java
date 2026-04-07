@@ -37,14 +37,18 @@ import java.util.function.BooleanSupplier;
 public class GuiHub extends CFNBaseGui<ContainerHub> {
 
     private static int state;
+    private static final int CHANNEL_TEXT_WIDTH = 83;
+    private static final int ENERGY_TEXT_WIDTH = 60;
+    private static final int LATENCY_TEXT_WIDTH = 83;
+
     private String oldInput;
     private String oldOutput;
+    private String oldChannelName;
     private String oldInteractionTimeMicros;
-    private int oldNodeCount = Integer.MIN_VALUE;
+    private String oldFC;
     private String oldFI;
     private String oldFO;
     private String oldFT;
-    private String oldNodeCountText;
 
     private ButtonComponent node, playerPowerSupply, upgradePlugin, channel, permission, settings;
     private Component nodeUI, playerPowerSupplyUI, upgradePluginUI, channelUI, permissionUI, settingsUI;
@@ -138,10 +142,10 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
                 }).addTooltip(boldTooltip("gui.hub.tooltip.energy_display"))
             )
         );
-        bg.add(new TextComponent(11, 12, this, () -> f(container.input, true), 0x79d7ff));
-        bg.add(new TextComponent(120, 16, this, this::formatInteractionTime, 0x79d7ff));
-        bg.add(new TextComponent(11, 124, this, this::formatNodeCount, 0x79d7ff));
-        bg.add(new TextComponent(105, 127, this, () -> f(container.output, false), 0x79d7ff));
+        bg.add(new TextComponent(12, 13, this, this::formatChannelName, 0x79d7ff));
+        bg.add(new TextComponent(106, 13, this, () -> f(container.input, true), 0x79d7ff));
+        bg.add(new TextComponent(12, 130, this, this::formatInteractionTime, 0x79d7ff));
+        bg.add(new TextComponent(106, 130, this, () -> f(container.output, false), 0x79d7ff));
         List<Component> n = components.computeIfAbsent(RenderPhase.NORMAL, k -> new ObjectArrayList<>());
         int i = -1;
         n.add(nodeUI = new NodeListPanelComponent(-116, 0, this, container)
@@ -263,9 +267,21 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
         if (p.multiplying() != 0) {
             e.divide(p.multiplying());
         }
-        final String o = (IO ? "I : " : "O : ") + FormatNumberUtils.formatNumber(e) + " " + p.unit() + "/t";
+        String value = FormatNumberUtils.formatNumber(e) + " " + p.unit() + "/t";
         e.recycle();
-        return IO ? (oldFI = o) : (oldFO = o);
+        String output = trimToWidth(value, ENERGY_TEXT_WIDTH);
+        return IO ? (oldFI = output) : (oldFO = output);
+    }
+
+    private String formatChannelName() {
+        if (Objects.equals(container.channelName, oldChannelName)) {
+            return oldFC;
+        }
+        oldChannelName = container.channelName;
+        String value = container.channelName == null || container.channelName.trim().isEmpty()
+            ? CI18n.format("gui.hub.no_channel")
+            : container.channelName;
+        return oldFC = trimToWidth(value, CHANNEL_TEXT_WIDTH);
     }
 
     private String formatInteractionTime() {
@@ -285,17 +301,11 @@ public class GuiHub extends CFNBaseGui<ContainerHub> {
         } else {
             value = FormatNumberUtils.formatNumber(micros) + "μs";
         }
-        return oldFT = CI18n.format("gui.hub.energy_latency", value);
+        return oldFT = trimToWidth(CI18n.format("gui.hub.energy_latency", value), LATENCY_TEXT_WIDTH);
     }
 
-    private String formatNodeCount() {
-        int nodeCount = container.nodes != null ? container.nodes.getEntries().size() : 0;
-        if (nodeCount == oldNodeCount) {
-            return oldNodeCountText;
-        }
-        oldNodeCount = nodeCount;
-        String value = FormatNumberUtils.formatNumber(nodeCount);
-        return oldNodeCountText = CI18n.format("gui.hub.node_count", value);
+    private String trimToWidth(String text, int width) {
+        return net.minecraft.client.Minecraft.getInstance().font.plainSubstrByWidth(text == null ? "" : text, width);
     }
 
     private String boldTooltip(String key) {

@@ -54,7 +54,7 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
         setSpriteLayers("settings_panel");
         setVisible(false);
 
-        nameField = new SettingsNameField(33, 13, 95, 10, gui);
+        nameField = new SettingsNameField(29, 9, 103, 18, gui);
         addChild(nameField);
 
         addChild(publicModeButton = new ModeButton(MODE_X, MODE_Y, "switch_public", PermissionMode.PUBLIC, gui));
@@ -128,9 +128,10 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
 
     private void syncUiState() {
         HubPermissionLevel permission = getCurrentUserPermission();
-        boolean canEditName = mode == DialogMode.CREATE || permission == HubPermissionLevel.OWNER || permission == HubPermissionLevel.ADMIN;
-        boolean canEditMode = mode == DialogMode.CREATE || permission == HubPermissionLevel.OWNER;
-        boolean canDelete = mode == DialogMode.SETTINGS && permission == HubPermissionLevel.OWNER && deleteShiftProgress >= DELETE_SHIFT_REQUIREMENT;
+        boolean override = container.hasChannelManagementOverride();
+        boolean canEditName = mode == DialogMode.CREATE || override || permission == HubPermissionLevel.OWNER || permission == HubPermissionLevel.ADMIN;
+        boolean canEditMode = mode == DialogMode.CREATE || override || permission == HubPermissionLevel.OWNER;
+        boolean canDelete = mode == DialogMode.SETTINGS && (override || permission == HubPermissionLevel.OWNER) && deleteShiftProgress >= DELETE_SHIFT_REQUIREMENT;
 
         nameField.setEnabled(canEditName);
         publicModeButton.setEnabled(canEditMode);
@@ -170,7 +171,7 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
         }
 
         HubPermissionLevel permission = getCurrentUserPermission();
-        if (permission != HubPermissionLevel.OWNER && permission != HubPermissionLevel.ADMIN) {
+        if (!container.hasChannelManagementOverride() && permission != HubPermissionLevel.OWNER && permission != HubPermissionLevel.ADMIN) {
             return;
         }
 
@@ -221,6 +222,7 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
 
         private SettingsNameField(int x, int y, int width, int height, CFNBaseGui<?> gui) {
             super(x, y, width, height, gui, 32, false);
+            setTextInsets(4, 5, 4, 3);
         }
 
         private void bind(String text) {
@@ -315,7 +317,7 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
 
         @Override
         protected void render(int mouseX, int mouseY, float partialTicks) {
-            drawCenteredText(getLabel(), getAbsoluteX(), getAbsoluteY() + 5);
+            drawCenteredText(getLabel(), getAbsoluteX(), alignTextY(getAbsoluteY(), height));
         }
 
         @Override
@@ -325,7 +327,7 @@ public final class ChannelSettingsDialogComponent extends DraggableComponent {
             }
 
             HubPermissionLevel permission = getCurrentUserPermission();
-            if (permission != HubPermissionLevel.OWNER) {
+            if (!container.hasChannelManagementOverride() && permission != HubPermissionLevel.OWNER) {
                 return Collections.singletonList(() -> CI18n.format("gui.channel_settings.tooltip.delete.owner_only"));
             }
             if (deleteShiftProgress < DELETE_SHIFT_REQUIREMENT) {

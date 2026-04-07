@@ -2,7 +2,6 @@ import groovy.text.SimpleTemplateEngine
 
 (configurations.named('ksp') ?: configurations.create('ksp'))
 apply plugin: 'net.neoforged.moddev'
-apply plugin: 'dev.kikugie.fletching-table.neoforge'
 
 neoForge {
     version = neoforge_version
@@ -50,14 +49,4 @@ def prepareEmptyKspDir = tasks.register('prepareEmptyKspDir') {
 
 tasks.named('processResources') {
     dependsOn(prepareEmptyKspDir)
-}
-
-fletchingTable {
-    lang.create('main') {
-        patterns.add('assets/circulation_networks/lang/**')
-    }
-    lang.all {
-        sortKeys = true
-        prettyPrint = true
-    }
 }

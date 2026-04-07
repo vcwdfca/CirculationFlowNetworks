@@ -1,5 +1,6 @@
 package com.circulation.circulation_networks.handlers;
 
+import com.circulation.circulation_networks.CirculationFlowNetworks;
 import com.circulation.circulation_networks.gui.component.base.AtlasRegion;
 import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -63,6 +64,7 @@ public final class EnergyWarningRenderingHandler {
     private static final String WARNING_SPRITE = "warning";
     private final Int2ObjectMap<Long2LongMap> warnings = new Int2ObjectOpenHashMap<>();
     private long clientTick;
+    private long lastRefreshLogTick = Long.MIN_VALUE;
 
     private EnergyWarningRenderingHandler() {
     }
@@ -85,11 +87,19 @@ public final class EnergyWarningRenderingHandler {
         for (long posLong : positions) {
             dimWarnings.put(posLong, clientTick);
         }
+        if (clientTick - lastRefreshLogTick >= 20L) {
+            lastRefreshLogTick = clientTick;
+            CirculationFlowNetworks.LOGGER.info(
+                "[EnergyWarning] refresh dim={} positions={} clientTick={}",
+                dimId, positions.size(), clientTick
+            );
+        }
     }
 
     public void clear() {
         warnings.clear();
         clientTick = 0L;
+        lastRefreshLogTick = Long.MIN_VALUE;
     }
 
     @SubscribeEvent
@@ -148,20 +158,41 @@ public final class EnergyWarningRenderingHandler {
             return;
         }
 
-        //? if <1.21 {
-        double cameraX = mc.player.xOld + (mc.player.getX() - mc.player.xOld) * event.getPartialTick();
-        double cameraY = mc.player.yOld + (mc.player.getY() - mc.player.yOld) * event.getPartialTick();
-        double cameraZ = mc.player.zOld + (mc.player.getZ() - mc.player.zOld) * event.getPartialTick();
-        //?} else {
-        /^float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
-        double cameraX = mc.player.xOld + (mc.player.getX() - mc.player.xOld) * partialTick;
-        double cameraY = mc.player.yOld + (mc.player.getY() - mc.player.yOld) * partialTick;
-        double cameraZ = mc.player.zOld + (mc.player.getZ() - mc.player.zOld) * partialTick;
-        ^///?}
+        var cameraPos = event.getCamera().getPosition();
+        double cameraX = cameraPos.x;
+        double cameraY = cameraPos.y;
+        double cameraZ = cameraPos.z;
         AtlasRegion warningRegion = getWarningRegion();
         if (warningRegion == null) {
+            if (!missingRegionLogged) {
+                missingRegionLogged = true;
+                CirculationFlowNetworks.LOGGER.warn("[EnergyWarning] warning region missing from component atlas");
+            }
             return;
         }
+        missingRegionLogged = false;
+
+        if (clientTick - lastRenderPassLogTick >= 20L) {
+            lastRenderPassLogTick = clientTick;
+            CirculationFlowNetworks.LOGGER.info(
+                "[EnergyWarning] render pass dim={} warnings={} camera=({}, {}, {})",
+                mc.level.dimension().location(),
+                dimWarnings.size(),
+                cameraX, cameraY, cameraZ
+            );
+        }
+
+        //? if <1.21 {
+        PoseStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushPose();
+        mvStack.translate(-cameraX, -cameraY, -cameraZ);
+        //?} else {
+        /^var mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.set(event.getModelViewMatrix());
+        mvStack.translate((float) -cameraX, (float) -cameraY, (float) -cameraZ);
+        ^///?}
+        RenderSystem.applyModelViewMatrix();
 
         for (var entry : dimWarnings.long2LongEntrySet()) {
             if (clientTick - entry.getLongValue() > WARNING_TTL_TICKS) {
@@ -171,8 +202,22 @@ public final class EnergyWarningRenderingHandler {
             if (distanceSqToPlayer(mc, pos) > MAX_RENDER_DISTANCE_SQ) {
                 continue;
             }
-            renderWarning(warningRegion, event.getPoseStack(), cameraX, cameraY, cameraZ, pos);
+            if (lastRenderAttemptLogTick != clientTick) {
+                lastRenderAttemptLogTick = clientTick;
+                CirculationFlowNetworks.LOGGER.info(
+                    "[EnergyWarning] render attempt pos={} dim={} clientTick={}",
+                    pos, mc.level.dimension().location(), clientTick
+                );
+            }
+            renderWarning(warningRegion, pos);
         }
+
+        //? if <1.21 {
+        mvStack.popPose();
+        //?} else {
+        /^mvStack.popMatrix();
+        ^///?}
+        RenderSystem.applyModelViewMatrix();
     }
     *///?}
 
@@ -198,6 +243,7 @@ public final class EnergyWarningRenderingHandler {
         GlStateManager.rotate(mc.getRenderManager().playerViewX, 1.0F, 0.0F, 0.0F);
         GlStateManager.scale(-ICON_SIZE, -ICON_SIZE, ICON_SIZE);
         GlStateManager.enableBlend();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         GlStateManager.disableLighting();
         GlStateManager.disableCull();
         GlStateManager.disableDepth();
@@ -215,6 +261,8 @@ public final class EnergyWarningRenderingHandler {
         GlStateManager.enableDepth();
         GlStateManager.enableCull();
         GlStateManager.enableLighting();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();
     }
@@ -226,12 +274,22 @@ public final class EnergyWarningRenderingHandler {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private void renderWarning(AtlasRegion warningRegion, PoseStack poseStack, double cameraX, double cameraY, double cameraZ, BlockPos pos) {
+    private void renderWarning(AtlasRegion warningRegion, BlockPos pos) {
         Minecraft mc = Minecraft.getInstance();
-        poseStack.pushPose();
-        poseStack.translate(pos.getX() + 0.5D - cameraX, pos.getY() + ICON_HEIGHT - cameraY, pos.getZ() + 0.5D - cameraZ);
-        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-        poseStack.scale(-ICON_SIZE, -ICON_SIZE, ICON_SIZE);
+        //? if <1.21 {
+        PoseStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushPose();
+        mvStack.translate(pos.getX() + 0.5D, pos.getY() + ICON_HEIGHT, pos.getZ() + 0.5D);
+        mvStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+        mvStack.scale(-ICON_SIZE, -ICON_SIZE, ICON_SIZE);
+        //?} else {
+        /^var mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.translate(pos.getX() + 0.5F, (float) (pos.getY() + ICON_HEIGHT), pos.getZ() + 0.5F);
+        mvStack.rotate(mc.getEntityRenderDispatcher().cameraOrientation());
+        mvStack.scale(-ICON_SIZE, -ICON_SIZE, ICON_SIZE);
+        ^///?}
+        RenderSystem.applyModelViewMatrix();
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
@@ -245,17 +303,16 @@ public final class EnergyWarningRenderingHandler {
         //~ if >=1.21 'BufferBuilder buffer = tess.getBuilder();' -> 'BufferBuilder buffer = tess.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);' {
         BufferBuilder buffer = tess.getBuilder();
         //~}
-        var matrix = poseStack.last().pose();
         //? if <1.21 {
         buffer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
         //?}
         //~ if >=1.21 '.vertex(' -> '.addVertex(' {
         //~ if >=1.21 '.uv(' -> '.setUv(' {
         //~ if >=1.21 ').endVertex();' -> ');' {
-        buffer.vertex(matrix, -1.0F, 1.0F, 0.0F).uv(warningRegion.u0(), warningRegion.v1()).endVertex();
-        buffer.vertex(matrix, 1.0F, 1.0F, 0.0F).uv(warningRegion.u1(), warningRegion.v1()).endVertex();
-        buffer.vertex(matrix, 1.0F, -1.0F, 0.0F).uv(warningRegion.u1(), warningRegion.v0()).endVertex();
-        buffer.vertex(matrix, -1.0F, -1.0F, 0.0F).uv(warningRegion.u0(), warningRegion.v0()).endVertex();
+        buffer.vertex(-1.0F, 1.0F, 0.0F).uv(warningRegion.u0(), warningRegion.v1()).endVertex();
+        buffer.vertex(1.0F, 1.0F, 0.0F).uv(warningRegion.u1(), warningRegion.v1()).endVertex();
+        buffer.vertex(1.0F, -1.0F, 0.0F).uv(warningRegion.u1(), warningRegion.v0()).endVertex();
+        buffer.vertex(-1.0F, -1.0F, 0.0F).uv(warningRegion.u0(), warningRegion.v0()).endVertex();
         //~}
         //~}
         //~}
@@ -266,7 +323,12 @@ public final class EnergyWarningRenderingHandler {
         RenderSystem.enableDepthTest();
         RenderSystem.enableCull();
         RenderSystem.disableBlend();
-        poseStack.popPose();
+        //? if <1.21 {
+        mvStack.popPose();
+        //?} else {
+        /^mvStack.popMatrix();
+        ^///?}
+        RenderSystem.applyModelViewMatrix();
     }
     *///?}
 }

@@ -1,6 +1,6 @@
 package com.circulation.circulation_networks.items;
 
-import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.ToolFunction;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 //~ mc_imports
@@ -13,16 +13,16 @@ import com.github.bsideup.jabel.Desugar;
 
 @Desugar
 //?}
-public record InspectionToolSelection(ToolFunction function, int subMode) {
+public record CirculationConfiguratorSelection(ToolFunction function, int subMode) {
 
-    public static final String MODE_DISPLAY_KEY = "item.circulation_networks.inspection_tool.mode_display";
-    public static final String CURRENT_MODE_KEY = "item.circulation_networks.inspection_tool.current_mode";
-    public static final String CURRENT_SUBMODE_KEY = "item.circulation_networks.inspection_tool.current_submode";
-    public static final String SWITCH_MODE_USAGE_KEY = "item.circulation_networks.inspection_tool.usage.switch_mode";
-    public static final String SWITCH_SUBMODE_USAGE_KEY = "item.circulation_networks.inspection_tool.usage.switch_submode";
+    public static final String MODE_DISPLAY_KEY = "item.circulation_networks.circulation_configurator.mode_display";
+    public static final String CURRENT_MODE_KEY = "item.circulation_networks.circulation_configurator.current_mode";
+    public static final String CURRENT_SUBMODE_KEY = "item.circulation_networks.circulation_configurator.current_submode";
+    public static final String SWITCH_MODE_USAGE_KEY = "item.circulation_networks.circulation_configurator.usage.switch_mode";
+    public static final String SWITCH_SUBMODE_USAGE_KEY = "item.circulation_networks.circulation_configurator.usage.switch_submode";
 
-    public static InspectionToolSelection fromStack(ItemStack stack) {
-        return new InspectionToolSelection(InspectionToolState.getFunction(stack), InspectionToolState.getSubMode(stack));
+    public static CirculationConfiguratorSelection fromStack(ItemStack stack) {
+        return new CirculationConfiguratorSelection(CirculationConfiguratorState.getFunction(stack), CirculationConfiguratorState.getSubMode(stack));
     }
 
     public String modeLangKey() {

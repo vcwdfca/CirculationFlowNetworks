@@ -11,6 +11,8 @@ import com.circulation.circulation_networks.gui.component.base.DraggableComponen
 import com.circulation.circulation_networks.handlers.NodeHighlightRenderingHandler;
 import com.circulation.circulation_networks.packets.UpdateNodeCustomName;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
+import com.circulation.circulation_networks.utils.CI18n;
+import com.circulation.circulation_networks.utils.FormatNumberUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.ScaledResolution;
@@ -35,22 +37,31 @@ import java.util.Objects;
 public final class NodeListPanelComponent extends DraggableComponent implements SliderParent {
 
     private static final String PANEL_SPRITE = "node_list_ui";
+    private static final String HEADER_SPRITE = "node_list_link";
     private static final String ENTRY_SPRITE = "node_list_entry";
 
-    private static final int VIEWPORT_X = 11;
-    private static final int VIEWPORT_Y = 10;
-    private static final int VIEWPORT_WIDTH = 84;
-    private static final int VIEWPORT_HEIGHT = 211;
+    private static final int HEADER_X = 9;
+    private static final int HEADER_Y = 9;
+    private static final int HEADER_WIDTH = 103;
+    private static final int HEADER_HEIGHT = 18;
+    private static final int HEADER_COUNT_X = 19;
+    private static final int HEADER_COUNT_Y = 5;
+    private static final int HEADER_COUNT_WIDTH = 80;
+
+    private static final int VIEWPORT_X = 10;
+    private static final int VIEWPORT_Y = 31;
+    private static final int VIEWPORT_WIDTH = 92;
+    private static final int VIEWPORT_HEIGHT = 190;
 
     private static final int SLIDER_X = 104;
-    private static final int SLIDER_Y = 10;
-    private static final int SLIDER_HEIGHT = 210;
+    private static final int SLIDER_Y = 31;
+    private static final int SLIDER_HEIGHT = 189;
 
     private static final int ENTRY_WIDTH = 84;
     private static final int ENTRY_HEIGHT = 33;
     private static final int ENTRY_SPACING = 1;
     private static final int ENTRY_PITCH = ENTRY_HEIGHT + ENTRY_SPACING;
-    private static final int MAX_VISIBLE_ENTRIES_WITHOUT_SCROLL = 6;
+    private static final int MAX_VISIBLE_ENTRIES_WITHOUT_SCROLL = VIEWPORT_HEIGHT / ENTRY_PITCH;
 
     private static final int ITEM_X = 2;
     private static final int ITEM_Y = 2;
@@ -60,7 +71,7 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
     private static final float ITEM_RENDER_SHIFT_X = -0.5F;
     private static final float ITEM_RENDER_SHIFT_Y = 0.5F;
     private static final int NAME_X = 19;
-    private static final int NAME_Y = 4;
+    private static final int NAME_Y = 5;
     private static final int NAME_WIDTH = 61;
     private static final int NAME_FIELD_HEIGHT = 10;
     private static final int NAME_MAX_LENGTH = 32;
@@ -93,6 +104,23 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
         setSpriteLayers(PANEL_SPRITE);
         this.slider = SliderComponent.normalized(this, SLIDER_X, SLIDER_Y, SLIDER_HEIGHT, 0.0d, gui);
         addChild(slider);
+        addChild(new Component(HEADER_X, HEADER_Y, HEADER_WIDTH, HEADER_HEIGHT, gui) {
+            {
+                setSpriteLayers(HEADER_SPRITE);
+                setEnabled(false);
+            }
+
+            @Override
+            public boolean contains(int mouseX, int mouseY) {
+                return false;
+            }
+
+            @Override
+            protected void render(int mouseX, int mouseY, float partialTicks) {
+                renderHeaderFallback(getAbsoluteX(), getAbsoluteY());
+                renderHeaderCountText(getAbsoluteX() + HEADER_COUNT_X, getAbsoluteY() + HEADER_COUNT_Y);
+            }
+        });
         addChild(new Component(VIEWPORT_X, VIEWPORT_Y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, gui) {
             {
                 setZIndex(1000);
@@ -218,6 +246,20 @@ public final class NodeListPanelComponent extends DraggableComponent implements 
             int panelAbsoluteY = getAbsoluteY();
             Gui.drawRect(panelAbsoluteX, panelAbsoluteY, panelAbsoluteX + width, panelAbsoluteY + height, FALLBACK_PANEL_COLOR);
         }
+    }
+
+    private void renderHeaderFallback(int x, int y) {
+        if (ComponentAtlas.INSTANCE.getRegion(HEADER_SPRITE) == null) {
+            Gui.drawRect(x, y, x + HEADER_WIDTH, y + HEADER_HEIGHT, FALLBACK_ENTRY_COLOR);
+        }
+    }
+
+    private void renderHeaderCountText(int x, int y) {
+        Minecraft mc = Minecraft.getMinecraft();
+        String text = CI18n.format("gui.hub.node_count", FormatNumberUtils.formatNumber(getEntries().size()));
+        int textWidth = mc.fontRenderer.getStringWidth(text);
+        int drawX = x + Math.max(0, (HEADER_COUNT_WIDTH - textWidth) / 2);
+        mc.fontRenderer.drawString(text, drawX, y, TEXT_COLOR, false);
     }
 
     private void renderEntry(NodeSnapshotEntry entry, int entryAbsoluteX, int entryAbsoluteY) {

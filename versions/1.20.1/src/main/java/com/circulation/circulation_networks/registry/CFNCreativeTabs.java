@@ -30,10 +30,10 @@ public final class CFNCreativeTabs {
 
     private static CreativeModeTab createMainTab() {
         return CreativeModeTab.builder()
-            .title(Component.translatable("itemGroup.circulation_networks"))
-            .icon(() -> CFNBlocks.blockHub == null ? new ItemStack(Items.BARRIER) : new ItemStack(CFNBlocks.blockHub))
-            .displayItems((parameters, output) -> collectDisplayItems(output::accept))
-            .build();
+                              .title(Component.translatable("itemGroup.circulation_networks"))
+                              .icon(() -> CFNBlocks.blockHub == null ? new ItemStack(Items.BARRIER) : new ItemStack(CFNBlocks.blockHub))
+                              .displayItems((parameters, output) -> collectDisplayItems(output::accept))
+                              .build();
     }
 
     static void collectDisplayItems(Consumer<ItemLike> consumer) {
@@ -43,7 +43,7 @@ public final class CFNCreativeTabs {
         consumer.accept(CFNBlocks.blockPortNode);
         consumer.accept(CFNBlocks.blockCirculationShielder);
         consumer.accept(CFNBlocks.blockNodePedestal);
-        consumer.accept(CFNItems.inspectionTool);
+        consumer.accept(CFNItems.circulationConfigurator);
         consumer.accept(CFNItems.pocketPortNode);
         consumer.accept(CFNItems.pocketChargingNode);
         consumer.accept(CFNItems.pocketRelayNode);

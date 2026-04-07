@@ -33,6 +33,10 @@ public class FormatNumberUtils {
         return formatNumber(value, 2);
     }
 
+    public static String formatItemCount(long value) {
+        return formatNumber(value, 0);
+    }
+
     public static String formatNumber(EnergyAmount amount) {
         if (amount.fitsLong()) {
             return formatNumber(amount.asLongExact());

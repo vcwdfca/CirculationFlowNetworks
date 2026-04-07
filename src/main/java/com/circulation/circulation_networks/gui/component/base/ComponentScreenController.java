@@ -97,8 +97,10 @@ public final class ComponentScreenController {
         /^modelView.pushMatrix();
         ^///?}
         *///?}
-        for (Component component : phaseComponents[phase.ordinal()]) {
+        Component[] components = phaseComponents[phase.ordinal()];
+        for (Component component : components) {
             component.renderComponent(mouseX, mouseY, partialTicks);
+            component.renderComponentItems(mouseX, mouseY);
         }
         //? if <1.20 {
         GlStateManager.popMatrix();

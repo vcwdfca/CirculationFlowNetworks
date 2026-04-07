@@ -1,6 +1,5 @@
 (configurations.named('ksp') ?: configurations.create('ksp'))
 apply plugin: 'net.neoforged.moddev.legacyforge'
-apply plugin: 'dev.kikugie.fletching-table'
 
 legacyForge {
     validateAccessTransformers = true
@@ -45,14 +44,4 @@ def prepareEmptyKspDir = tasks.register('prepareEmptyKspDir') {
 
 tasks.named('processResources') {
     dependsOn(prepareEmptyKspDir)
-}
-
-fletchingTable {
-    lang.create('main') {
-        patterns.add('assets/circulation_networks/lang/**')
-    }
-    lang.all {
-        sortKeys = true
-        prettyPrint = true
-    }
 }

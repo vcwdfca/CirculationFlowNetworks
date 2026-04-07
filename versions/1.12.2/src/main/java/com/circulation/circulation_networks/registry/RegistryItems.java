@@ -2,7 +2,7 @@ package com.circulation.circulation_networks.registry;
 
 import com.circulation.circulation_networks.items.ItemDimensionalChargingPlugin;
 import com.circulation.circulation_networks.items.ItemHubChannelPlugin;
-import com.circulation.circulation_networks.items.ItemInspectionTool;
+import com.circulation.circulation_networks.items.ItemCirculationConfigurator;
 import com.circulation.circulation_networks.items.ItemMaterial;
 import com.circulation.circulation_networks.items.ItemPocketNode;
 import com.circulation.circulation_networks.items.ItemWideAreaChargingPlugin;
@@ -25,7 +25,7 @@ public final class RegistryItems {
     private static final List<Item> ITEM_MODELS_TO_REGISTER = new LinkedList<>();
 
     public static void registerItems(RegistryEvent.Register<Item> event) {
-        CFNItems.inspectionTool = registryItem(new ItemInspectionTool());
+        CFNItems.circulationConfigurator = registryItem(new ItemCirculationConfigurator());
         CFNItems.pocketPortNode = registryItem(new ItemPocketNode("pocket_port_node", NodeTypes.PORT_NODE));
         CFNItems.pocketChargingNode = registryItem(new ItemPocketNode("pocket_charging_node", NodeTypes.CHARGING_NODE));
         CFNItems.pocketRelayNode = registryItem(new ItemPocketNode("pocket_relay_node", NodeTypes.RELAY_NODE));

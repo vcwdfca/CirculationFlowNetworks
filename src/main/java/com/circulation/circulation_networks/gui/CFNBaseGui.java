@@ -30,6 +30,7 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 //?} else if <1.21 {
 /*import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -38,6 +39,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.Optional;
 *///?} else {
 /*import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -124,6 +126,18 @@ public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContaine
     public void setHoveredSlot(@Nullable Slot hoveredSlot) {
         this.hoveredSlot = hoveredSlot;
     }
+
+    //? if >=1.20 {
+    /*public void focusComponentInput(@Nullable GuiEventListener listener) {
+        this.setFocused(listener);
+    }
+
+    public void clearComponentInputFocus(@Nullable GuiEventListener listener) {
+        if (this.getFocused() == listener) {
+            this.setFocused(null);
+        }
+    }
+    *///?}
 
     //? if >=1.20 {
     /*public List<String> getContainerItemTooltipLines(ItemStack stack) {
@@ -264,12 +278,12 @@ public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContaine
         GlStateManager.setActiveTexture(OpenGlHelper.defaultTexUnit);
         RenderHelper.enableGUIStandardItemLighting();
         GlStateManager.pushMatrix();
-        GlStateManager.translate(0.0F, 0.0F, 200.0F);
+        GlStateManager.translate(0.0F, 0.0F, 300.0F);
         GlStateManager.enableDepth();
         GlStateManager.enableCull();
         GlStateManager.depthMask(true);
         GlStateManager.enableLighting();
-        this.itemRender.zLevel = 200.0F;
+        this.itemRender.zLevel = 300.0F;
         this.itemRender.renderItemAndEffectIntoGUI(Minecraft.getMinecraft().player, carried, mouseX - 8, mouseY - 8);
         this.itemRender.renderItemOverlayIntoGUI(this.fontRenderer, carried, mouseX - 8, mouseY - 8, null);
         this.itemRender.zLevel = prevZLevel;
@@ -308,7 +322,14 @@ public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContaine
         GlStateManager.matrixMode(GL11.GL_MODELVIEW);
     }
     //?} else {
-    /*private void renderCarriedStack(int mouseX, int mouseY) {
+    /*private void renderCarriedStack(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        ItemStack carried = this.menu.getCarried();
+        if (carried.isEmpty()) return;
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 300);
+        guiGraphics.renderItem(carried, mouseX - 8, mouseY - 8);
+        guiGraphics.renderItemDecorations(this.font, carried, mouseX - 8, mouseY - 8);
+        guiGraphics.pose().popPose();
     }
 
     private void resetGuiRenderState() {
@@ -396,9 +417,10 @@ public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContaine
         this.renderBackground(guiGraphics);
         componentController.handleActiveDrag(mouseX, mouseY);
         this.hoveredSlot = null;
-        renderComponentPhase(guiGraphics, RenderPhase.NORMAL, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+        renderComponentPhase(guiGraphics, RenderPhase.NORMAL, mouseX, mouseY, partialTick);
         renderComponentPhase(guiGraphics, RenderPhase.FOREGROUND, mouseX, mouseY, partialTick);
+        renderCarriedStack(guiGraphics, mouseX, mouseY);
 
         List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
         if (componentTooltip != null && !componentTooltip.isEmpty()) {
@@ -420,6 +442,7 @@ public abstract class CFNBaseGui<T extends CFNBaseContainer> extends GuiContaine
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderComponentPhase(guiGraphics, RenderPhase.NORMAL, mouseX, mouseY, partialTick);
         renderComponentPhase(guiGraphics, RenderPhase.FOREGROUND, mouseX, mouseY, partialTick);
+        renderCarriedStack(guiGraphics, mouseX, mouseY);
 
         List<String> componentTooltip = componentController.collectTooltip(mouseX, mouseY);
         if (componentTooltip != null && !componentTooltip.isEmpty()) {

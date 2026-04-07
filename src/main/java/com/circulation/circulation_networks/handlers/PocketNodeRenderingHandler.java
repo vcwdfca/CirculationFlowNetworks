@@ -53,6 +53,7 @@ public final class PocketNodeRenderingHandler {
     public static final PocketNodeRenderingHandler INSTANCE = new PocketNodeRenderingHandler();
     private static final double FACE_OFFSET = 0.501D;
     private static final float FACE_SCALE = 0.5F;
+    private static final double MAX_RENDER_DISTANCE_SQ = 96.0D * 96.0D;
     private final Int2ObjectMap<Long2ObjectMap<PocketNodeClientHost>> hosts = new Int2ObjectOpenHashMap<>();
 
     private PocketNodeRenderingHandler() {
@@ -169,32 +170,33 @@ public final class PocketNodeRenderingHandler {
             return;
         }
 
-        //? if <1.21 {
-        double cameraX = player.xOld + (player.getX() - player.xOld) * event.getPartialTick();
-        double cameraY = player.yOld + (player.getY() - player.yOld) * event.getPartialTick();
-        double cameraZ = player.zOld + (player.getZ() - player.zOld) * event.getPartialTick();
-        //?} else {
-        /^float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
-        double cameraX = player.xOld + (player.getX() - player.xOld) * partialTick;
-        double cameraY = player.yOld + (player.getY() - player.yOld) * partialTick;
-        double cameraZ = player.zOld + (player.getZ() - player.zOld) * partialTick;
-        ^///?}
+        var cameraPos = event.getCamera().getPosition();
+        double cameraX = cameraPos.x;
+        double cameraY = cameraPos.y;
+        double cameraZ = cameraPos.z;
 
+        MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
+        boolean renderedAny = false;
         for (var host : dimHosts.values()) {
             if (host.getRenderStack().isEmpty()) {
                 continue;
             }
 
             BlockPos pos = host.getRecord().getPos();
+            double dx = pos.getX() + 0.5D - cameraX;
+            double dy = pos.getY() + 0.5D - cameraY;
+            double dz = pos.getZ() + 0.5D - cameraZ;
+            if (dx * dx + dy * dy + dz * dz > MAX_RENDER_DISTANCE_SQ) {
+                continue;
+            }
             PoseStack poseStack = event.getPoseStack();
             poseStack.pushPose();
             poseStack.translate(pos.getX() + 0.5D - cameraX, pos.getY() + 0.5D - cameraY, pos.getZ() + 0.5D - cameraZ);
             applyFaceTransform(poseStack, host.getRecord().getAttachmentFace());
-            if (mc.getItemRenderer().getModel(host.getRenderStack(), mc.level, null, 0).isGui3d()) {
+            if (host.isGui3d()) {
                 poseStack.scale(1.0F, 1.0F, 0.002F);
             }
 
-            MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
             mc.getItemRenderer().renderStatic(
                 host.getRenderStack(),
                 ItemDisplayContext.GUI,
@@ -205,8 +207,11 @@ public final class PocketNodeRenderingHandler {
                 mc.level,
                 0
             );
-            bufferSource.endBatch();
+            renderedAny = true;
             poseStack.popPose();
+        }
+        if (renderedAny) {
+            bufferSource.endBatch();
         }
     }
     *///?}
@@ -257,7 +262,7 @@ public final class PocketNodeRenderingHandler {
             GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
             GlStateManager.translate(pos.getX() + 0.5D - cameraX, pos.getY() + 0.5D - cameraY, pos.getZ() + 0.5D - cameraZ);
             applyFaceTransform(host.getRecord().attachmentFace());
-            if (mc.getRenderItem().getItemModelWithOverrides(host.getRenderStack(), mc.world, null).isGui3d()) {
+            if (host.isGui3d()) {
                 GlStateManager.scale(1.0F, 1.0F, 0.002F);
             }
             RenderHelper.enableGUIStandardItemLighting();
@@ -274,28 +279,29 @@ public final class PocketNodeRenderingHandler {
         Direction resolved = face == null ? Direction.UP : face;
         switch (resolved) {
             case DOWN -> {
-                poseStack.translate(0.0D, -0.48D, 0.0D);
-                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(180.0F));
+                poseStack.translate(0.0D, -FACE_OFFSET, 0.0D);
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(180.0F));
             }
             case NORTH -> {
-                poseStack.translate(0.0D, 0.0D, -0.48D);
-                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(90.0F));
+                poseStack.translate(0.0D, 0.0D, -FACE_OFFSET);
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F));
             }
-            case SOUTH -> {
-                poseStack.translate(0.0D, 0.0D, 0.48D);
-                poseStack.mulPose(com.mojang.math.Axis.XN.rotationDegrees(90.0F));
-            }
+            case SOUTH -> poseStack.translate(0.0D, 0.0D, FACE_OFFSET);
             case WEST -> {
-                poseStack.translate(-0.48D, 0.0D, 0.0D);
+                poseStack.translate(-FACE_OFFSET, 0.0D, 0.0D);
                 poseStack.mulPose(com.mojang.math.Axis.YN.rotationDegrees(90.0F));
             }
             case EAST -> {
-                poseStack.translate(0.48D, 0.0D, 0.0D);
+                poseStack.translate(FACE_OFFSET, 0.0D, 0.0D);
                 poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(90.0F));
             }
-            default -> poseStack.translate(0.0D, 0.48D, 0.0D);
+            default -> {
+                poseStack.translate(0.0D, FACE_OFFSET, 0.0D);
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-90.0F));
+            }
         }
-        poseStack.scale(0.6F, 0.6F, 0.6F);
+        poseStack.scale(FACE_SCALE, FACE_SCALE, FACE_SCALE);
     }
     *///?}
 }

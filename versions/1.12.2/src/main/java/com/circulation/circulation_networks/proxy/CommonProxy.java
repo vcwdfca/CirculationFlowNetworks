@@ -268,6 +268,21 @@ public class CommonProxy implements IGuiHandler {
             }
             return players;
         }
+
+        @Override
+        public boolean hasChannelManagementOverride(EntityPlayer player) {
+            if (!(player instanceof EntityPlayerMP serverPlayer)) {
+                return false;
+            }
+            if (serverPlayer.server == null) {
+                return false;
+            }
+            if (serverPlayer.server.isSinglePlayer()) {
+                return serverPlayer.server.getServerOwner().equalsIgnoreCase(serverPlayer.getName())
+                    && serverPlayer.capabilities.isCreativeMode;
+            }
+            return serverPlayer.server.getPlayerList().getOppedPlayers().getEntry(serverPlayer.getGameProfile()) != null;
+        }
     }
 
     private static class MyHubTeamServices extends HubTeamServices {

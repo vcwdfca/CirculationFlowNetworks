@@ -59,6 +59,9 @@ public final class CirculationShielderRenderingHandler {
     //? if >=1.20 {
     /*private PoseStack currentWorldPoseStack;
     *///?}
+    //? if >=1.21 {
+    /*private org.joml.Matrix4f cachedEventViewMatrix;
+    *///?}
 
     public void clear() {
         animProgress.clear();
@@ -96,7 +99,6 @@ public final class CirculationShielderRenderingHandler {
         //?} else if <1.21 {
         /*PoseStack modelViewStack = RenderSystem.getModelViewStack();
         modelViewStack.pushPose();
-        RenderingUtils.seedModelViewFromPoseStack(currentWorldPoseStack);
         modelViewStack.translate(-playerX, -playerY, -playerZ);
         RenderSystem.applyModelViewMatrix();
 
@@ -108,7 +110,8 @@ public final class CirculationShielderRenderingHandler {
         *///?} else {
         /*var modelViewStack = RenderSystem.getModelViewStack();
         modelViewStack.pushMatrix();
-        RenderingUtils.seedModelViewFromPoseStack(currentWorldPoseStack);
+        modelViewStack.set(cachedEventViewMatrix);
+
         modelViewStack.translate((float) -playerX, (float) -playerY, (float) -playerZ);
         RenderSystem.applyModelViewMatrix();
 
@@ -119,38 +122,52 @@ public final class CirculationShielderRenderingHandler {
         RenderSystem.depthMask(false);
         *///?}
 
-        int scope = shielder.getScope();
-        double x = shielder.getPos().getX();
-        double y = shielder.getPos().getY();
-        double z = shielder.getPos().getZ();
+        try {
+            int scope = shielder.getScope();
+            double x = shielder.getPos().getX();
+            double y = shielder.getPos().getY();
+            double z = shielder.getPos().getZ();
 
-        float progress = animProgress.getOrDefault(shielder, 0.0f);
-        float easedProgress = AnimationUtils.easeOutCubic(progress);
-        float expandedScope = scope * easedProgress + RANGE_EXPANSION;
+            float progress = animProgress.getOrDefault(shielder, 0.0f);
+            float easedProgress = AnimationUtils.easeOutCubic(progress);
+            float expandedScope = scope * easedProgress + RANGE_EXPANSION;
 
-        RenderingUtils.drawFilledBox(
-            x - expandedScope, y - expandedScope, z - expandedScope,
-            x + expandedScope + 1, y + expandedScope + 1, z + expandedScope + 1,
-            ORANGE_R, ORANGE_G, ORANGE_B, ALPHA
-        );
-
-        //? if <1.20 {
-        GlStateManager.depthMask(true);
-        GlStateManager.enableCull();
-        GlStateManager.enableLighting();
-        GlStateManager.enableTexture2D();
-        GlStateManager.popMatrix();
-        //?} else if <1.21 {
-        /*RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        modelViewStack.popPose();
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        modelViewStack.popMatrix();
-        RenderSystem.applyModelViewMatrix();
-        *///?}
+            RenderingUtils.drawFilledBox(
+                x - expandedScope, y - expandedScope, z - expandedScope,
+                x + expandedScope + 1, y + expandedScope + 1, z + expandedScope + 1,
+                ORANGE_R, ORANGE_G, ORANGE_B, ALPHA
+            );
+        } finally {
+            //? if <1.20 {
+            GlStateManager.depthMask(true);
+            GlStateManager.enableCull();
+            GlStateManager.enableLighting();
+            GlStateManager.enableTexture2D();
+            GlStateManager.enableDepth();
+            GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+            GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+            GlStateManager.disableBlend();
+            GlStateManager.popMatrix();
+            //?} else if <1.21 {
+            /*RenderSystem.depthMask(true);
+            RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            RenderSystem.disableBlend();
+            modelViewStack.popPose();
+            RenderSystem.applyModelViewMatrix();
+            *///?} else {
+            /*RenderSystem.depthMask(true);
+            RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            RenderSystem.disableBlend();
+            modelViewStack.popMatrix();
+            RenderSystem.applyModelViewMatrix();
+            *///?}
+        }
     }
 
     @SubscribeEvent
@@ -171,9 +188,10 @@ public final class CirculationShielderRenderingHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
 
-        double playerX = RenderingUtils.getPlayerRenderX(event.getPartialTick());
-        double playerY = RenderingUtils.getPlayerRenderY(event.getPartialTick());
-        double playerZ = RenderingUtils.getPlayerRenderZ(event.getPartialTick());
+        var cameraPos = event.getCamera().getPosition();
+        double playerX = cameraPos.x;
+        double playerY = cameraPos.y;
+        double playerZ = cameraPos.z;
 
         int dimId = mc.level.dimension().location().hashCode();
     *///?} else {
@@ -183,10 +201,10 @@ public final class CirculationShielderRenderingHandler {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null) return;
 
-        float _partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
-        double playerX = RenderingUtils.getPlayerRenderX(_partialTick);
-        double playerY = RenderingUtils.getPlayerRenderY(_partialTick);
-        double playerZ = RenderingUtils.getPlayerRenderZ(_partialTick);
+        var cameraPos = event.getCamera().getPosition();
+        double playerX = cameraPos.x;
+        double playerY = cameraPos.y;
+        double playerZ = cameraPos.z;
 
         int dimId = mc.level.dimension().location().hashCode();
     *///?}
@@ -197,6 +215,9 @@ public final class CirculationShielderRenderingHandler {
 
         //? if >=1.20 {
         /*currentWorldPoseStack = event.getPoseStack();
+        *///?}
+        //? if >=1.21 {
+        /*cachedEventViewMatrix = event.getModelViewMatrix();
         *///?}
         for (ICirculationShielderBlockEntity shielder : shielders) {
             if (shielder.isShowingRange()) {

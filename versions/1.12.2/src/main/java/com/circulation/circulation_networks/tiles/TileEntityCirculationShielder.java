@@ -102,15 +102,13 @@ public class TileEntityCirculationShielder extends BaseTileEntity implements ICi
     @Override
     public void validate() {
         super.validate();
-        if (!world.isRemote) {
-            CirculationShielderManager.INSTANCE.register(this, world.provider.getDimension());
-        }
+        CirculationShielderManager.INSTANCE.register(this, world.provider.getDimension());
     }
 
     @Override
     public void invalidate() {
         super.invalidate();
-        if (world != null && !world.isRemote) {
+        if (world != null) {
             CirculationShielderManager.INSTANCE.unregister(this, world.provider.getDimension());
         }
     }

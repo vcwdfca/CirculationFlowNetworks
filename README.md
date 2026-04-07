@@ -73,7 +73,7 @@ Mode and range visualization can be toggled in the GUI.
 
 ## Items
 
-### Circulation Wrench
+### Circulation Configurator
 
 A multi-function inspection and configuration tool with two main modes:
 
@@ -142,7 +142,7 @@ topology. Link types include bidirectional and unidirectional connections.
 
 Energy-detecting nodes (Port Nodes, Charging Nodes, Hubs) scan for energy machines within their **energy range** and
 automatically identify machine type (generator / consumer / storage). If detection is incorrect, you can manually
-override it with the Circulation Wrench.
+override it with the Circulation Configurator.
 
 A network cannot contain more than one Hub — conflicts are detected on placement.
 

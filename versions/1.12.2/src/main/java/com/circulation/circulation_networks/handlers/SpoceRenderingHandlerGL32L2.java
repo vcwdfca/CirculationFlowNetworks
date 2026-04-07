@@ -4,24 +4,10 @@ import com.circulation.circulation_networks.math.Vec3d;
 import com.circulation.circulation_networks.utils.BuckyBallGeometry;
 import com.circulation.circulation_networks.utils.ShaderHelper;
 import net.minecraft.client.Minecraft;
-//~ mc_imports
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.ResourceLocation;
-//? if <1.20 {
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-//?} else if <1.21 {
-/*import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-*///?} else {
-/*import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-*///?}
-//? if <1.20 {
-import net.minecraft.client.renderer.GlStateManager;
-//?} else {
-/*import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-*///?}
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
@@ -32,18 +18,11 @@ import org.lwjgl.opengl.GL30;
 
 import java.nio.FloatBuffer;
 
-//~ if >=1.20 '@SideOnly(Side.CLIENT)' -> '@OnlyIn(Dist.CLIENT)' {
 @SideOnly(Side.CLIENT)
-//~}
 public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
 
-    //? if <1.21 {
     private static final ResourceLocation SHADER_VERT = new ResourceLocation("circulation_networks", "shaders/sphere_depth.vsh");
     private static final ResourceLocation SHADER_FRAG = new ResourceLocation("circulation_networks", "shaders/sphere_depth.fsh");
-    //?} else {
-    /*private static final ResourceLocation SHADER_VERT = ResourceLocation.fromNamespaceAndPath("circulation_networks", "shaders/sphere_depth.vsh");
-    private static final ResourceLocation SHADER_FRAG = ResourceLocation.fromNamespaceAndPath("circulation_networks", "shaders/sphere_depth.fsh");
-    *///?}
     private final FloatBuffer projBuf = BufferUtils.createFloatBuffer(16);
     private final FloatBuffer mvBuf = BufferUtils.createFloatBuffer(16);
     protected int sphereVAO, sphereVBO, sphereVertexCount;
@@ -118,31 +97,19 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
     @Override
     protected void cleanupGL() {
         if (sphereVBO != 0) {
-            try {
-                GL15.glDeleteBuffers(sphereVBO);
-            } catch (Exception ignored) {
-            }
+            try { GL15.glDeleteBuffers(sphereVBO); } catch (Exception ignored) {}
             sphereVBO = 0;
         }
         if (sphereVAO != 0) {
-            try {
-                GL30.glDeleteVertexArrays(sphereVAO);
-            } catch (Exception ignored) {
-            }
+            try { GL30.glDeleteVertexArrays(sphereVAO); } catch (Exception ignored) {}
             sphereVAO = 0;
         }
         if (buckyVBO != 0) {
-            try {
-                GL15.glDeleteBuffers(buckyVBO);
-            } catch (Exception ignored) {
-            }
+            try { GL15.glDeleteBuffers(buckyVBO); } catch (Exception ignored) {}
             buckyVBO = 0;
         }
         if (buckyVAO != 0) {
-            try {
-                GL30.glDeleteVertexArrays(buckyVAO);
-            } catch (Exception ignored) {
-            }
+            try { GL30.glDeleteVertexArrays(buckyVAO); } catch (Exception ignored) {}
             buckyVAO = 0;
         }
         cleanupShaderResources();
@@ -173,72 +140,33 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
         return shaderProgram > 0;
     }
 
+    @Override
     protected void drawSphere(float r, float g, float b, float radius, float alpha) {
         if (shaderProgram <= 0) {
-            //? if <1.20 {
             GlStateManager.color(r, g, b, alpha);
             GlStateManager.pushMatrix();
             GlStateManager.scale(radius, radius, radius);
-            //?} else if <1.21 {
-            /*RenderSystem.setShaderColor(r, g, b, alpha);
-            RenderSystem.getModelViewStack().pushPose();
-            RenderSystem.getModelViewStack().scale(radius, radius, radius);
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.setShaderColor(r, g, b, alpha);
-            RenderSystem.getModelViewStack().pushMatrix();
-            RenderSystem.getModelViewStack().scale(radius, radius, radius);
-            *///?}
             GL30.glBindVertexArray(sphereVAO);
             GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, sphereVertexCount);
             GL30.glBindVertexArray(0);
-            //? if <1.20 {
             GlStateManager.popMatrix();
-            //?} else if <1.21 {
-            /*RenderSystem.getModelViewStack().popPose();
-            RenderSystem.applyModelViewMatrix();
-            *///?} else {
-            /*RenderSystem.getModelViewStack().popMatrix();
-             *///?}
             return;
         }
 
         GL20.glUseProgram(shaderProgram);
 
-        //? if <1.20 {
         GlStateManager.pushMatrix();
         GlStateManager.scale(radius, radius, radius);
-        //?} else if <1.21 {
-        /*RenderSystem.getModelViewStack().pushPose();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.getModelViewStack().pushMatrix();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        *///?}
 
         projBuf.clear();
-        //? if <1.20 {
         GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projBuf);
-        //?} else {
-        /*GL11.glGetFloatv(GL11.GL_PROJECTION_MATRIX, projBuf);
-         *///?}
         projBuf.rewind();
         mvBuf.clear();
-        //? if <1.20 {
         GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, mvBuf);
-        //?} else {
-        /*GL11.glGetFloatv(GL11.GL_MODELVIEW_MATRIX, mvBuf);
-         *///?}
         mvBuf.rewind();
 
-        //? if <1.20 {
         GL20.glUniformMatrix4(loc_ProjectionMatrix, false, projBuf);
         GL20.glUniformMatrix4(loc_ModelViewMatrix, false, mvBuf);
-        //?} else {
-        /*GL20.glUniformMatrix4fv(loc_ProjectionMatrix, false, projBuf);
-        GL20.glUniformMatrix4fv(loc_ModelViewMatrix, false, mvBuf);
-        *///?}
 
         float A = projBuf.get(10);
         float B = projBuf.get(14);
@@ -262,56 +190,25 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
         GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, sphereVertexCount);
         GL30.glBindVertexArray(0);
 
-        //? if <1.20 {
         GlStateManager.popMatrix();
-        //?} else if <1.21 {
-        /*RenderSystem.getModelViewStack().popPose();
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.getModelViewStack().popMatrix();
-         *///?}
 
         GL20.glUseProgram(0);
         GL13.glActiveTexture(GL13.GL_TEXTURE2);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
         GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        //? if <1.20 {
         GlStateManager.color(1f, 1f, 1f, 1f);
-        //?} else {
-        /*RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-         *///?}
     }
 
     @Override
     protected void drawBuckyBallWireframe(float r, float g, float b, float radius, float alpha) {
-        //? if <1.20 {
         GlStateManager.color(r, g, b, alpha);
         GlStateManager.glLineWidth(2.0f);
         GlStateManager.pushMatrix();
         GlStateManager.scale(radius, radius, radius);
-        //?} else if <1.21 {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        RenderSystem.lineWidth(2.0f);
-        RenderSystem.getModelViewStack().pushPose();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        RenderSystem.lineWidth(2.0f);
-        RenderSystem.getModelViewStack().pushMatrix();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        *///?}
         GL30.glBindVertexArray(buckyVAO);
         GL11.glDrawArrays(GL11.GL_LINES, 0, buckyVertexCount);
         GL30.glBindVertexArray(0);
-        //? if <1.20 {
         GlStateManager.popMatrix();
-        //?} else if <1.21 {
-        /*RenderSystem.getModelViewStack().popPose();
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.getModelViewStack().popMatrix();
-         *///?}
     }
 
     private void initShaderResources() {
@@ -332,15 +229,9 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
     }
 
     private void captureSceneDepth() {
-        //? if <1.20 {
         Minecraft mc = Minecraft.getMinecraft();
         int w = mc.displayWidth;
         int h = mc.displayHeight;
-        //?} else {
-        /*Minecraft mc = Minecraft.getInstance();
-        int w = mc.getWindow().getWidth();
-        int h = mc.getWindow().getHeight();
-        *///?}
 
         if (w <= 0 || h <= 0) return;
 
@@ -365,17 +256,11 @@ public class SpoceRenderingHandlerGL32L2 extends SpoceRenderingHandler {
 
     private void cleanupShaderResources() {
         if (shaderProgram != 0) {
-            try {
-                ShaderHelper.deleteProgram(shaderProgram);
-            } catch (Exception ignored) {
-            }
+            try { ShaderHelper.deleteProgram(shaderProgram); } catch (Exception ignored) {}
             shaderProgram = 0;
         }
         if (depthTextureId != 0) {
-            try {
-                GL11.glDeleteTextures(depthTextureId);
-            } catch (Exception ignored) {
-            }
+            try { GL11.glDeleteTextures(depthTextureId); } catch (Exception ignored) {}
             depthTextureId = 0;
         }
         shaderInitialized = false;

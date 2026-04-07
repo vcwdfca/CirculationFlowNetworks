@@ -1,50 +1,27 @@
 package com.circulation.circulation_networks.handlers;
 
-import com.circulation.circulation_networks.items.InspectionToolModeModel.InspectionMode;
-import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
-import com.circulation.circulation_networks.items.InspectionToolState;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.InspectionMode;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.ToolFunction;
+import com.circulation.circulation_networks.items.CirculationConfiguratorState;
 import com.circulation.circulation_networks.math.Vec3d;
 import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.utils.RenderingUtils;
+import com.github.bsideup.jabel.Desugar;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import net.minecraft.client.Minecraft;
-//? if <1.20 {
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-//?} else if <1.21 {
-/*import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-*///?} else {
-/*import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-*///?}
-//? if <1.20 {
-import com.github.bsideup.jabel.Desugar;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
-//?} else {
-/*import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.util.Mth;
-*///?}
-//? if >=1.20 {
-/*//~ neo_imports
-import net.minecraftforge.client.event.RenderLevelStageEvent;
-*///?}
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
 
-//~ if >=1.20 '@SideOnly(Side.CLIENT)' -> '@OnlyIn(Dist.CLIENT)' {
 @SideOnly(Side.CLIENT)
-//~}
 public final class NodeNetworkRenderingHandler {
 
     public static final NodeNetworkRenderingHandler INSTANCE = new NodeNetworkRenderingHandler();
@@ -89,29 +66,11 @@ public final class NodeNetworkRenderingHandler {
 
     private static void drawSphere(float r, float g, float b, float radius, float alpha) {
         ensureSphereDisplayList();
-        //? if <1.20 {
         GlStateManager.color(r, g, b, alpha);
         GlStateManager.pushMatrix();
         GlStateManager.scale(radius, radius, radius);
-        //?} else if <1.21 {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        RenderSystem.getModelViewStack().pushPose();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        RenderSystem.getModelViewStack().pushMatrix();
-        RenderSystem.getModelViewStack().scale(radius, radius, radius);
-        *///?}
         GL11.glCallList(sphereDisplayList);
-        //? if <1.20 {
         GlStateManager.popMatrix();
-        //?} else if <1.21 {
-        /*RenderSystem.getModelViewStack().popPose();
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.getModelViewStack().popMatrix();
-         *///?}
     }
 
     public void addNodeLink(long a, long b) {
@@ -150,47 +109,24 @@ public final class NodeNetworkRenderingHandler {
     }
 
     @SubscribeEvent
-        //? if <1.20 {
     public void renderWorldLastEvent(RenderWorldLastEvent event) {
         Minecraft mc = Minecraft.getMinecraft();
         EntityPlayerSP p = mc.player;
-        //?} else {
-    /*public void renderWorldLastEvent(RenderLevelStageEvent event) {
-        if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
-        Minecraft mc = Minecraft.getInstance();
-        LocalPlayer p = mc.player;
-    *///?}
 
-        //? if <1.20 {
         var stack = p.getHeldItemMainhand();
-        //?} else {
-        /*var stack = p.getMainHandItem();
-         *///?}
-        if (!(stack.getItem() == CFNItems.inspectionTool
-            && InspectionToolState.getFunction(stack) == ToolFunction.INSPECTION
-            && InspectionMode.fromID(InspectionToolState.getSubMode(stack)).isLinkMode()))
+        if (!(stack.getItem() == CFNItems.circulationConfigurator
+            && CirculationConfiguratorState.getFunction(stack) == ToolFunction.INSPECTION
+            && InspectionMode.fromID(CirculationConfiguratorState.getSubMode(stack)).isLinkMode()))
             return;
 
-        InspectionMode currentMode = InspectionMode.fromID(InspectionToolState.getSubMode(stack));
+        InspectionMode currentMode = InspectionMode.fromID(CirculationConfiguratorState.getSubMode(stack));
         boolean showNodes = currentMode.showNodeLinks();
         boolean showMachines = currentMode.showMachineLinks();
 
-        //? if <1.20 {
         double doubleX = p.lastTickPosX + (p.posX - p.lastTickPosX) * event.getPartialTicks();
         double doubleY = p.lastTickPosY + (p.posY - p.lastTickPosY) * event.getPartialTicks();
         double doubleZ = p.lastTickPosZ + (p.posZ - p.lastTickPosZ) * event.getPartialTicks();
-        //?} else if <1.21 {
-        /*double doubleX = p.xOld + (p.getX() - p.xOld) * event.getPartialTick();
-        double doubleY = p.yOld + (p.getY() - p.yOld) * event.getPartialTick();
-        double doubleZ = p.zOld + (p.getZ() - p.zOld) * event.getPartialTick();
-        *///?} else {
-        /*float _partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
-        double doubleX = p.xOld + (p.getX() - p.xOld) * _partialTick;
-        double doubleY = p.yOld + (p.getY() - p.yOld) * _partialTick;
-        double doubleZ = p.zOld + (p.getZ() - p.zOld) * _partialTick;
-        *///?}
 
-        //? if <1.20 {
         GlStateManager.pushMatrix();
         GlStateManager.translate(-doubleX, -doubleY, -doubleZ);
         GlStateManager.enableBlend();
@@ -200,26 +136,6 @@ public final class NodeNetworkRenderingHandler {
         GlStateManager.disableCull();
         GlStateManager.depthMask(false);
         GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE);
-        //?} else if <1.21 {
-        /*PoseStack mvStack = RenderSystem.getModelViewStack();
-        mvStack.pushPose();
-        mvStack.translate(-doubleX, -doubleY, -doubleZ);
-        RenderSystem.applyModelViewMatrix();
-        RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.depthMask(false);
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-        *///?} else {
-        /*var mvStack = RenderSystem.getModelViewStack();
-        mvStack.pushMatrix();
-        mvStack.translate((float) -doubleX, (float) -doubleY, (float) -doubleZ);
-        RenderSystem.enableBlend();
-        RenderSystem.disableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.depthMask(false);
-        RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-        *///?}
 
         if (showNodes) {
             for (var link : nodeLinks) {
@@ -237,17 +153,8 @@ public final class NodeNetworkRenderingHandler {
         if (showNodes) {
             for (var pos : nodePoss.elementSet()) {
                 boolean alsoMachine = showMachines && machinePoss.contains(pos);
-                //? if <1.20 {
                 GlStateManager.pushMatrix();
                 GlStateManager.translate(pos.x, pos.y, pos.z);
-                //?} else if <1.21 {
-                /*RenderSystem.getModelViewStack().pushPose();
-                RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
-                RenderSystem.applyModelViewMatrix();
-                *///?} else {
-                /*RenderSystem.getModelViewStack().pushMatrix();
-                RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
-                *///?}
                 if (alsoMachine) {
                     drawSphere(1.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
                     drawSphere(1.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
@@ -255,70 +162,32 @@ public final class NodeNetworkRenderingHandler {
                     drawSphere(0.0f, 0.0f, 1.0f, SPHERE_GLOW_RADIUS, 0.3f);
                     drawSphere(0.0f, 0.0f, 1.0f, SPHERE_CORE_RADIUS, 0.9f);
                 }
-                //? if <1.20 {
                 GlStateManager.popMatrix();
-                //?} else if <1.21 {
-                /*RenderSystem.getModelViewStack().popPose();
-                RenderSystem.applyModelViewMatrix();
-                *///?} else {
-                /*RenderSystem.getModelViewStack().popMatrix();
-                 *///?}
             }
         }
         if (showMachines) {
             for (var pos : machinePoss.elementSet()) {
                 if (showNodes && nodePoss.contains(pos)) continue;
-                //? if <1.20 {
                 GlStateManager.pushMatrix();
                 GlStateManager.translate(pos.x, pos.y, pos.z);
-                //?} else if <1.21 {
-                /*RenderSystem.getModelViewStack().pushPose();
-                RenderSystem.getModelViewStack().translate(pos.x, pos.y, pos.z);
-                RenderSystem.applyModelViewMatrix();
-                *///?} else {
-                /*RenderSystem.getModelViewStack().pushMatrix();
-                RenderSystem.getModelViewStack().translate((float) pos.x, (float) pos.y, (float) pos.z);
-                *///?}
                 drawSphere(1.0f, 0.0f, 0.0f, SPHERE_GLOW_RADIUS, 0.3f);
                 drawSphere(1.0f, 0.0f, 0.0f, SPHERE_CORE_RADIUS, 0.9f);
-                //? if <1.20 {
                 GlStateManager.popMatrix();
-                //?} else if <1.21 {
-                /*RenderSystem.getModelViewStack().popPose();
-                RenderSystem.applyModelViewMatrix();
-                *///?} else {
-                /*RenderSystem.getModelViewStack().popMatrix();
-                 *///?}
             }
         }
 
-        //? if <1.20 {
         GlStateManager.depthMask(true);
         GlStateManager.enableCull();
         GlStateManager.enableLighting();
         GlStateManager.enableTexture2D();
         GlStateManager.enableDepth();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.disableBlend();
         GlStateManager.popMatrix();
-        //?} else if <1.21 {
-        /*RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
-        RenderSystem.getModelViewStack().popPose();
-        RenderSystem.applyModelViewMatrix();
-        *///?} else {
-        /*RenderSystem.depthMask(true);
-        RenderSystem.enableCull();
-        RenderSystem.enableDepthTest();
-        RenderSystem.disableBlend();
-        RenderSystem.getModelViewStack().popMatrix();
-        *///?}
     }
 
-    //? if <1.20 {
     @Desugar
-        //?}
     private record Line(Pos from, Pos to, int hash) {
 
         private static Line create(long from, long to) {
@@ -346,11 +215,7 @@ public final class NodeNetworkRenderingHandler {
 
     private static class Pos extends Vec3d {
 
-        //? if <1.20 {
         private static final int NUM_X_BITS = 1 + MathHelper.log2(MathHelper.smallestEncompassingPowerOfTwo(30000000));
-        //?} else {
-        /*private static final int NUM_X_BITS = 1 + Mth.log2(Mth.smallestEncompassingPowerOfTwo(30000000));
-         *///?}
         private static final int NUM_Z_BITS = NUM_X_BITS;
         private static final int NUM_Y_BITS = 64 - NUM_X_BITS - NUM_Z_BITS;
         private static final int Y_SHIFT = NUM_Z_BITS;

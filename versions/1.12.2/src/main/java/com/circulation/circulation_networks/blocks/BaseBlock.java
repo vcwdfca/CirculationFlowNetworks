@@ -1,10 +1,14 @@
 package com.circulation.circulation_networks.blocks;
 
 import com.circulation.circulation_networks.CirculationFlowNetworks;
+import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
 import com.circulation.circulation_networks.items.BaseItemTooltipModel;
+import com.circulation.circulation_networks.manager.PocketNodeManager;
+import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.tiles.BaseTileEntity;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import com.circulation.circulation_networks.utils.CI18n;
+import com.circulation.circulation_networks.utils.PocketNodeInteractionHelper;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.block.Block;
 import net.minecraft.block.ITileEntityProvider;
@@ -70,6 +74,11 @@ public abstract class BaseBlock extends Block implements ITileEntityProvider {
         }
     }
 
+    @Override
+    public @NotNull String getTranslationKey() {
+        return "block." + this.translationKey;
+    }
+
     /**
      * @return 如果返回true，对应的TileEntity应该实现{@link BaseTileEntity#getContainer}与{@link BaseTileEntity#getGui}
      */
@@ -77,6 +86,18 @@ public abstract class BaseBlock extends Block implements ITileEntityProvider {
 
     @Override
     public boolean onBlockActivated(@NotNull World worldIn, @NotNull BlockPos pos, @NotNull IBlockState state, @NotNull EntityPlayer playerIn, @NotNull EnumHand hand, @NotNull EnumFacing facing, float hitX, float hitY, float hitZ) {
+        if (PocketNodeInteractionHelper.shouldPrioritizeConfiguratorDetach(
+            hand == EnumHand.MAIN_HAND,
+            playerIn.isSneaking(),
+            playerIn.getHeldItem(hand).getItem() == CFNItems.circulationConfigurator
+        )) {
+            if (worldIn.isRemote) {
+                return PocketNodeRenderingHandler.INSTANCE.hasNode(worldIn.provider.getDimension(), pos);
+            }
+            if (PocketNodeManager.INSTANCE.removePocketNode(worldIn, pos, true)) {
+                return true;
+            }
+        }
         if (!worldIn.isRemote && hasGui() && hand == EnumHand.MAIN_HAND) {
             CirculationFlowNetworks.openGui(playerIn, worldIn, pos.getX(), pos.getY(), pos.getZ());
             return true;

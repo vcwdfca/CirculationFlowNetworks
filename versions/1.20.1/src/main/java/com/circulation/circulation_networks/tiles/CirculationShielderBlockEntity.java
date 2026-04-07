@@ -99,7 +99,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
 
     @Override
     public void onValidate() {
-        if (level != null && !level.isClientSide()) {
+        if (level != null) {
             CirculationShielderManager.INSTANCE.register(this, level.dimension().location().hashCode());
         }
     }
@@ -118,7 +118,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
 
     @Override
     public void setRemoved() {
-        if (level != null && !level.isClientSide()) {
+        if (level != null) {
             CirculationShielderManager.INSTANCE.unregister(this, level.dimension().location().hashCode());
         }
         super.setRemoved();

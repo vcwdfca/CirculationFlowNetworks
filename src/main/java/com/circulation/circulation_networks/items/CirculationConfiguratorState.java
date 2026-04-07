@@ -1,6 +1,6 @@
 package com.circulation.circulation_networks.items;
 
-import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.ToolFunction;
 import com.circulation.circulation_networks.utils.Functions;
 //~ mc_imports
 import net.minecraft.item.ItemStack;
@@ -13,12 +13,12 @@ import net.minecraft.world.item.component.CustomData;
 //? if <1.20
 import com.github.bsideup.jabel.Desugar;
 
-public final class InspectionToolState {
+public final class CirculationConfiguratorState {
 
     private static final String FUNCTION_KEY = "function";
     private static final String MODE_KEY = "mode";
 
-    private InspectionToolState() {
+    private CirculationConfiguratorState() {
     }
 
     public static ToolFunction getFunction(ItemStack stack) {
@@ -50,7 +50,7 @@ public final class InspectionToolState {
     public static ToggleResult toggleFunction(ItemStack stack) {
         var nbt = Functions.getOrCreateTagCompound(stack);
         ToolFunction previousFunction = ToolFunction.fromID(getInt(nbt, FUNCTION_KEY));
-        ToolFunction currentFunction = ToolFunction.fromID(InspectionToolModeModel.nextFunctionId(previousFunction.ordinal()));
+        ToolFunction currentFunction = ToolFunction.fromID(CirculationConfiguratorModeModel.nextFunctionId(previousFunction.ordinal()));
         putInt(nbt, FUNCTION_KEY, currentFunction.ordinal());
         putInt(nbt, MODE_KEY, 0);
         //? if >=1.21 {

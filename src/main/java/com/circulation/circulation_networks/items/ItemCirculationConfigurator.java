@@ -5,15 +5,13 @@ import com.circulation.circulation_networks.api.node.IChargingNode;
 import com.circulation.circulation_networks.api.node.IEnergySupplyNode;
 import com.circulation.circulation_networks.api.node.INode;
 import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
-import com.circulation.circulation_networks.items.InspectionToolModeModel.ConfigurationMode;
-import com.circulation.circulation_networks.items.InspectionToolModeModel.InspectionMode;
-import com.circulation.circulation_networks.items.InspectionToolModeModel.ToolFunction;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.ConfigurationMode;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel.ToolFunction;
 import com.circulation.circulation_networks.manager.EnergyTypeOverrideManager;
 import com.circulation.circulation_networks.manager.NetworkManager;
 import com.circulation.circulation_networks.manager.PocketNodeManager;
 import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
-import com.circulation.circulation_networks.packets.RenderingClear;
 import com.circulation.circulation_networks.packets.SpoceRendering;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
@@ -37,8 +35,8 @@ import net.minecraft.util.text.TextFormatting;
 /*import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.UseOnContext;
@@ -49,20 +47,20 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class ItemInspectionTool extends BaseItem {
+public class ItemCirculationConfigurator extends BaseItem {
 
     //? if <1.20 {
-    public ItemInspectionTool() {
-        super("inspection_tool");
+    public ItemCirculationConfigurator() {
+        super("circulation_configurator");
     }
     //?} else {
-    /*public ItemInspectionTool(Properties properties) {
+    /*public ItemCirculationConfigurator(Properties properties) {
         super(properties);
     }
     *///?}
 
     //~ if >=1.20 'EntityPlayerMP' -> 'ServerPlayer' {
-    private static void sendModeMessage(EntityPlayerMP player, InspectionToolSelection selection) {
+    private static void sendModeMessage(EntityPlayerMP player, CirculationConfiguratorSelection selection) {
         //? if <1.20 {
         TextComponentTranslation modeComponent = new TextComponentTranslation(selection.modeLangKey());
         TextComponentTranslation submodeComponent = new TextComponentTranslation(selection.subModeLangKey());
@@ -108,9 +106,9 @@ public class ItemInspectionTool extends BaseItem {
     //~}
 
     //~ if >=1.20 'EntityPlayerMP' -> 'ServerPlayer' {
-    private static InspectionToolSelection toggleFunction(ItemStack stack, EntityPlayerMP player) {
-        var toggleResult = InspectionToolState.toggleFunction(stack);
-        var selection = InspectionToolSelection.fromStack(stack);
+    private static CirculationConfiguratorSelection toggleFunction(ItemStack stack, EntityPlayerMP player) {
+        var toggleResult = CirculationConfiguratorState.toggleFunction(stack);
+        var selection = CirculationConfiguratorSelection.fromStack(stack);
         if (toggleResult.currentFunction() == ToolFunction.CONFIGURATION) {
             ConfigOverrideRendering.sendFullSync(player);
         } else if (toggleResult.previousFunction() == ToolFunction.CONFIGURATION) {
@@ -134,59 +132,39 @@ public class ItemInspectionTool extends BaseItem {
     }
     //~}
 
-    //~ if >=1.20 'EntityPlayerMP' -> 'ServerPlayer' {
-    public static void refreshInspectionRendering(EntityPlayerMP player, BlockPos pos) {
-        NodeNetworkRendering.removePlayer(player);
-        CirculationFlowNetworks.sendToPlayer(RenderingClear.INSTANCE, player);
-
-        if (pos == null) {
-            return;
+    //? if <1.20 {
+    @Override
+    public @NotNull EnumActionResult onItemUseFirst(@NotNull EntityPlayer player, @NotNull World world, @NotNull BlockPos pos,
+                                                    @NotNull EnumFacing side, float hitX, float hitY, float hitZ, @NotNull EnumHand hand) {
+        if (player.isSneaking()) {
+            return EnumActionResult.PASS;
         }
-
-        //? if <1.20 {
-        ItemStack stack = player.getHeldItemMainhand();
-        //?} else {
-        /*ItemStack stack = player.getMainHandItem();
-        *///?}
-        if (!(stack.getItem() instanceof ItemInspectionTool)) {
-            return;
+        if (world.isRemote) {
+            return PocketNodeRenderingHandler.INSTANCE.hasNode(getDimensionId(world), pos)
+                ? EnumActionResult.SUCCESS
+                : EnumActionResult.PASS;
         }
-        if (InspectionToolState.getFunction(stack) != ToolFunction.INSPECTION) {
-            return;
-        }
-
-        //? if <1.20 {
-        var world = player.world;
-        //?} else {
-        /*var world = player.level();
-        *///?}
-        INode node = NetworkManager.INSTANCE.getNodeFromPos(world, pos);
-        if (node == null) {
-            return;
-        }
-
-        InspectionMode mode = InspectionMode.fromID(InspectionToolState.getSubMode(stack));
-        double energyScope = 0;
-        double chargingScope = 0;
-        if (node instanceof IEnergySupplyNode energySupplyNode) {
-            energyScope = energySupplyNode.getEnergyScope();
-        }
-        if (node instanceof IChargingNode chargingNode) {
-            chargingScope = chargingNode.getChargingScope();
-        }
-
-        if (mode.isMode(InspectionMode.SPOCE)) {
-            CirculationFlowNetworks.sendToPlayer(
-                new SpoceRendering(node.getPos(), node.getLinkScope(), energyScope, chargingScope),
-                player
-            );
-        }
-        if (mode.isLinkMode()) {
-            CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
-            NodeNetworkRendering.addPlayer(node.getGrid(), player);
-        }
+        return PocketNodeManager.INSTANCE.removePocketNode(world, pos, true)
+            ? EnumActionResult.SUCCESS
+            : EnumActionResult.PASS;
     }
-    //~}
+    //?} else {
+    /*@Override
+    public @NotNull InteractionResult onItemUseFirst(@NotNull ItemStack stack, @NotNull UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null || player.isShiftKeyDown()) {
+            return InteractionResult.PASS;
+        }
+        if (context.getLevel().isClientSide) {
+            return PocketNodeRenderingHandler.INSTANCE.hasNode(getDimensionId(context.getLevel()), context.getClickedPos())
+                ? InteractionResult.SUCCESS
+                : InteractionResult.PASS;
+        }
+        return PocketNodeManager.INSTANCE.removePocketNode(context.getLevel(), context.getClickedPos(), true)
+            ? InteractionResult.SUCCESS
+            : InteractionResult.PASS;
+    }
+    *///?}
 
     //? if <1.20 {
     @Override
@@ -204,7 +182,7 @@ public class ItemInspectionTool extends BaseItem {
         }
 
         ItemStack stack = p.getHeldItemMainhand();
-        InspectionToolSelection selection = InspectionToolSelection.fromStack(stack);
+        CirculationConfiguratorSelection selection = CirculationConfiguratorSelection.fromStack(stack);
         return switch (selection.function()) {
             case INSPECTION -> executeInspection(p, worldIn, pos, selection.subMode());
             case CONFIGURATION -> executeConfiguration(p, worldIn, pos, selection.subMode());
@@ -228,7 +206,7 @@ public class ItemInspectionTool extends BaseItem {
         }
 
         ItemStack stack = context.getItemInHand();
-        InspectionToolSelection selection = InspectionToolSelection.fromStack(stack);
+        CirculationConfiguratorSelection selection = CirculationConfiguratorSelection.fromStack(stack);
         return switch (selection.function()) {
             case INSPECTION -> executeInspection(p, context.getLevel(), context.getClickedPos(), selection.subMode());
             case CONFIGURATION -> executeConfiguration(p, context.getLevel(), context.getClickedPos(), selection.subMode());
@@ -238,7 +216,7 @@ public class ItemInspectionTool extends BaseItem {
 
     @Override
     protected List<LocalizedComponent> buildTooltips(ItemStack stack) {
-        List<LocalizedComponent> tips = InspectionToolSelection.fromStack(stack).tooltipLines();
+        List<LocalizedComponent> tips = CirculationConfiguratorSelection.fromStack(stack).tooltipLines();
         tips.addAll(super.buildTooltips(stack));
         return tips;
     }
@@ -278,7 +256,6 @@ public class ItemInspectionTool extends BaseItem {
             return EnumActionResult.PASS;
         }
 
-        InspectionMode mode = InspectionMode.fromID(subMode);
         double energyScope = 0;
         double chargingScope = 0;
         if (node instanceof IEnergySupplyNode energySupplyNode) {
@@ -288,16 +265,12 @@ public class ItemInspectionTool extends BaseItem {
             chargingScope = chargingNode.getChargingScope();
         }
 
-        if (mode.isMode(InspectionMode.SPOCE)) {
-            CirculationFlowNetworks.sendToPlayer(
-                new SpoceRendering(node.getPos(), node.getLinkScope(), energyScope, chargingScope),
-                player
-            );
-        }
-        if (mode.isLinkMode()) {
-            CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
-            NodeNetworkRendering.addPlayer(node.getGrid(), player);
-        }
+        CirculationFlowNetworks.sendToPlayer(
+            new SpoceRendering(node.getPos(), node.getLinkScope(), energyScope, chargingScope),
+            player
+        );
+        CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
+        NodeNetworkRendering.addPlayer(node.getGrid(), player);
         return EnumActionResult.SUCCESS;
     }
     //?} else {
@@ -307,7 +280,6 @@ public class ItemInspectionTool extends BaseItem {
             return InteractionResult.PASS;
         }
 
-        InspectionMode mode = InspectionMode.fromID(subMode);
         double energyScope = 0;
         double chargingScope = 0;
         if (node instanceof IEnergySupplyNode energySupplyNode) {
@@ -317,16 +289,12 @@ public class ItemInspectionTool extends BaseItem {
             chargingScope = chargingNode.getChargingScope();
         }
 
-        if (mode.isMode(InspectionMode.SPOCE)) {
-            CirculationFlowNetworks.sendToPlayer(
-                new SpoceRendering(node.getPos(), node.getLinkScope(), energyScope, chargingScope),
-                player
-            );
-        }
-        if (mode.isLinkMode()) {
-            CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
-            NodeNetworkRendering.addPlayer(node.getGrid(), player);
-        }
+        CirculationFlowNetworks.sendToPlayer(
+            new SpoceRendering(node.getPos(), node.getLinkScope(), energyScope, chargingScope),
+            player
+        );
+        CirculationFlowNetworks.sendToPlayer(new NodeNetworkRendering(player, node.getGrid()), player);
+        NodeNetworkRendering.addPlayer(node.getGrid(), player);
         return InteractionResult.SUCCESS;
     }
     *///?}
@@ -345,14 +313,14 @@ public class ItemInspectionTool extends BaseItem {
         //~}
         //~}
         if (node != null) {
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.node_blocked", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.node_blocked", null);
             return EnumActionResult.FAIL;
         }
         if (blockEntity == null) {
             return EnumActionResult.PASS;
         }
         if (RegistryEnergyHandler.isBlack(blockEntity) || !RegistryEnergyHandler.isEnergyTileEntity(blockEntity)) {
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.invalid_target", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.invalid_target", null);
             return EnumActionResult.FAIL;
         }
 
@@ -361,14 +329,14 @@ public class ItemInspectionTool extends BaseItem {
         if (mode == ConfigurationMode.CLEAR) {
             manager.clearOverride(dim, pos);
             ConfigOverrideRendering.sendRemove(player, packPos(pos));
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.cleared", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.cleared", null);
             return EnumActionResult.SUCCESS;
         }
 
         var energyType = mode.getEnergyType();
         manager.setOverride(dim, pos, energyType);
         ConfigOverrideRendering.sendAdd(player, packPos(pos), energyType);
-        sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.set", mode.getLangKey());
+        sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.set", mode.getLangKey());
         return EnumActionResult.SUCCESS;
     }
     //?} else {
@@ -381,14 +349,14 @@ public class ItemInspectionTool extends BaseItem {
         INode node = NetworkManager.INSTANCE.getNodeFromPos(world, pos);
         BlockEntity blockEntity = world.getBlockEntity(pos);
         if (node != null) {
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.node_blocked", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.node_blocked", null);
             return InteractionResult.FAIL;
         }
         if (blockEntity == null) {
             return InteractionResult.PASS;
         }
         if (RegistryEnergyHandler.isBlack(blockEntity) || !RegistryEnergyHandler.isEnergyTileEntity(blockEntity)) {
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.invalid_target", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.invalid_target", null);
             return InteractionResult.FAIL;
         }
 
@@ -397,14 +365,14 @@ public class ItemInspectionTool extends BaseItem {
         if (mode == ConfigurationMode.CLEAR) {
             manager.clearOverride(dim, pos);
             ConfigOverrideRendering.sendRemove(player, packPos(pos));
-            sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.cleared", null);
+            sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.cleared", null);
             return InteractionResult.SUCCESS;
         }
 
         var energyType = mode.getEnergyType();
         manager.setOverride(dim, pos, energyType);
         ConfigOverrideRendering.sendAdd(player, packPos(pos), energyType);
-        sendFeedbackMessage(player, "item.circulation_networks.inspection_tool.config.set", mode.getLangKey());
+        sendFeedbackMessage(player, "item.circulation_networks.circulation_configurator.config.set", mode.getLangKey());
         return InteractionResult.SUCCESS;
     }
     *///?}

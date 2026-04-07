@@ -1,6 +1,7 @@
 package com.circulation.circulation_networks.energy.handler;
 
 import com.circulation.circulation_networks.api.EnergyAmount;
+import com.circulation.circulation_networks.api.EnergyAmounts;
 import com.circulation.circulation_networks.api.IEnergyHandler;
 import com.circulation.circulation_networks.network.nodes.HubNode;
 import com.circulation.circulation_networks.utils.EnergyAmountConversionUtils;
@@ -150,7 +151,7 @@ public final class MEKHandler implements IEnergyHandler {
             }
             return accepted;
         } else {
-            if (receive == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+            if (receive == null) return EnergyAmounts.ZERO;
             EnergyAmount receivable = canReceiveValue(hubMetadata);
             receivable.min(maxReceive);
             clampToScaledTransfer(receivable);
@@ -163,7 +164,7 @@ public final class MEKHandler implements IEnergyHandler {
 
     @Override
     public EnergyAmount extractEnergy(EnergyAmount maxExtract, @Nullable HubNode.HubMetadata hubMetadata) {
-        if (send == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+        if (send == null) return EnergyAmounts.ZERO;
         EnergyAmount extractable = canExtractValue(hubMetadata);
         extractable.min(maxExtract);
         clampToScaledTransfer(extractable);
@@ -175,7 +176,7 @@ public final class MEKHandler implements IEnergyHandler {
 
     @Override
     public EnergyAmount canExtractValue(@Nullable HubNode.HubMetadata hubMetadata) {
-        if (send == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+        if (send == null) return EnergyAmounts.ZERO;
         if (creative) return EnergyAmount.obtain(maxOutput);
         EnergyAmount extractable = EnergyAmountConversionUtils.obtainFromDoubleFloor(send.getEnergy() * 0.4D);
         return extractable.min(maxOutput);
@@ -186,7 +187,7 @@ public final class MEKHandler implements IEnergyHandler {
         if (isItem) {
             return EnergyAmount.obtain(needEnergy);
         } else {
-            if (receive == null) return com.circulation.circulation_networks.api.EnergyAmounts.ZERO;
+            if (receive == null) return EnergyAmounts.ZERO;
             EnergyAmount receivable = EnergyAmountConversionUtils.obtainFromDoubleFloor((receive.getMaxEnergy() - receive.getEnergy()) * 0.4D);
             return receivable.min(maxOutput);
         }

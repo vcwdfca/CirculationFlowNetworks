@@ -72,6 +72,32 @@ public final class ShaderHelper {
         }
     }
 
+    public static int compileInline(String vertSource, String fragSource, String... attribNames) {
+        int vert = compileShader(GL20.GL_VERTEX_SHADER, vertSource, "inline-vert");
+        int frag = compileShader(GL20.GL_FRAGMENT_SHADER, fragSource, "inline-frag");
+        if (vert == 0 || frag == 0) {
+            if (vert != 0) GL20.glDeleteShader(vert);
+            if (frag != 0) GL20.glDeleteShader(frag);
+            return 0;
+        }
+        int program = GL20.glCreateProgram();
+        GL20.glAttachShader(program, vert);
+        GL20.glAttachShader(program, frag);
+        for (int i = 0; i < attribNames.length; i++) {
+            GL20.glBindAttribLocation(program, i, attribNames[i]);
+        }
+        GL20.glLinkProgram(program);
+        GL20.glDeleteShader(vert);
+        GL20.glDeleteShader(frag);
+        if (GL20.glGetProgrami(program, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
+            String log = GL20.glGetProgramInfoLog(program, 8192);
+            CirculationFlowNetworks.LOGGER.error("Inline shader link failed: {}", log);
+            GL20.glDeleteProgram(program);
+            return 0;
+        }
+        return program;
+    }
+
     private static int compileShader(int type, String source, String name) {
         int shader = GL20.glCreateShader(type);
         GL20.glShaderSource(shader, source);

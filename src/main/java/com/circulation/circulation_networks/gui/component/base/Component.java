@@ -4,6 +4,7 @@ import com.circulation.circulation_networks.container.ComponentSlotLayout;
 import com.circulation.circulation_networks.gui.CFNBaseGui;
 import com.circulation.circulation_networks.tooltip.Composite;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
+import com.circulation.circulation_networks.utils.FormatNumberUtils;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 //? if <1.20 {
 import net.minecraft.client.Minecraft;
@@ -20,6 +21,7 @@ import org.lwjgl.opengl.GL11;
 /*import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderType;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -36,6 +38,7 @@ import java.util.function.Supplier;
 @SuppressWarnings({"unused", "unchecked"})
 public class Component extends Rectangle {
     private static final String[] EMPTY = new String[0];
+    protected static final int GUI_TEXT_HEIGHT = 8;
     //? if >=1.20 {
     /*@Nullable
     private static GuiGraphics currentGuiGraphics;
@@ -67,6 +70,14 @@ public class Component extends Rectangle {
         AtlasRegion region = atlas.getRegion(spriteName);
         if (region == null) return;
         AtlasRenderHelper.drawRegion(atlas, region, screenX, screenY, renderW, renderH);
+    }
+
+    @Nullable
+    protected static String getItemCountOverlayText(@Nonnull ItemStack stack) {
+        if (stack.isEmpty() || stack.getCount() <= 1) {
+            return null;
+        }
+        return FormatNumberUtils.formatItemCount(stack.getCount());
     }
 
     public List<Component> getChildren() {
@@ -256,11 +267,19 @@ public class Component extends Rectangle {
 
         renderSpriteLayers();
         render(mouseX, mouseY, partialTicks);
-        renderBoundLayouts(mouseX, mouseY);
 
         if (children.isEmpty()) return;
         for (Component child : children) {
             child.renderComponent(mouseX, mouseY, partialTicks);
+        }
+    }
+
+    public final void renderComponentItems(int mouseX, int mouseY) {
+        if (!isVisible()) return;
+        renderBoundLayouts(mouseX, mouseY);
+        if (children.isEmpty()) return;
+        for (Component child : children) {
+            child.renderComponentItems(mouseX, mouseY);
         }
     }
 
@@ -277,6 +296,10 @@ public class Component extends Rectangle {
 
     protected void render(int mouseX, int mouseY, float partialTicks) {
 
+    }
+
+    protected static int alignTextY(int topY, int areaHeight) {
+        return topY + Math.max(0, (areaHeight - GUI_TEXT_HEIGHT) / 2);
     }
 
     //? if <1.20 {
@@ -316,7 +339,7 @@ public class Component extends Rectangle {
                 renderItem.zLevel = 100.0F;
                 if (!stack.isEmpty()) {
                     renderItem.renderItemAndEffectIntoGUI(mc.player, stack, sx, sy);
-                    renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, stack, sx, sy, null);
+                    renderItem.renderItemOverlayIntoGUI(mc.fontRenderer, stack, sx, sy, getItemCountOverlayText(stack));
                 }
                 renderItem.zLevel = prevZLevel;
 
@@ -363,17 +386,30 @@ public class Component extends Rectangle {
         int localMouseY = mouseY - gui.getGuiTop();
         boolean topComponent = gui.isTopComponent(this, mouseX, mouseY);
 
+        restoreGuiRenderState();
+
         for (ComponentSlotLayout layout : boundLayouts) {
             List<? extends Slot> slots = layout.getSlots();
             if (slots.isEmpty()) continue;
             for (Slot slot : slots) {
                 if (!slot.isActive()) continue;
-                if (!topComponent || !isMouseOverSlot(localMouseX, localMouseY, slot.x, slot.y)) continue;
 
-                gui.setHoveredSlot(slot);
                 int screenX = gui.getGuiLeft() + slot.x;
                 int screenY = gui.getGuiTop() + slot.y;
-                guiGraphics.fill(screenX, screenY, screenX + 16, screenY + 16, -2130706433);
+                ItemStack stack = slot.getItem();
+
+                if (!stack.isEmpty()) {
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().translate(0, 0, 100);
+                    guiGraphics.renderItem(stack, screenX, screenY);
+                    guiGraphics.renderItemDecorations(Minecraft.getInstance().font, stack, screenX, screenY, getItemCountOverlayText(stack));
+                    guiGraphics.pose().popPose();
+                }
+
+                if (topComponent && isMouseOverSlot(localMouseX, localMouseY, slot.x, slot.y)) {
+                    gui.setHoveredSlot(slot);
+                    guiGraphics.fill(RenderType.guiOverlay(), screenX, screenY, screenX + 16, screenY + 16, -2130706433);
+                }
             }
         }
 

@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 public class TextComponent extends Component {
 
-    private static final int FONT_HEIGHT = 9;
+    private static final int FONT_HEIGHT = 8;
 
     private final Supplier<String> textSupplier;
     private final int color;

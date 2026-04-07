@@ -24,6 +24,7 @@ public class ContainerHub extends CFNBaseContainer {
     private static final long ENERGY_REFRESH_INTERVAL = 10L;
     private static final long LATENCY_REFRESH_INTERVAL = 20L;
     private static final byte CHANNEL_CAPABILITY_FLAG = 0x1;
+    private static final byte CHANNEL_MANAGEMENT_OVERRIDE_FLAG = 0x2;
     private static final byte[] EMPTY_CHANNEL_SNAPSHOT = ChannelSnapshotList.EMPTY.toBytes();
     private static final byte[] EMPTY_PERMISSION_SNAPSHOT = PermissionSnapshotList.EMPTY.toBytes();
 
@@ -193,6 +194,9 @@ public class ContainerHub extends CFNBaseContainer {
         if (node.hasPluginCapability(HubCapabilitys.CHANNEL_CAPABILITY)) {
             flags |= CHANNEL_CAPABILITY_FLAG;
         }
+        if (HubPlatformServices.INSTANCE.hasChannelManagementOverride(player)) {
+            flags |= CHANNEL_MANAGEMENT_OVERRIDE_FLAG;
+        }
         return flags;
     }
 
@@ -217,6 +221,10 @@ public class ContainerHub extends CFNBaseContainer {
 
     public boolean hasChannelCapability() {
         return (channelStateFlags & CHANNEL_CAPABILITY_FLAG) != 0;
+    }
+
+    public boolean hasChannelManagementOverride() {
+        return (channelStateFlags & CHANNEL_MANAGEMENT_OVERRIDE_FLAG) != 0;
     }
 
     public boolean canOpenChannelList() {

@@ -1,8 +1,12 @@
 package com.circulation.circulation_networks.blocks;
 
+import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
 import com.circulation.circulation_networks.items.BaseItemTooltipModel;
+import com.circulation.circulation_networks.manager.PocketNodeManager;
+import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.tooltip.LocalizedComponent;
 import com.circulation.circulation_networks.utils.CI18n;
+import com.circulation.circulation_networks.utils.PocketNodeInteractionHelper;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -27,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
+@SuppressWarnings("deprecation")
 public abstract class BaseBlock extends Block implements EntityBlock {
 
     private String[] cachedAutoTooltipKeys;
@@ -74,6 +79,19 @@ public abstract class BaseBlock extends Block implements EntityBlock {
     @SuppressWarnings("deprecation")
     public @NotNull InteractionResult use(@NotNull BlockState state, @NotNull Level level, @NotNull BlockPos pos,
                                           @NotNull Player player, @NotNull InteractionHand hand, @NotNull BlockHitResult hit) {
+        if (PocketNodeInteractionHelper.shouldPrioritizeConfiguratorDetach(
+            hand == InteractionHand.MAIN_HAND,
+            player.isShiftKeyDown(),
+            player.getItemInHand(hand).getItem() == CFNItems.circulationConfigurator
+        )) {
+            if (level.isClientSide()) {
+                if (PocketNodeRenderingHandler.INSTANCE.hasNode(level.dimension().location().hashCode(), pos)) {
+                    return InteractionResult.sidedSuccess(true);
+                }
+            } else if (PocketNodeManager.INSTANCE.removePocketNode(level, pos, true)) {
+                return InteractionResult.sidedSuccess(false);
+            }
+        }
         if (!hasGui() || hand != InteractionHand.MAIN_HAND) {
             return super.use(state, level, pos, player, hand, hit);
         }

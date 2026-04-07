@@ -1,16 +1,7 @@
 package com.circulation.circulation_networks.handlers;
 
-//? if <1.20 {
-
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-//?} else if <1.21 {
-/*import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-*///?} else {
-/*import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-*///?}
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
@@ -19,9 +10,7 @@ import org.lwjgl.opengl.GL44;
 
 import java.nio.FloatBuffer;
 
-//~ if >=1.20 '@SideOnly(Side.CLIENT)' -> '@OnlyIn(Dist.CLIENT)' {
 @SideOnly(Side.CLIENT)
-//~}
 public class SpoceRenderingHandlerGL46L2 extends SpoceRenderingHandlerGL32L2 {
 
     @Override

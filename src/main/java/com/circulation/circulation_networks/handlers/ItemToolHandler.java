@@ -1,9 +1,9 @@
 package com.circulation.circulation_networks.handlers;
 
 import com.circulation.circulation_networks.CirculationFlowNetworks;
-import com.circulation.circulation_networks.items.InspectionToolModeModel;
-import com.circulation.circulation_networks.items.InspectionToolSelection;
-import com.circulation.circulation_networks.items.InspectionToolState;
+import com.circulation.circulation_networks.items.CirculationConfiguratorModeModel;
+import com.circulation.circulation_networks.items.CirculationConfiguratorSelection;
+import com.circulation.circulation_networks.items.CirculationConfiguratorState;
 import com.circulation.circulation_networks.packets.UpdateItemModeMessage;
 import com.circulation.circulation_networks.registry.CFNItems;
 import com.circulation.circulation_networks.utils.CI18n;
@@ -30,10 +30,7 @@ import net.minecraftforge.client.event.MouseEvent;
 import org.lwjgl.input.Mouse;
 //?} else {
 /*import net.minecraft.ChatFormatting;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 //~ neo_imports
 import net.minecraftforge.client.event.InputEvent;
 *///?}
@@ -53,34 +50,29 @@ public class ItemToolHandler {
     public void onMouseEvent(MouseEvent event) {
         if (mc.player != null && mc.player.isSneaking()) {
             ItemStack stack = mc.player.getHeldItemMainhand();
-            int delta = InspectionToolModeModel.normalizeScrollDelta(Mouse.getEventDWheel());
+            int delta = CirculationConfiguratorModeModel.normalizeScrollDelta(Mouse.getEventDWheel());
             //?} else if <1.21 {
     /*public void onMouseEvent(InputEvent.MouseScrollingEvent event) {
         if (mc.player != null && mc.player.isShiftKeyDown()) {
             ItemStack stack = mc.player.getMainHandItem();
-            int delta = InspectionToolModeModel.normalizeScrollDelta((int) event.getScrollDelta());
+            int delta = CirculationConfiguratorModeModel.normalizeScrollDelta((int) event.getScrollDelta());
     *///?} else {
     /*public void onMouseEvent(InputEvent.MouseScrollingEvent event) {
         if (mc.player != null && mc.player.isShiftKeyDown()) {
             ItemStack stack = mc.player.getMainHandItem();
-            int delta = InspectionToolModeModel.normalizeScrollDelta((int) event.getScrollDeltaY());
+            int delta = CirculationConfiguratorModeModel.normalizeScrollDelta((int) event.getScrollDeltaY());
     *///?}
-            if (delta != 0 && stack.getItem() == CFNItems.inspectionTool) {
-                int mode = InspectionToolState.getSubMode(stack) + delta;
-                InspectionToolState.setSubMode(stack, mode);
+            if (delta != 0 && stack.getItem() == CFNItems.circulationConfigurator) {
+                int mode = CirculationConfiguratorState.getSubMode(stack) + delta;
+                CirculationConfiguratorState.setSubMode(stack, mode);
 
                 //? if <1.20 {
                 CirculationFlowNetworks.sendToServer(new UpdateItemModeMessage(mode));
                 //?} else {
-                /*BlockPos targetPos = null;
-                HitResult hitResult = mc.hitResult;
-                if (hitResult instanceof BlockHitResult blockHitResult && hitResult.getType() == HitResult.Type.BLOCK) {
-                    targetPos = blockHitResult.getBlockPos();
-                }
-                CirculationFlowNetworks.sendToServer(new UpdateItemModeMessage(mode, targetPos));
+                /*CirculationFlowNetworks.sendToServer(new UpdateItemModeMessage(mode));
                 *///?}
 
-                InspectionToolSelection selection = InspectionToolSelection.fromStack(stack);
+                CirculationConfiguratorSelection selection = CirculationConfiguratorSelection.fromStack(stack);
                 String modeName = CI18n.format(selection.modeLangKey());
                 String subModeName = CI18n.format(selection.subModeLangKey());
 

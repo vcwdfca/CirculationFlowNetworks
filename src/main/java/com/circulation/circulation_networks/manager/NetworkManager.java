@@ -597,6 +597,7 @@ public final class NetworkManager {
             destroyGrid(oldGrid);
         } else {
             ReferenceSet<INode> remaining = new ReferenceOpenHashSet<>(oldGrid.getNodes());
+            Object2ObjectMap<INode, ReferenceSet<INode>> incomingNeighbors = buildIncomingNeighborMap(oldGrid.getNodes());
             List<ReferenceSet<INode>> components = new ObjectArrayList<>();
 
             while (!remaining.isEmpty()) {
@@ -610,18 +611,13 @@ public final class NetworkManager {
                 while (!queue.isEmpty()) {
                     INode curr = queue.poll();
                     for (INode nb : curr.getNeighbors()) {
-                        if (remaining.remove(nb)) {
-                            component.add(nb);
-                            queue.add(nb);
-                        }
+                        enqueueComponentNeighbor(nb, remaining, component, queue);
                     }
-                    var iter = remaining.iterator();
-                    while (iter.hasNext()) {
-                        INode nb = iter.next();
-                        if (nb.getNeighbors().contains(curr)) {
-                            iter.remove();
-                            component.add(nb);
-                            queue.add(nb);
+
+                    ReferenceSet<INode> incoming = incomingNeighbors.get(curr);
+                    if (incoming != null) {
+                        for (INode nb : incoming) {
+                            enqueueComponentNeighbor(nb, remaining, component, queue);
                         }
                     }
                 }
@@ -629,7 +625,7 @@ public final class NetworkManager {
             }
 
             if (components.size() > 1) {
-                components.sort((a, b) -> b.size() - a.size());
+                components.sort((a, b) -> Integer.compare(b.size(), a.size()));
 
                 oldGrid.getNodes().clear();
                 oldGrid.setHubNode(null);
@@ -666,6 +662,37 @@ public final class NetworkManager {
         ChargingManager.INSTANCE.removeNode(removedNode);
 
         NodeEventHooks.postRemoveNodePost(removedNode);
+    }
+
+    private static void enqueueComponentNeighbor(
+        INode candidate,
+        ReferenceSet<INode> remaining,
+        ReferenceSet<INode> component,
+        Queue<INode> queue
+    ) {
+        if (candidate != null && remaining.remove(candidate)) {
+            component.add(candidate);
+            queue.add(candidate);
+        }
+    }
+
+    private static Object2ObjectMap<INode, ReferenceSet<INode>> buildIncomingNeighborMap(ReferenceSet<INode> nodes) {
+        Object2ObjectMap<INode, ReferenceSet<INode>> incomingNeighbors = new Object2ObjectOpenHashMap<>();
+        for (INode node : nodes) {
+            for (INode neighbor : node.getNeighbors()) {
+                if (neighbor == null || !nodes.contains(neighbor)) {
+                    continue;
+                }
+
+                ReferenceSet<INode> incoming = incomingNeighbors.get(neighbor);
+                if (incoming == null) {
+                    incoming = new ReferenceOpenHashSet<>();
+                    incomingNeighbors.put(neighbor, incoming);
+                }
+                incoming.add(node);
+            }
+        }
+        return incomingNeighbors;
     }
 
     public @Nonnull AddNodeResult addNode(INode newNode) {
@@ -840,6 +867,12 @@ public final class NetworkManager {
         pendingNodeValidation.clear();
         saveFile = null;
         init = false;
+    }
+
+    public void markGridDirty(@Nullable IGrid grid) {
+        if (grid != null) {
+            markGird.add(grid);
+        }
     }
 
     public void saveGrid() {

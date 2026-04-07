@@ -3,6 +3,7 @@ package com.circulation.circulation_networks.packets;
 import com.circulation.circulation_networks.container.ContainerHub;
 import com.circulation.circulation_networks.manager.HubChannelManager;
 import com.circulation.circulation_networks.network.hub.HubCapabilitys;
+import com.circulation.circulation_networks.utils.HubPlatformServices;
 import com.circulation.circulation_networks.utils.Packet;
 import io.netty.buffer.ByteBuf;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
@@ -30,7 +31,8 @@ public final class DeleteHubChannel implements Packet<DeleteHubChannel> {
 
         HubChannelManager.INSTANCE.deleteChannel(
             containerHub.node,
-            ctx.getServerHandler().player.getUniqueID()
+            ctx.getServerHandler().player.getUniqueID(),
+            HubPlatformServices.INSTANCE.hasChannelManagementOverride(ctx.getServerHandler().player)
         );
         return null;
     }

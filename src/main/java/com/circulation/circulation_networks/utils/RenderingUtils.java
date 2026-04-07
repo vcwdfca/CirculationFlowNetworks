@@ -18,7 +18,8 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 //?} else {
-/*import com.mojang.blaze3d.vertex.PoseStack;
+/*import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.BufferUploader;
@@ -27,6 +28,11 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.player.LocalPlayer;
+import org.lwjgl.opengl.GL15;
+import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.GL30;
+import org.lwjgl.system.MemoryUtil;
+import java.nio.FloatBuffer;
 *///?}
 import org.lwjgl.opengl.GL11;
 
@@ -38,6 +44,15 @@ public final class RenderingUtils {
 
     private static final int CYLINDER_SIDES = 8;
     private static final double CYLINDER_ANGLE_STEP = 2.0 * Math.PI / CYLINDER_SIDES;
+
+    //? if >=1.20 {
+    /*private static int sphereVAO, sphereVBO, sphereVertexCount;
+    private static boolean sphereVBOInitialized;
+    private static int cachedSphereProgId;
+    private static int locMV = -1, locProj = -1, locColor = -1;
+    private static final FloatBuffer sphereMvBuf = MemoryUtil.memAllocFloat(16);
+    private static final FloatBuffer sphereProjBuf = MemoryUtil.memAllocFloat(16);
+    *///?}
 
     private RenderingUtils() {
     }
@@ -65,11 +80,15 @@ public final class RenderingUtils {
         GlStateManager.enableLighting();
         GlStateManager.enableTexture2D();
         GlStateManager.enableDepth();
+        GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
         GlStateManager.disableBlend();
         //?} else {
         /*RenderSystem.depthMask(true);
         RenderSystem.enableCull();
         RenderSystem.enableDepthTest();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.disableBlend();
         *///?}
     }
@@ -219,14 +238,14 @@ public final class RenderingUtils {
 
         RenderSystem.setShaderColor(r, g, b, a);
         RenderSystem.lineWidth(lineWidth);
-        buf.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION);
+        buf.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);
         *///?} else {
         /*Tesselator tess = Tesselator.getInstance();
 
         RenderSystem.setShaderColor(r, g, b, a);
         RenderSystem.lineWidth(lineWidth);
         RenderSystem.setShader(GameRenderer::getPositionShader);
-        BufferBuilder buf = tess.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION);
+        BufferBuilder buf = tess.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);
         *///?}
 
         //? if <1.20 {
@@ -399,65 +418,132 @@ public final class RenderingUtils {
         GlStateManager.color(r, g, b, alpha);
         Tessellator tess = Tessellator.getInstance();
         BufferBuilder buf = tess.getBuffer();
-        //?} else if <1.21 {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buf = tess.getBuilder();
-        int ri = (int)(r * 255), gi = (int)(g * 255), bi = (int)(b * 255), ai = (int)(alpha * 255);
-        *///?} else {
-        /*RenderSystem.setShaderColor(r, g, b, alpha);
-        Tesselator tess = Tesselator.getInstance();
-        RenderSystem.setShader(GameRenderer::getPositionShader);
-        *///?}
-
+        buf.begin(GL11.GL_TRIANGLES, DefaultVertexFormats.POSITION_NORMAL);
         double phiStep = Math.PI / slices;
         double thetaStep = 2.0 * Math.PI / stacks;
-
         for (int i = 0; i < slices; i++) {
             double phi1 = phiStep * i;
             double phi2 = phiStep * (i + 1);
             double sinPhi1 = Math.sin(phi1), cosPhi1 = Math.cos(phi1);
             double sinPhi2 = Math.sin(phi2), cosPhi2 = Math.cos(phi2);
-            //? if <1.20 {
-            buf.begin(GL11.GL_QUAD_STRIP, DefaultVertexFormats.POSITION_NORMAL);
-            //?} else if <1.21 {
-            /*buf.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR_NORMAL);
-             *///?} else {
-            /*BufferBuilder buf = tess.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION);
-             *///?}
-            for (int j = 0; j <= stacks; j++) {
-                double theta = thetaStep * j;
-                double cosTheta = Math.cos(theta), sinTheta = Math.sin(theta);
-                float x1 = (float) (radius * sinPhi1 * cosTheta);
-                float y1 = (float) (radius * cosPhi1);
-                float z1 = (float) (radius * sinPhi1 * sinTheta);
-                //? if <1.20 {
-                buf.pos(x1, y1, z1).normal(x1 / radius, y1 / radius, z1 / radius).endVertex();
-                //?} else if <1.21 {
-                /*buf.vertex(x1, y1, z1).color(ri, gi, bi, ai).normal(x1 / radius, y1 / radius, z1 / radius).endVertex();
-                 *///?} else {
-                /*buf.addVertex(x1, y1, z1);
-                 *///?}
-                float x2 = (float) (radius * sinPhi2 * cosTheta);
-                float y2 = (float) (radius * cosPhi2);
-                float z2 = (float) (radius * sinPhi2 * sinTheta);
-                //? if <1.20 {
-                buf.pos(x2, y2, z2).normal(x2 / radius, y2 / radius, z2 / radius).endVertex();
-                //?} else if <1.21 {
-                /*buf.vertex(x2, y2, z2).color(ri, gi, bi, ai).normal(x2 / radius, y2 / radius, z2 / radius).endVertex();
-                 *///?} else {
-                /*buf.addVertex(x2, y2, z2);
-                 *///?}
+            for (int j = 0; j < stacks; j++) {
+                double theta1 = thetaStep * j;
+                double theta2 = thetaStep * (j + 1);
+                double cosT1 = Math.cos(theta1), sinT1 = Math.sin(theta1);
+                double cosT2 = Math.cos(theta2), sinT2 = Math.sin(theta2);
+                float x00 = (float) (radius * sinPhi1 * cosT1);
+                float y00 = (float) (radius * cosPhi1);
+                float z00 = (float) (radius * sinPhi1 * sinT1);
+                float x10 = (float) (radius * sinPhi2 * cosT1);
+                float y10 = (float) (radius * cosPhi2);
+                float z10 = (float) (radius * sinPhi2 * sinT1);
+                float x01 = (float) (radius * sinPhi1 * cosT2);
+                float y01 = (float) (radius * cosPhi1);
+                float z01 = (float) (radius * sinPhi1 * sinT2);
+                float x11 = (float) (radius * sinPhi2 * cosT2);
+                float y11 = (float) (radius * cosPhi2);
+                float z11 = (float) (radius * sinPhi2 * sinT2);
+                buf.pos(x00, y00, z00).normal(x00 / radius, y00 / radius, z00 / radius).endVertex();
+                buf.pos(x10, y10, z10).normal(x10 / radius, y10 / radius, z10 / radius).endVertex();
+                buf.pos(x11, y11, z11).normal(x11 / radius, y11 / radius, z11 / radius).endVertex();
+                buf.pos(x00, y00, z00).normal(x00 / radius, y00 / radius, z00 / radius).endVertex();
+                buf.pos(x11, y11, z11).normal(x11 / radius, y11 / radius, z11 / radius).endVertex();
+                buf.pos(x01, y01, z01).normal(x01 / radius, y01 / radius, z01 / radius).endVertex();
             }
-            //? if <1.20 {
-            tess.draw();
-            //?} else if <1.21 {
-            /*tess.end();
-             *///?} else {
-            /*BufferUploader.drawWithShader(buf.buildOrThrow());
-             *///?}
         }
+        tess.draw();
+        //?} else {
+        /*drawSphereVBO(r, g, b, radius, alpha, slices, stacks);
+        *///?}
     }
+
+    //? if >=1.20 {
+    /*private static FloatBuffer buildUnitSphereData(int slices, int stacks) {
+        FloatBuffer buf = MemoryUtil.memAllocFloat(slices * stacks * 6 * 3);
+        for (int i = 0; i < slices; i++) {
+            double p1 = Math.PI * i / slices, p2 = Math.PI * (i + 1) / slices;
+            for (int j = 0; j < stacks; j++) {
+                double t1 = 2.0 * Math.PI * j / stacks, t2 = 2.0 * Math.PI * (j + 1) / stacks;
+                float x00 = (float) (Math.sin(p1) * Math.cos(t1)), y00 = (float) Math.cos(p1), z00 = (float) (Math.sin(p1) * Math.sin(t1));
+                float x10 = (float) (Math.sin(p2) * Math.cos(t1)), y10 = (float) Math.cos(p2), z10 = (float) (Math.sin(p2) * Math.sin(t1));
+                float x01 = (float) (Math.sin(p1) * Math.cos(t2)), y01 = (float) Math.cos(p1), z01 = (float) (Math.sin(p1) * Math.sin(t2));
+                float x11 = (float) (Math.sin(p2) * Math.cos(t2)), y11 = (float) Math.cos(p2), z11 = (float) (Math.sin(p2) * Math.sin(t2));
+                buf.put(x00).put(y00).put(z00).put(x10).put(y10).put(z10).put(x01).put(y01).put(z01);
+                buf.put(x10).put(y10).put(z10).put(x11).put(y11).put(z11).put(x01).put(y01).put(z01);
+            }
+        }
+        buf.flip();
+        return buf;
+    }
+
+    private static void ensureSphereVBO(int slices, int stacks) {
+        if (sphereVBOInitialized) return;
+        FloatBuffer data = buildUnitSphereData(slices, stacks);
+        try {
+            sphereVertexCount = data.remaining() / 3;
+            sphereVBO = GlStateManager._glGenBuffers();
+            sphereVAO = GL30.glGenVertexArrays();
+            GlStateManager._glBindVertexArray(sphereVAO);
+            GlStateManager._glBindBuffer(GL15.GL_ARRAY_BUFFER, sphereVBO);
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, GL15.GL_STATIC_DRAW);
+            GL20.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0);
+            GL20.glEnableVertexAttribArray(0);
+            GlStateManager._glBindVertexArray(0);
+            GlStateManager._glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+        } finally {
+            MemoryUtil.memFree(data);
+        }
+        sphereVBOInitialized = true;
+    }
+
+    private static void drawSphereVBO(float r, float g, float b, float radius, float alpha, int slices, int stacks) {
+        ensureSphereVBO(slices, stacks);
+        int progId = GameRenderer.getPositionShader().getId();
+        if (progId != cachedSphereProgId) {
+            cachedSphereProgId = progId;
+            locMV = GL20.glGetUniformLocation(progId, "ModelViewMat");
+            locProj = GL20.glGetUniformLocation(progId, "ProjMat");
+            locColor = GL20.glGetUniformLocation(progId, "ColorModulator");
+        }
+
+        //? if <1.21 {
+        PoseStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushPose();
+        mvStack.scale(radius, radius, radius);
+        sphereMvBuf.clear();
+        mvStack.last().pose().get(sphereMvBuf);
+        sphereMvBuf.rewind();
+        //?} else {
+        /^org.joml.Matrix4fStack mvStack = RenderSystem.getModelViewStack();
+        mvStack.pushMatrix();
+        mvStack.scale(radius, radius, radius);
+        sphereMvBuf.clear();
+        mvStack.get(sphereMvBuf);
+        sphereMvBuf.rewind();
+        ^///?}
+
+        sphereProjBuf.clear();
+        RenderSystem.getProjectionMatrix().get(sphereProjBuf);
+        sphereProjBuf.rewind();
+
+        GlStateManager._glUseProgram(progId);
+        GL20.glUniformMatrix4fv(locMV, false, sphereMvBuf);
+        GL20.glUniformMatrix4fv(locProj, false, sphereProjBuf);
+        GL20.glUniform4f(locColor, r, g, b, alpha);
+
+        GlStateManager._glBindVertexArray(sphereVAO);
+        GL11.glDrawArrays(GL11.GL_TRIANGLES, 0, sphereVertexCount);
+        GlStateManager._glBindVertexArray(0);
+
+        GlStateManager._glUseProgram(0);
+
+        //? if <1.21 {
+        mvStack.popPose();
+        //?} else {
+        /^mvStack.popMatrix();
+        ^///?}
+    }
+    *///?}
 
     public static double getPlayerRenderX(float partialTicks) {
         //? if <1.20 {
@@ -500,6 +586,7 @@ public final class RenderingUtils {
 
     public static void drawCachedIntersection(float[] verts, float r, float g, float b, float lineWidth) {
         if (verts.length == 0) return;
+        GL11.glDepthRange(0.0, 0.9998);
         //? if <1.20 {
         GlStateManager.color(r, g, b, 1.0f);
         GlStateManager.glLineWidth(lineWidth);
@@ -515,7 +602,7 @@ public final class RenderingUtils {
         RenderSystem.lineWidth(lineWidth);
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder buf = tess.getBuilder();
-        buf.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION);
+        buf.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);
         for (int i = 0; i < verts.length; i += 3) {
             buf.vertex(verts[i], verts[i + 1], verts[i + 2]).endVertex();
         }
@@ -525,12 +612,13 @@ public final class RenderingUtils {
         RenderSystem.lineWidth(lineWidth);
         RenderSystem.setShader(GameRenderer::getPositionShader);
         Tesselator tess = Tesselator.getInstance();
-        BufferBuilder buf = tess.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION);
+        BufferBuilder buf = tess.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);
         for (int i = 0; i < verts.length; i += 3) {
             buf.addVertex(verts[i], verts[i + 1], verts[i + 2]);
         }
         BufferUploader.drawWithShader(buf.buildOrThrow());
         *///?}
+        GL11.glDepthRange(0.0, 1.0);
     }
 
     public static void drawCachedIntersection(float[] verts, float r, float g, float b) {

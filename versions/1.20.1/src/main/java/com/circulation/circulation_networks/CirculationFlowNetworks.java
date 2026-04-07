@@ -1,7 +1,5 @@
 package com.circulation.circulation_networks;
 
-import com.circulation.circulation_networks.api.ICirculationShielderBlockEntity;
-import com.circulation.circulation_networks.api.INodeBlockEntity;
 import com.circulation.circulation_networks.energy.manager.FEHandlerManager;
 import com.circulation.circulation_networks.energy.manager.MEKHandlerManager;
 import com.circulation.circulation_networks.events.BlockEntityLifeCycleEvent;
@@ -18,8 +16,8 @@ import com.circulation.circulation_networks.packets.ConfigOverrideRendering;
 import com.circulation.circulation_networks.packets.NodeNetworkRendering;
 import com.circulation.circulation_networks.packets.PocketNodeRendering;
 import com.circulation.circulation_networks.packets.RenderingClear;
-import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.CFNCreativeTabs;
+import com.circulation.circulation_networks.registry.RegistryBlocks;
 import com.circulation.circulation_networks.registry.RegistryEnergyHandler;
 import com.circulation.circulation_networks.registry.RegistryItems;
 import com.circulation.circulation_networks.utils.HubPlatformServices;
@@ -133,6 +131,18 @@ public final class CirculationFlowNetworks {
                 }
                 return players;
             }
+
+            @Override
+            public boolean hasChannelManagementOverride(net.minecraft.world.entity.player.Player player) {
+                if (!(player instanceof ServerPlayer serverPlayer)) {
+                    return false;
+                }
+                if (serverPlayer.server.isSingleplayer()) {
+                    return serverPlayer.server.isSingleplayerOwner(serverPlayer.getGameProfile())
+                        && serverPlayer.getAbilities().instabuild;
+                }
+                return serverPlayer.server.getPlayerList().isOp(serverPlayer.getGameProfile());
+            }
         };
 
         if (ModList.get().isLoaded("ftbteams")) {
@@ -170,9 +180,7 @@ public final class CirculationFlowNetworks {
             return;
         }
         for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-            if (blockEntity instanceof INodeBlockEntity || blockEntity instanceof ICirculationShielderBlockEntity) {
-                onBlockEntityValidate(level, blockEntity.getBlockPos(), blockEntity);
-            }
+            onBlockEntityValidate(level, blockEntity.getBlockPos(), blockEntity);
         }
         NetworkManager.INSTANCE.validatePendingNodesInChunk(level, chunk.getPos().x, chunk.getPos().z);
         PocketNodeManager.INSTANCE.onChunkLoad(level, chunk.getPos().x, chunk.getPos().z);

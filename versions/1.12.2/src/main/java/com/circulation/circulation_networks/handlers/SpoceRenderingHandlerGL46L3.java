@@ -2,30 +2,21 @@ package com.circulation.circulation_networks.handlers;
 
 import com.circulation.circulation_networks.math.Vec3d;
 import com.circulation.circulation_networks.utils.BuckyBallGeometry;
-//? if <1.20 {
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
-//?} else if <1.21 {
-/*import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-*///?} else {
-/*import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-*///?}
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
+import org.lwjgl.opengl.GL45;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
 
-//~ if >=1.20 '@SideOnly(Side.CLIENT)' -> '@OnlyIn(Dist.CLIENT)' {
 @SideOnly(Side.CLIENT)
-//~}
-public class SpoceRenderingHandlerGL32L3 extends SpoceRenderingHandlerGL32L2 {
+public class SpoceRenderingHandlerGL46L3 extends SpoceRenderingHandlerGL32L2 {
 
-    protected static FloatBuffer buildSphereDataDirect() {
+    private static FloatBuffer buildSphereDataDirect() {
         final int slices = 32, stacks = 32;
         FloatBuffer buf = MemoryUtil.memAllocFloat(slices * stacks * 6 * 3);
         for (int i = 0; i < slices; i++) {
@@ -44,7 +35,7 @@ public class SpoceRenderingHandlerGL32L3 extends SpoceRenderingHandlerGL32L2 {
         return buf;
     }
 
-    protected static FloatBuffer buildBuckyDataDirect() {
+    private static FloatBuffer buildBuckyDataDirect() {
         FloatBuffer buf = MemoryUtil.memAllocFloat(BuckyBallGeometry.edges.size() * 2 * 3);
         for (int[] e : BuckyBallGeometry.edges) {
             Vec3d v1 = BuckyBallGeometry.vertices.get(e[0]), v2 = BuckyBallGeometry.vertices.get(e[1]);
@@ -60,33 +51,33 @@ public class SpoceRenderingHandlerGL32L3 extends SpoceRenderingHandlerGL32L2 {
         FloatBuffer sd = buildSphereDataDirect();
         try {
             sphereVertexCount = sd.limit() / 3;
-            sphereVBO = GL15.glGenBuffers();
-            sphereVAO = GL30.glGenVertexArrays();
-            GL30.glBindVertexArray(sphereVAO);
-            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, sphereVBO);
-            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, sd, GL15.GL_STATIC_DRAW);
-            GL20.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0L);
-            GL20.glEnableVertexAttribArray(0);
-            GL30.glBindVertexArray(0);
-            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+            sphereVBO = GL45.glCreateBuffers();
+            GL45.glNamedBufferStorage(sphereVBO, sd, 0);
         } finally {
             MemoryUtil.memFree(sd);
         }
+        sphereVAO = GL30.glGenVertexArrays();
+        GL30.glBindVertexArray(sphereVAO);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, sphereVBO);
+        GL20.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0L);
+        GL20.glEnableVertexAttribArray(0);
+        GL30.glBindVertexArray(0);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
 
         FloatBuffer bd = buildBuckyDataDirect();
         try {
             buckyVertexCount = bd.limit() / 3;
-            buckyVBO = GL15.glGenBuffers();
-            buckyVAO = GL30.glGenVertexArrays();
-            GL30.glBindVertexArray(buckyVAO);
-            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buckyVBO);
-            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, bd, GL15.GL_STATIC_DRAW);
-            GL20.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0L);
-            GL20.glEnableVertexAttribArray(0);
-            GL30.glBindVertexArray(0);
-            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+            buckyVBO = GL45.glCreateBuffers();
+            GL45.glNamedBufferStorage(buckyVBO, bd, 0);
         } finally {
             MemoryUtil.memFree(bd);
         }
+        buckyVAO = GL30.glGenVertexArrays();
+        GL30.glBindVertexArray(buckyVAO);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buckyVBO);
+        GL20.glVertexAttribPointer(0, 3, GL11.GL_FLOAT, false, 0, 0L);
+        GL20.glEnableVertexAttribArray(0);
+        GL30.glBindVertexArray(0);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
     }
 }

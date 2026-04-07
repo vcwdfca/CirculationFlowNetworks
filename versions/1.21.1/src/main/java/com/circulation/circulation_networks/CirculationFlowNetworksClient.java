@@ -2,6 +2,7 @@ package com.circulation.circulation_networks;
 
 import com.circulation.circulation_networks.gui.GuiCirculationShielder;
 import com.circulation.circulation_networks.gui.GuiHub;
+import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
 import com.circulation.circulation_networks.handlers.CirculationShielderRenderingHandler;
 import com.circulation.circulation_networks.handlers.ConfigOverrideRenderingHandler;
 import com.circulation.circulation_networks.handlers.EnergyWarningRenderingHandler;
@@ -9,9 +10,7 @@ import com.circulation.circulation_networks.handlers.ItemToolHandler;
 import com.circulation.circulation_networks.handlers.NodeHighlightRenderingHandler;
 import com.circulation.circulation_networks.handlers.NodeNetworkRenderingHandler;
 import com.circulation.circulation_networks.handlers.PocketNodeRenderingHandler;
-import com.circulation.circulation_networks.gui.component.base.ComponentAtlas;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandler;
-import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL32L3;
 import com.circulation.circulation_networks.handlers.SpoceRenderingHandlerGL46L3;
 import com.circulation.circulation_networks.manager.MachineNodeBlockEntityManager;
 import com.circulation.circulation_networks.registry.CFNMenuTypes;
@@ -22,15 +21,16 @@ import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import org.lwjgl.opengl.GL11;
 
 final class CirculationFlowNetworksClient {
 
     private static OpenGLLevel openGLLevel = OpenGLLevel.GL_1_1;
+    private static String openGLVersionString = "unavailable";
 
     private CirculationFlowNetworksClient() {
     }
@@ -88,14 +88,17 @@ final class CirculationFlowNetworksClient {
         try {
             versionStr = GL11.glGetString(GL11.GL_VERSION);
         } catch (Throwable throwable) {
-            CirculationFlowNetworks.LOGGER.warn("Failed to obtain OpenGL version, falling back to base Spoce renderer", throwable);
+            openGLVersionString = "unavailable";
+            CirculationFlowNetworks.LOGGER.warn("Failed to obtain OpenGL version", throwable);
             return OpenGLLevel.GL_1_1;
         }
 
         if (versionStr == null) {
-            CirculationFlowNetworks.LOGGER.warn("Failed to obtain OpenGL version, falling back to base Spoce renderer");
+            openGLVersionString = "unavailable";
+            CirculationFlowNetworks.LOGGER.warn("Failed to obtain OpenGL version");
             return OpenGLLevel.GL_1_1;
         }
+        openGLVersionString = versionStr;
 
         try {
             String[] parts = versionStr.split("[. ]");
@@ -114,11 +117,18 @@ final class CirculationFlowNetworksClient {
         return OpenGLLevel.GL_1_1;
     }
 
+    private static SpoceRenderingHandler ensureSupportedOpenGL() {
+        String message = "OpenGL version too low for Circulation Flow Networks. Detected: "
+            + openGLVersionString + ". Minimum required: 3.2.";
+        CirculationFlowNetworks.LOGGER.error(message);
+        throw new IllegalStateException(message);
+    }
+
     private static SpoceRenderingHandler createSpoceHandler() {
         return switch (openGLLevel) {
             case GL_4_6 -> new SpoceRenderingHandlerGL46L3();
-            case GL_3_2_PLUS -> new SpoceRenderingHandlerGL32L3();
-            default -> new SpoceRenderingHandler();
+            case GL_3_2_PLUS -> new SpoceRenderingHandler();
+            default -> ensureSupportedOpenGL();
         };
     }
 
