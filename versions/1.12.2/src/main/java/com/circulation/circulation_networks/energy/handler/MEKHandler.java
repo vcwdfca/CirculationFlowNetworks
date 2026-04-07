@@ -59,14 +59,6 @@ public final class MEKHandler implements IEnergyHandler {
     public MEKHandler() {
     }
 
-    private static void clampToDirectTransfer(EnergyAmount amount) {
-        clampToMaximum(amount, MAX_DIRECT_DOUBLE_TRANSFER);
-    }
-
-    private static void clampToScaledTransfer(EnergyAmount amount) {
-        clampToMaximum(amount, MAX_SCALED_DOUBLE_TRANSFER);
-    }
-
     private static void clampToMaximum(EnergyAmount amount, BigInteger maximum) {
         if (amount == null || !amount.isInitialized() || amount.isNegative()) {
             return;
@@ -91,8 +83,10 @@ public final class MEKHandler implements IEnergyHandler {
             energyType = EnergyType.STORAGE;
             @SuppressWarnings("unchecked")
             SynchronizedMatrixData m = ((TileEntityMultiblock<SynchronizedMatrixData>) tileEntity).structure;
-            EnergyAmountConversionUtils.setFromDoubleFloor(maxExtract, m.getRemainingOutput());
-            EnergyAmountConversionUtils.setFromDoubleFloor(maxReceive, m.getRemainingInput());
+            if (m != null) {
+                EnergyAmountConversionUtils.setFromDoubleFloor(maxExtract, m.getRemainingOutput());
+                EnergyAmountConversionUtils.setFromDoubleFloor(maxReceive, m.getRemainingInput());
+            }
         } else {
             boolean a = false;
             boolean b = false;
@@ -135,8 +129,8 @@ public final class MEKHandler implements IEnergyHandler {
 
     @Override
     public void clear() {
-        maxReceive.init(MAX_SCALED_DOUBLE_TRANSFER);
-        maxExtract.init(MAX_SCALED_DOUBLE_TRANSFER);
+        maxReceive.setZero();
+        maxExtract.setZero();
         send = null;
         receive = null;
         receiveItem = null;
@@ -151,7 +145,7 @@ public final class MEKHandler implements IEnergyHandler {
     public EnergyAmount receiveEnergy(EnergyAmount maxReceive, @Nullable HubNode.HubMetadata hubMetadata) {
         if (isItem) {
             EnergyAmount accepted = EnergyAmount.obtain(needEnergy).min(maxReceive);
-            clampToDirectTransfer(accepted);
+            clampToMaximum(accepted, MAX_DIRECT_DOUBLE_TRANSFER);
             if (!accepted.isZero()) {
                 receiveItem.setEnergy(stack, receiveItem.getEnergy(stack) + EnergyAmountConversionUtils.toDoubleClamped(accepted));
                 needEnergy.subtract(accepted);
@@ -161,7 +155,7 @@ public final class MEKHandler implements IEnergyHandler {
             if (receive == null) return EnergyAmounts.ZERO;
             EnergyAmount receivable = canReceiveValue(hubMetadata);
             receivable.min(maxReceive);
-            clampToScaledTransfer(receivable);
+            clampToMaximum(receivable, MAX_SCALED_DOUBLE_TRANSFER);
             if (!receivable.isZero()) {
                 receive.setEnergy(receive.getEnergy() + EnergyAmountConversionUtils.toDoubleClamped(receivable) * FE_TO_MEK_RATIO);
             }
@@ -174,7 +168,7 @@ public final class MEKHandler implements IEnergyHandler {
         if (send == null) return EnergyAmounts.ZERO;
         EnergyAmount extractable = canExtractValue(hubMetadata);
         extractable.min(maxExtract);
-        clampToScaledTransfer(extractable);
+        clampToMaximum(extractable, MAX_SCALED_DOUBLE_TRANSFER);
         if (!extractable.isZero() && !creative) {
             send.setEnergy(send.getEnergy() - EnergyAmountConversionUtils.toDoubleClamped(extractable) * FE_TO_MEK_RATIO);
         }
