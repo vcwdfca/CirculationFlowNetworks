@@ -40,6 +40,11 @@ public class TileEntityCirculationShielder extends BaseTileEntity implements ICi
     }
 
     @Override
+    public BlockPos getBEPos() {
+        return getPos();
+    }
+
+    @Override
     public boolean hasGui() {
         return true;
     }

@@ -94,7 +94,7 @@ public class CirculationShielderBlockEntity extends BaseCFNBlockEntity implement
     }
 
     @Override
-    public BlockPos getPos() {
+    public BlockPos getBEPos() {
         return getBlockPos();
     }
 

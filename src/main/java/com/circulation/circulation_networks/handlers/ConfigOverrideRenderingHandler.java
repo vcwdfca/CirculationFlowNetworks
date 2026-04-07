@@ -102,6 +102,8 @@ public final class ConfigOverrideRenderingHandler {
         //?} else if <1.21 {
         /*PoseStack mvStack = RenderSystem.getModelViewStack();
         mvStack.pushPose();
+        mvStack.last().pose().set(event.getPoseStack().last().pose());
+        mvStack.last().normal().set(event.getPoseStack().last().normal());
         mvStack.translate(-doubleX, -doubleY, -doubleZ);
         RenderSystem.applyModelViewMatrix();
         *///?} else {

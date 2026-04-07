@@ -471,6 +471,9 @@ repositories {
     }
     maven {
         url = uri("https://repo.spongepowered.org/maven")
+        content {
+            includeGroup("org.spongepowered")
+        }
     }
     maven {
         name = "GeckoLib"

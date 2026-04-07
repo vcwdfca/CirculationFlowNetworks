@@ -37,6 +37,14 @@ public final class NodeNetworkRenderingHandler {
     private final Multiset<Pos> nodePoss = HashMultiset.create();
     private final Multiset<Pos> machinePoss = HashMultiset.create();
 
+    private static void copyEventPoseToModelView(PoseStack eventPoseStack, PoseStack modelViewStack) {
+        if (eventPoseStack == null) {
+            return;
+        }
+        modelViewStack.last().pose().set(eventPoseStack.last().pose());
+        modelViewStack.last().normal().set(eventPoseStack.last().normal());
+    }
+
     private static void drawSphere(float r, float g, float b, float radius, float alpha) {
         RenderingUtils.drawSphere(r, g, b, radius, alpha);
     }
@@ -129,6 +137,7 @@ public final class NodeNetworkRenderingHandler {
 
         PoseStack mvStack = RenderSystem.getModelViewStack();
         mvStack.pushPose();
+        copyEventPoseToModelView(event.getPoseStack(), mvStack);
         mvStack.translate(-doubleX, -doubleY, -doubleZ);
         RenderSystem.applyModelViewMatrix();
         RenderSystem.enableBlend();

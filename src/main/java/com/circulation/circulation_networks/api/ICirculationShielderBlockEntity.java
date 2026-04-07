@@ -14,5 +14,5 @@ public interface ICirculationShielderBlockEntity {
 
     boolean isShowingRange();
 
-    BlockPos getPos();
+    BlockPos getBEPos();
 }

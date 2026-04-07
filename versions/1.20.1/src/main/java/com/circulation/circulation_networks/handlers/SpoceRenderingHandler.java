@@ -76,6 +76,14 @@ public class SpoceRenderingHandler {
         return Math.min(1.0f, v * 1.3f);
     }
 
+    private static void copyEventPoseToModelView(PoseStack eventPoseStack, PoseStack modelViewStack) {
+        if (eventPoseStack == null) {
+            return;
+        }
+        modelViewStack.last().pose().set(eventPoseStack.last().pose());
+        modelViewStack.last().normal().set(eventPoseStack.last().normal());
+    }
+
     protected static FloatBuffer buildSphereDataDirect() {
         final int slices = 32, stacks = 32;
         FloatBuffer buf = MemoryUtil.memAllocFloat(slices * stacks * 6 * 3);
@@ -297,10 +305,12 @@ public class SpoceRenderingHandler {
 
         PoseStack modelViewStack = RenderSystem.getModelViewStack();
         modelViewStack.pushPose();
+        copyEventPoseToModelView(event.getPoseStack(), modelViewStack);
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         modelViewStack.translate(tx, ty, tz);
         RenderSystem.applyModelViewMatrix();
         RenderSystem.enableBlend();
+        RenderSystem.enableDepthTest();
         RenderSystem.disableCull();
         RenderSystem.depthMask(false);
 
@@ -314,6 +324,7 @@ public class SpoceRenderingHandler {
             RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
             RenderSystem.depthMask(true);
             RenderSystem.enableCull();
+            RenderSystem.enableDepthTest();
             RenderSystem.defaultBlendFunc();
             RenderSystem.disableBlend();
             modelViewStack.popPose();
@@ -363,6 +374,7 @@ public class SpoceRenderingHandler {
         RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
         RenderSystem.depthMask(true);
         RenderSystem.enableCull();
+        RenderSystem.enableDepthTest();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableBlend();
         modelViewStack.popPose();

@@ -15,7 +15,17 @@ legacyForge {
         neoForgeVersion = neoforge_version
     }
 
+    mods {
+        register(mod_id.toString()) {
+            sourceSet sourceSets.main
+        }
+    }
+
     runs {
+        configureEach {
+            loadedMods = [mods.getByName(mod_id.toString())]
+        }
+
         client {
             client()
         }
@@ -24,12 +34,6 @@ legacyForge {
         }
         data {
             data()
-        }
-    }
-
-    mods {
-        register(mod_id.toString()) {
-            sourceSet sourceSets.main
         }
     }
 }

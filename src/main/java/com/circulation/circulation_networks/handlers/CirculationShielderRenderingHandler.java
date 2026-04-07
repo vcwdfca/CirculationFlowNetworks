@@ -56,6 +56,7 @@ public final class CirculationShielderRenderingHandler {
     private static final float ANIMATION_DURATION = 2.0f;
 
     private final Map<ICirculationShielderBlockEntity, Float> animProgress = new WeakHashMap<>();
+    private final Map<ICirculationShielderBlockEntity, Float> lastAnimProgress = new WeakHashMap<>();
     //? if >=1.20 {
     /*private PoseStack currentWorldPoseStack;
     *///?}
@@ -65,6 +66,7 @@ public final class CirculationShielderRenderingHandler {
 
     public void clear() {
         animProgress.clear();
+        lastAnimProgress.clear();
     }
 
     @SubscribeEvent
@@ -75,6 +77,7 @@ public final class CirculationShielderRenderingHandler {
         /*public void onClientTick(ClientTickEvent.Pre event) {
          *///?}
 
+        lastAnimProgress.putAll(animProgress);
         animProgress.replaceAll((tile, progress) -> {
             if (tile.isShowingRange()) {
                 return AnimationUtils.advanceTowardsOne(progress, 1.0f / (ANIMATION_DURATION * 20.0f));
@@ -84,7 +87,7 @@ public final class CirculationShielderRenderingHandler {
         });
     }
 
-    private void renderShielderRange(ICirculationShielderBlockEntity shielder, double playerX, double playerY, double playerZ) {
+    private void renderShielderRange(ICirculationShielderBlockEntity shielder, double playerX, double playerY, double playerZ, float partialTicks) {
         //? if <1.20 {
         GlStateManager.pushMatrix();
         GlStateManager.translate(-playerX, -playerY, -playerZ);
@@ -99,6 +102,10 @@ public final class CirculationShielderRenderingHandler {
         //?} else if <1.21 {
         /*PoseStack modelViewStack = RenderSystem.getModelViewStack();
         modelViewStack.pushPose();
+        if (currentWorldPoseStack != null) {
+            modelViewStack.last().pose().set(currentWorldPoseStack.last().pose());
+            modelViewStack.last().normal().set(currentWorldPoseStack.last().normal());
+        }
         modelViewStack.translate(-playerX, -playerY, -playerZ);
         RenderSystem.applyModelViewMatrix();
 
@@ -124,12 +131,14 @@ public final class CirculationShielderRenderingHandler {
 
         try {
             int scope = shielder.getScope();
-            double x = shielder.getPos().getX();
-            double y = shielder.getPos().getY();
-            double z = shielder.getPos().getZ();
+            double x = shielder.getBEPos().getX();
+            double y = shielder.getBEPos().getY();
+            double z = shielder.getBEPos().getZ();
 
             float progress = animProgress.getOrDefault(shielder, 0.0f);
-            float easedProgress = AnimationUtils.easeOutCubic(progress);
+            float lastProgress = lastAnimProgress.getOrDefault(shielder, progress);
+            float interpolatedProgress = lastProgress + (progress - lastProgress) * partialTicks;
+            float easedProgress = AnimationUtils.easeOutCubic(interpolatedProgress);
             float expandedScope = scope * easedProgress + RANGE_EXPANSION;
 
             RenderingUtils.drawFilledBox(
@@ -179,6 +188,7 @@ public final class CirculationShielderRenderingHandler {
         double playerX = RenderingUtils.getPlayerRenderX(event.getPartialTicks());
         double playerY = RenderingUtils.getPlayerRenderY(event.getPartialTicks());
         double playerZ = RenderingUtils.getPlayerRenderZ(event.getPartialTicks());
+        float partialTicks = event.getPartialTicks();
 
         int dimId = mc.player.dimension;
         //?} else if <1.21 {
@@ -192,6 +202,7 @@ public final class CirculationShielderRenderingHandler {
         double playerX = cameraPos.x;
         double playerY = cameraPos.y;
         double playerZ = cameraPos.z;
+        float partialTicks = event.getPartialTick();
 
         int dimId = mc.level.dimension().location().hashCode();
     *///?} else {
@@ -205,6 +216,7 @@ public final class CirculationShielderRenderingHandler {
         double playerX = cameraPos.x;
         double playerY = cameraPos.y;
         double playerZ = cameraPos.z;
+        float partialTicks = event.getPartialTick().getGameTimeDeltaPartialTick(false);
 
         int dimId = mc.level.dimension().location().hashCode();
     *///?}
@@ -222,7 +234,8 @@ public final class CirculationShielderRenderingHandler {
         for (ICirculationShielderBlockEntity shielder : shielders) {
             if (shielder.isShowingRange()) {
                 animProgress.putIfAbsent(shielder, 0.0f);
-                renderShielderRange(shielder, playerX, playerY, playerZ);
+                lastAnimProgress.putIfAbsent(shielder, animProgress.getOrDefault(shielder, 0.0f));
+                renderShielderRange(shielder, playerX, playerY, playerZ, partialTicks);
             }
         }
         //? if >=1.20 {

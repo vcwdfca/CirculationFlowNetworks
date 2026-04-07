@@ -131,6 +131,7 @@ public final class RenderingUtils {
         BufferBuilder buf = tess.getBuilder();
 
         RenderSystem.setShaderColor(r, g, b, a);
+        RenderSystem.setShader(GameRenderer::getPositionShader);
         buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
         *///?} else {
         /*Tesselator tess = Tesselator.getInstance();
@@ -238,6 +239,7 @@ public final class RenderingUtils {
 
         RenderSystem.setShaderColor(r, g, b, a);
         RenderSystem.lineWidth(lineWidth);
+        RenderSystem.setShader(GameRenderer::getPositionShader);
         buf.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);
         *///?} else {
         /*Tesselator tess = Tesselator.getInstance();
@@ -375,6 +377,7 @@ public final class RenderingUtils {
         BufferBuilder buf = tess.getBuilder();
 
         RenderSystem.setShaderColor(r, g, b, alpha);
+        RenderSystem.setShader(GameRenderer::getPositionShader);
         buf.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION);
         *///?} else {
         /*Tesselator tess = Tesselator.getInstance();
@@ -600,6 +603,7 @@ public final class RenderingUtils {
         //?} else if <1.21 {
         /*RenderSystem.setShaderColor(r, g, b, 1.0f);
         RenderSystem.lineWidth(lineWidth);
+        RenderSystem.setShader(GameRenderer::getPositionShader);
         Tesselator tess = Tesselator.getInstance();
         BufferBuilder buf = tess.getBuilder();
         buf.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION);

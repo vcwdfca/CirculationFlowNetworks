@@ -24,7 +24,7 @@ void main() {
 
     float diff = abs(sceneLinear - fragLinear);
 
-    float halfWidth = u_IntersectionWidth * 0.7;
+    float halfWidth = u_IntersectionWidth;
     float intersection = 1.0 - smoothstep(halfWidth, u_IntersectionWidth, diff);
 
     fragColor = mix(u_SphereColor, u_IntersectionColor, intersection);

@@ -49,10 +49,8 @@ public final class SpoceRendering implements Packet<SpoceRendering> {
             if (mc.level == null || SpoceRenderingHandler.INSTANCE == null) {
                 return;
             }
-            var blockEntity = mc.level.getBlockEntity(message.pos);
-            if (blockEntity != null) {
-                SpoceRenderingHandler.INSTANCE.setStaus(blockEntity, message.linkScope, message.energyScope, message.chargingScope);
-            }
+            int dimId = mc.level.dimension().location().hashCode();
+            SpoceRenderingHandler.INSTANCE.setStaus(dimId, message.pos, message.linkScope, message.energyScope, message.chargingScope);
         });
         context.setPacketHandled(true);
     }
